@@ -11,6 +11,8 @@ import Formations from "./pages/Formations";
 import Stagiaires from "./pages/Stagiaires";
 import Import from "./pages/Import";
 import Documents from "./pages/Documents";
+import AccessTokens from "./pages/AccessTokens";
+import StagiairePortal from "./pages/StagiairePortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/portail" element={<StagiairePortal />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -31,6 +34,7 @@ const App = () => (
               <Route path="/stagiaires" element={<Stagiaires />} />
               <Route path="/import" element={<Import />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/access-tokens" element={<AccessTokens />} />
               <Route path="/settings" element={<Dashboard />} />
             </Route>
             <Route path="*" element={<NotFound />} />
