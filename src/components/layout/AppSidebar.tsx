@@ -9,7 +9,8 @@ import {
   LogOut,
   ChevronLeft,
   Menu,
-  Link2
+  Link2,
+  UserCog
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,7 @@ import { useState } from 'react';
 const navigation = [
   { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Formations', href: '/formations', icon: GraduationCap },
+  { name: 'Formateurs', href: '/formateurs', icon: UserCog },
   { name: 'Stagiaires', href: '/stagiaires', icon: Users },
   { name: 'Import', href: '/import', icon: Upload },
   { name: 'Documents', href: '/documents', icon: FileText },

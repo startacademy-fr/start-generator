@@ -47,6 +47,7 @@ import {
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, Stagiaire, DocumentStagiaire } from '@/types/database';
+import { downloadPDF } from '@/lib/pdf-generator';
 
 const DOCUMENT_TYPES = [
   { id: 'positionnement', label: 'Questionnaire de positionnement', icon: '📋' },
@@ -553,10 +554,38 @@ export default function Documents() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" title="Visualiser">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Télécharger PDF"
+                          onClick={() => {
+                            const contenu = doc.contenu as any;
+                            downloadPDF({
+                              type: doc.type,
+                              stagiaire: {
+                                prenom: inscription.stagiaire.prenom,
+                                nom: inscription.stagiaire.nom,
+                                email: inscription.stagiaire.email,
+                                entreprise: inscription.stagiaire.entreprise || undefined,
+                                fonction: inscription.stagiaire.fonction || undefined,
+                              },
+                              formation: {
+                                titre: inscription.formation.titre,
+                                lieu: inscription.formation.lieu,
+                                date_debut: inscription.formation.date_debut,
+                                date_fin: inscription.formation.date_fin,
+                                nombre_heures: inscription.formation.nombre_heures,
+                              },
+                              contenu: contenu,
+                              score: doc.score,
+                              date_soumission: doc.date_soumission,
+                            });
+                            toast.success('PDF téléchargé');
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>

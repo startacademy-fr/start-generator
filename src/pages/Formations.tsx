@@ -24,10 +24,11 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Formation, Profile } from '@/types/database';
+import type { Formation, Profile, Stagiaire } from '@/types/database';
+import { AddStagiaireToFormationDialog } from '@/components/AddStagiaireToFormationDialog';
 
 export default function Formations() {
   const { isAdmin, isAssistante } = useAuth();
@@ -38,6 +39,7 @@ export default function Formations() {
   const [editingFormation, setEditingFormation] = useState<Formation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [addStagiaireFormation, setAddStagiaireFormation] = useState<Formation | null>(null);
 
   // Form state
   const [titre, setTitre] = useState('');
@@ -93,6 +95,34 @@ export default function Formations() {
       });
       return counts;
     },
+  });
+
+  // Fetch all stagiaires
+  const { data: stagiaires } = useQuery({
+    queryKey: ['stagiaires-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stagiaires')
+        .select('*')
+        .order('nom', { ascending: true });
+      if (error) throw error;
+      return data as Stagiaire[];
+    },
+  });
+
+  // Fetch inscriptions for the selected formation
+  const { data: formationInscriptions } = useQuery({
+    queryKey: ['formation-stagiaires', addStagiaireFormation?.id],
+    queryFn: async () => {
+      if (!addStagiaireFormation) return [];
+      const { data, error } = await supabase
+        .from('inscriptions')
+        .select('stagiaire_id')
+        .eq('formation_id', addStagiaireFormation.id);
+      if (error) throw error;
+      return data.map(i => i.stagiaire_id);
+    },
+    enabled: !!addStagiaireFormation,
   });
 
   // Create/Update mutation
@@ -407,6 +437,14 @@ export default function Formations() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => setAddStagiaireFormation(formation)}
+                          title="Ajouter des stagiaires"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => openDialog(formation)}
                         >
                           <Pencil className="h-4 w-4" />
@@ -436,6 +474,18 @@ export default function Formations() {
           </Table>
         )}
       </div>
+
+      {/* Add stagiaire dialog */}
+      {addStagiaireFormation && stagiaires && (
+        <AddStagiaireToFormationDialog
+          open={!!addStagiaireFormation}
+          onOpenChange={(open) => !open && setAddStagiaireFormation(null)}
+          formationId={addStagiaireFormation.id}
+          formationTitre={addStagiaireFormation.titre}
+          stagiaires={stagiaires}
+          existingInscriptionIds={formationInscriptions || []}
+        />
+      )}
     </div>
   );
 }
