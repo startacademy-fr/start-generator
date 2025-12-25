@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import logo from '@/assets/logo.png';
 
 const navigation = [
   { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
@@ -50,14 +51,8 @@ export function AppSidebar() {
         {/* Header */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-                <GraduationCap className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-sidebar-foreground">Start Academy</span>
-                <span className="text-xs text-sidebar-foreground/60">Qualiopi Generator</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="Start Academy" className="h-10 w-auto" />
             </div>
           )}
           <Button
