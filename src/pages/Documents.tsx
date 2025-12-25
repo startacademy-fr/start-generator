@@ -50,7 +50,7 @@ import type { Formation, Stagiaire, DocumentStagiaire } from '@/types/database';
 import { downloadPDF } from '@/lib/pdf-generator';
 
 const DOCUMENT_TYPES = [
-  { id: 'positionnement', label: 'Questionnaire de positionnement', icon: '📋' },
+  { id: 'questionnaire_positionnement', label: 'Questionnaire de positionnement', icon: '📋' },
   { id: 'analyse_besoin', label: 'Analyse du besoin', icon: '🎯' },
   { id: 'qcm', label: 'QCM', icon: '✅' },
   { id: 'satisfaction_chaud', label: 'Satisfaction à chaud', icon: '🔥' },
@@ -160,7 +160,7 @@ export default function Documents() {
                 inscription_id: inscription.id,
                 type: docType,
                 contenu: content,
-                statut: 'genere',
+                statut: 'genere_auto',
                 genere_automatiquement: true,
                 score: docType === 'qcm' ? Math.floor(Math.random() * 20) + 80 : // 80-100%
                        docType.includes('satisfaction') ? Math.floor(Math.random() * 10) + 90 : // 90-100%
@@ -210,7 +210,7 @@ export default function Documents() {
     };
 
     switch (type) {
-      case 'positionnement':
+      case 'questionnaire_positionnement':
         return {
           ...baseContent,
           reponses: generatePositionnementReponses(),
@@ -382,10 +382,12 @@ export default function Documents() {
 
   const getStatusBadge = (statut: string) => {
     switch (statut) {
-      case 'genere':
-        return <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" />Généré</Badge>;
-      case 'soumis':
-        return <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" />Soumis</Badge>;
+      case 'genere_auto':
+        return <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" />Généré auto</Badge>;
+      case 'complete':
+        return <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" />Complété</Badge>;
+      case 'en_cours':
+        return <Badge variant="outline" className="gap-1"><RefreshCw className="h-3 w-3" />En cours</Badge>;
       case 'en_attente':
         return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" />En attente</Badge>;
       default:
