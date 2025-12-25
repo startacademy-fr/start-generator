@@ -122,7 +122,15 @@ export default function Import() {
   };
 
   const handleMappingChange = (column: string, headerIndex: string) => {
-    setColumnMapping(prev => ({ ...prev, [column]: headerIndex }));
+    if (headerIndex === 'not_mapped') {
+      setColumnMapping(prev => {
+        const newMapping = { ...prev };
+        delete newMapping[column];
+        return newMapping;
+      });
+    } else {
+      setColumnMapping(prev => ({ ...prev, [column]: headerIndex }));
+    }
   };
 
   const validateAndPreview = () => {
@@ -221,7 +229,7 @@ export default function Import() {
           }
 
           // Create inscription if formation selected
-          if (selectedFormation) {
+          if (selectedFormation && selectedFormation !== 'none') {
             // Check if inscription already exists
             const { data: existingInscription } = await supabase
               .from('inscriptions')
@@ -330,8 +338,8 @@ export default function Import() {
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une formation pour l'inscription automatique" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Aucune formation</SelectItem>
+              <SelectContent>
+                  <SelectItem value="none">Aucune formation</SelectItem>
                   {formations?.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.titre} ({new Date(f.date_debut).toLocaleDateString('fr-FR')})
@@ -401,7 +409,7 @@ export default function Import() {
                       <SelectValue placeholder="Non mappé" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Non mappé</SelectItem>
+                      <SelectItem value="not_mapped">Non mappé</SelectItem>
                       {headers.map((h, i) => (
                         <SelectItem key={i} value={i.toString()}>
                           {h}

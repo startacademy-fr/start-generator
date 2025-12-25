@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Formations from "./pages/Formations";
+import Formateurs from "./pages/Formateurs";
 import Stagiaires from "./pages/Stagiaires";
 import Import from "./pages/Import";
 import Documents from "./pages/Documents";
@@ -31,6 +32,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/formations" element={<Formations />} />
+              <Route path="/formateurs" element={<Formateurs />} />
               <Route path="/stagiaires" element={<Stagiaires />} />
               <Route path="/import" element={<Import />} />
               <Route path="/documents" element={<Documents />} />
