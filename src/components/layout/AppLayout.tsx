@@ -2,10 +2,11 @@ import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function AppLayout() {
-  const { user, loading, roles } = useAuth();
+  const { user, loading, roles, signOut } = useAuth();
 
   if (loading) {
     return (
@@ -34,6 +35,14 @@ export function AppLayout() {
           <p className="text-sm text-muted-foreground">
             Contactez un administrateur pour obtenir les droits d'accès.
           </p>
+          <Button 
+            variant="outline" 
+            onClick={() => signOut()}
+            className="mt-4"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Se déconnecter
+          </Button>
         </div>
       </div>
     );
