@@ -25,13 +25,15 @@ interface DocumentData {
 }
 
 const DOCUMENT_LABELS: Record<string, string> = {
+  questionnaire_positionnement: 'Questionnaire de positionnement',
   positionnement: 'Questionnaire de positionnement',
   analyse_besoin: 'Analyse du besoin',
-  qcm: 'QCM d\'évaluation',
+  qcm: "QCM d'évaluation",
   satisfaction_chaud: 'Évaluation de satisfaction à chaud',
   satisfaction_froid: 'Évaluation de satisfaction à froid',
   deroule_pedagogique: 'Déroulé pédagogique',
-  grille_observation: 'Grille d\'observation et d\'amélioration',
+  grille_observation: "Grille d'observation et d'amélioration",
+  fiche_emargement: "Fiche d'émargement",
 };
 
 const PRIMARY_COLOR: [number, number, number] = [14, 116, 144]; // teal-600
@@ -126,6 +128,7 @@ export function generatePDF(data: DocumentData): jsPDF {
   doc.setTextColor(...TEXT_COLOR);
   
   switch (data.type) {
+    case 'questionnaire_positionnement':
     case 'positionnement':
       yPos = renderPositionnement(doc, yPos, margin, data.contenu);
       break;
@@ -382,7 +385,20 @@ function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number) {
 export function downloadPDF(data: DocumentData, filename?: string) {
   const doc = generatePDF(data);
   const name = filename || `${data.type}_${data.stagiaire.nom}_${data.stagiaire.prenom}.pdf`;
-  doc.save(name);
+
+  // jsPDF.save() can be unreliable inside iframes; use a Blob + anchor download instead.
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function getPDFBlob(data: DocumentData): Blob {
