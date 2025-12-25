@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -105,30 +104,50 @@ export function StagiaireMultiSelect({
 
           <ScrollArea className="h-[180px] rounded-md border">
             <div className="p-2 space-y-1">
-              {filteredStagiaires.map((stagiaire) => (
-                <div
-                  key={stagiaire.id}
-                  className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors text-sm ${
-                    selectedIds.includes(stagiaire.id)
-                      ? 'bg-primary/10'
-                      : 'hover:bg-muted'
-                  }`}
-                  onClick={() => toggleStagiaire(stagiaire.id)}
-                >
-                  <Checkbox
-                    checked={selectedIds.includes(stagiaire.id)}
-                    onCheckedChange={() => toggleStagiaire(stagiaire.id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">
-                      {stagiaire.prenom} {stagiaire.nom}
+              {filteredStagiaires.map((stagiaire) => {
+                const isSelected = selectedIds.includes(stagiaire.id);
+                return (
+                  <div
+                    key={stagiaire.id}
+                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors text-sm ${
+                      isSelected ? 'bg-primary/10' : 'hover:bg-muted'
+                    }`}
+                    onClick={() => toggleStagiaire(stagiaire.id)}
+                  >
+                    <div
+                      className={`h-4 w-4 shrink-0 rounded-sm border ${
+                        isSelected
+                          ? 'bg-primary border-primary text-primary-foreground'
+                          : 'border-input'
+                      } flex items-center justify-center`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {isSelected && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-3 w-3"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {stagiaire.email}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">
+                        {stagiaire.prenom} {stagiaire.nom}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {stagiaire.email}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         </>
