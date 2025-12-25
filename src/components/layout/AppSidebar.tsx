@@ -8,7 +8,8 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  Menu
+  Menu,
+  Link2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Stagiaires', href: '/stagiaires', icon: Users },
   { name: 'Import', href: '/import', icon: Upload },
   { name: 'Documents', href: '/documents', icon: FileText },
+  { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2 },
 ];
 
 export function AppSidebar() {
