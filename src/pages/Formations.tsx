@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, Profile, Stagiaire } from '@/types/database';
 import { AddStagiaireToFormationDialog } from '@/components/AddStagiaireToFormationDialog';
+import { StagiaireMultiSelect } from '@/components/StagiaireMultiSelect';
 
 export default function Formations() {
   const { isAdmin, isAssistante } = useAuth();
@@ -48,6 +49,7 @@ export default function Formations() {
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [formateurId, setFormateurId] = useState('');
+  const [selectedStagiaireIds, setSelectedStagiaireIds] = useState<string[]>([]);
 
   // Fetch formations
   const { data: formations, isLoading } = useQuery({
@@ -110,7 +112,22 @@ export default function Formations() {
     },
   });
 
-  // Fetch inscriptions for the selected formation
+  // Fetch inscriptions for the selected formation (for edit dialog)
+  const { data: editFormationInscriptions } = useQuery({
+    queryKey: ['formation-stagiaires-edit', editingFormation?.id],
+    queryFn: async () => {
+      if (!editingFormation) return [];
+      const { data, error } = await supabase
+        .from('inscriptions')
+        .select('stagiaire_id')
+        .eq('formation_id', editingFormation.id);
+      if (error) throw error;
+      return data.map(i => i.stagiaire_id);
+    },
+    enabled: !!editingFormation,
+  });
+
+  // Fetch inscriptions for the add stagiaire dialog
   const { data: formationInscriptions } = useQuery({
     queryKey: ['formation-stagiaires', addStagiaireFormation?.id],
     queryFn: async () => {
@@ -134,22 +151,82 @@ export default function Formations() {
       date_debut: string;
       date_fin: string | null;
       formateur_id: string | null;
+      stagiaireIds: string[];
     }) => {
+      let formationId: string;
+
       if (editingFormation) {
         const { error } = await supabase
           .from('formations')
-          .update(formData)
+          .update({
+            titre: formData.titre,
+            lieu: formData.lieu,
+            nombre_heures: formData.nombre_heures,
+            date_debut: formData.date_debut,
+            date_fin: formData.date_fin,
+            formateur_id: formData.formateur_id,
+          })
           .eq('id', editingFormation.id);
         if (error) throw error;
+        formationId = editingFormation.id;
+
+        // Sync inscriptions: delete removed, add new
+        const currentIds = editFormationInscriptions || [];
+        const toRemove = currentIds.filter(id => !formData.stagiaireIds.includes(id));
+        const toAdd = formData.stagiaireIds.filter(id => !currentIds.includes(id));
+
+        if (toRemove.length > 0) {
+          const { error: delError } = await supabase
+            .from('inscriptions')
+            .delete()
+            .eq('formation_id', formationId)
+            .in('stagiaire_id', toRemove);
+          if (delError) throw delError;
+        }
+
+        if (toAdd.length > 0) {
+          const inscriptions = toAdd.map(stagiaireId => ({
+            formation_id: formationId,
+            stagiaire_id: stagiaireId,
+          }));
+          const { error: addError } = await supabase
+            .from('inscriptions')
+            .insert(inscriptions);
+          if (addError) throw addError;
+        }
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('formations')
-          .insert(formData);
+          .insert({
+            titre: formData.titre,
+            lieu: formData.lieu,
+            nombre_heures: formData.nombre_heures,
+            date_debut: formData.date_debut,
+            date_fin: formData.date_fin,
+            formateur_id: formData.formateur_id,
+          })
+          .select('id')
+          .single();
         if (error) throw error;
+        formationId = data.id;
+
+        // Add inscriptions for new formation
+        if (formData.stagiaireIds.length > 0) {
+          const inscriptions = formData.stagiaireIds.map(stagiaireId => ({
+            formation_id: formationId,
+            stagiaire_id: stagiaireId,
+          }));
+          const { error: inscError } = await supabase
+            .from('inscriptions')
+            .insert(inscriptions);
+          if (inscError) throw inscError;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['formations'] });
+      queryClient.invalidateQueries({ queryKey: ['inscriptions-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['formation-stagiaires-edit'] });
       toast.success(editingFormation ? 'Formation modifiée' : 'Formation créée');
       closeDialog();
     },
@@ -176,7 +253,7 @@ export default function Formations() {
     },
   });
 
-  const openDialog = (formation?: Formation) => {
+  const openDialog = async (formation?: Formation) => {
     if (formation) {
       setEditingFormation(formation);
       setTitre(formation.titre);
@@ -185,6 +262,12 @@ export default function Formations() {
       setDateDebut(formation.date_debut);
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
+      // Load current inscriptions
+      const { data } = await supabase
+        .from('inscriptions')
+        .select('stagiaire_id')
+        .eq('formation_id', formation.id);
+      setSelectedStagiaireIds(data?.map(i => i.stagiaire_id) || []);
     } else {
       setEditingFormation(null);
       setTitre('');
@@ -193,6 +276,7 @@ export default function Formations() {
       setDateDebut('');
       setDateFin('');
       setFormateurId('');
+      setSelectedStagiaireIds([]);
     }
     setIsDialogOpen(true);
   };
@@ -200,6 +284,7 @@ export default function Formations() {
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingFormation(null);
+    setSelectedStagiaireIds([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -211,6 +296,7 @@ export default function Formations() {
       date_debut: dateDebut,
       date_fin: dateFin || null,
       formateur_id: formateurId || null,
+      stagiaireIds: selectedStagiaireIds,
     });
   };
 
@@ -243,7 +329,7 @@ export default function Formations() {
                 Nouvelle formation
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
                   <DialogTitle>
@@ -322,6 +408,16 @@ export default function Formations() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Stagiaires inscrits</Label>
+                    {stagiaires && (
+                      <StagiaireMultiSelect
+                        stagiaires={stagiaires}
+                        selectedIds={selectedStagiaireIds}
+                        onChange={setSelectedStagiaireIds}
+                      />
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
