@@ -326,6 +326,7 @@ export type Database = {
           id: string
           nom: string
           prenom: string
+          telephone: string | null
           updated_at: string
           user_id: string
         }
@@ -335,6 +336,7 @@ export type Database = {
           id?: string
           nom: string
           prenom: string
+          telephone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -344,6 +346,7 @@ export type Database = {
           id?: string
           nom?: string
           prenom?: string
+          telephone?: string | null
           updated_at?: string
           user_id?: string
         }

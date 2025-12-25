@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Profile } from '@/types/database';
@@ -53,32 +53,18 @@ export default function Formateurs() {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
+  const [telephone, setTelephone] = useState('');
 
-  // Fetch formateurs (profiles with formateur role)
+  // Fetch formateurs (all profiles that are used as formateurs in formations)
   const { data: formateurs, isLoading } = useQuery({
     queryKey: ['formateurs-list'],
     queryFn: async () => {
-      // Get all user_roles with formateur role
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'formateur');
-      if (rolesError) throw rolesError;
-
-      const formateurUserIds = roles.map(r => r.user_id);
-      
-      if (formateurUserIds.length === 0) {
-        return [];
-      }
-
-      // Get profiles for these users
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .in('user_id', formateurUserIds)
         .order('nom', { ascending: true });
       if (error) throw error;
-      return data as Profile[];
+      return data as (Profile & { telephone?: string })[];
     },
   });
 
@@ -149,14 +135,15 @@ export default function Formateurs() {
 
   // Update formateur mutation
   const updateMutation = useMutation({
-    mutationFn: async (formData: { id: string; prenom: string; nom: string; email: string }) => {
+    mutationFn: async (formData: { id: string; prenom: string; nom: string; email: string; telephone?: string }) => {
       const { error } = await supabase
         .from('profiles')
         .update({
           prenom: formData.prenom,
           nom: formData.nom,
           email: formData.email,
-        })
+          telephone: formData.telephone || null,
+        } as any)
         .eq('id', formData.id);
       if (error) throw error;
     },
@@ -191,17 +178,19 @@ export default function Formateurs() {
     },
   });
 
-  const openDialog = (formateur?: Profile) => {
+  const openDialog = (formateur?: Profile & { telephone?: string }) => {
     if (formateur) {
       setEditingFormateur(formateur);
       setPrenom(formateur.prenom);
       setNom(formateur.nom);
       setEmail(formateur.email);
+      setTelephone((formateur as any).telephone || '');
     } else {
       setEditingFormateur(null);
       setPrenom('');
       setNom('');
       setEmail('');
+      setTelephone('');
     }
     setIsDialogOpen(true);
   };
@@ -219,6 +208,7 @@ export default function Formateurs() {
         prenom,
         nom,
         email,
+        telephone,
       });
     } else {
       createMutation.mutate({ prenom, nom, email });
@@ -296,6 +286,18 @@ export default function Formateurs() {
                       required
                     />
                   </div>
+                  {editingFormateur && (
+                    <div className="space-y-2">
+                      <Label htmlFor="telephone">Téléphone</Label>
+                      <Input
+                        id="telephone"
+                        type="tel"
+                        value={telephone}
+                        onChange={(e) => setTelephone(e.target.value)}
+                        placeholder="06 00 00 00 00"
+                      />
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={closeDialog}>
@@ -338,7 +340,7 @@ export default function Formateurs() {
             <TableHeader>
               <TableRow>
                 <TableHead>Formateur</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Contact</TableHead>
                 <TableHead>Formations</TableHead>
                 <TableHead>Ajouté le</TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
@@ -353,9 +355,17 @@ export default function Formateurs() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                      {formateur.email}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-sm">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        {formateur.email}
+                      </div>
+                      {(formateur as any).telephone && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5" />
+                          {(formateur as any).telephone}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
