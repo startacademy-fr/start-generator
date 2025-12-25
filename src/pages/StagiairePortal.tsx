@@ -37,7 +37,7 @@ interface TokenData {
 }
 
 const DOCUMENT_TYPES = [
-  { id: 'positionnement', label: 'Questionnaire de positionnement', icon: '📋', phase: 'avant' },
+  { id: 'questionnaire_positionnement', label: 'Questionnaire de positionnement', icon: '📋', phase: 'avant' },
   { id: 'analyse_besoin', label: 'Analyse du besoin', icon: '🎯', phase: 'avant' },
   { id: 'qcm', label: 'QCM d\'évaluation', icon: '✅', phase: 'pendant' },
   { id: 'satisfaction_chaud', label: 'Satisfaction à chaud', icon: '🔥', phase: 'pendant' },
@@ -115,16 +115,19 @@ export default function StagiairePortal() {
   });
 
   // Calculate progress
-  const completedDocs = documents?.filter(d => d.statut === 'soumis' || d.statut === 'genere').length || 0;
+  const completedDocs = documents?.filter(d => d.statut === 'complete' || d.statut === 'genere_auto').length || 0;
   const totalDocs = DOCUMENT_TYPES.length;
   const progressPercent = (completedDocs / totalDocs) * 100;
 
   const getDocStatus = (docType: string) => {
     const doc = documents?.find(d => d.type === docType);
     if (!doc) return 'pending';
-    if (doc.statut === 'soumis' || doc.statut === 'genere') return 'completed';
-    return 'in_progress';
+    if (doc.statut === 'complete' || doc.statut === 'genere_auto') return 'completed';
+    if (doc.statut === 'en_cours') return 'in_progress';
+    return 'pending';
   };
+
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
 
   // Loading state
   if (isValidating) {
@@ -239,6 +242,7 @@ export default function StagiairePortal() {
                     key={docType.id} 
                     docType={docType} 
                     status={status}
+                    inscriptionId={tokenData.inscription_id}
                   />
                 );
               })}
@@ -259,6 +263,7 @@ export default function StagiairePortal() {
                     key={docType.id} 
                     docType={docType} 
                     status={status}
+                    inscriptionId={tokenData.inscription_id}
                   />
                 );
               })}
@@ -279,6 +284,7 @@ export default function StagiairePortal() {
                     key={docType.id} 
                     docType={docType} 
                     status={status}
+                    inscriptionId={tokenData.inscription_id}
                   />
                 );
               })}
@@ -304,11 +310,18 @@ export default function StagiairePortal() {
 
 function DocumentCard({ 
   docType, 
-  status 
+  status,
+  inscriptionId
 }: { 
   docType: { id: string; label: string; icon: string }; 
   status: 'pending' | 'in_progress' | 'completed';
+  inscriptionId: string;
 }) {
+  const handleComplete = () => {
+    // Navigate to document form with document type
+    window.location.href = `/stagiaire/document?inscription=${inscriptionId}&type=${docType.id}`;
+  };
+
   return (
     <Card className={`transition-all ${status === 'completed' ? 'bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900' : ''}`}>
       <CardContent className="p-4 flex items-center justify-between">
@@ -327,7 +340,7 @@ function DocumentCard({
           ) : status === 'in_progress' ? (
             <Clock className="h-5 w-5 text-amber-500" />
           ) : (
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={handleComplete}>
               Compléter
             </Button>
           )}
