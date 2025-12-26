@@ -329,31 +329,96 @@ export default function Documents() {
   };
 
   const generateSequences = (formation: Formation) => {
-    const sequences = [];
-    const heures = formation.nombre_heures;
-    let heuresRestantes = heures;
+    // Calculate number of days based on hours (7h per day)
+    const nombreJours = Math.max(1, Math.ceil(formation.nombre_heures / 7));
+    const jours: any[] = [];
     
-    // Generate realistic sequences based on formation
-    const activites = [
-      { duree: '30 minutes', objectifs: 'Accueil des stagiaires', contenu: 'Présentation des stagiaires et du formateur\nFeuille d\'émargement ½ journée\nQuestionnaire de positionnement du participant', outils: 'Café ou autre\nDiaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants', exercice: 'Se présenter en moins de deux minutes\nTour de table', evaluation: 'Questionnaire de positionnement' },
-      { duree: '3h30', objectifs: 'Introduction et bases', contenu: 'Introduction aux concepts fondamentaux\nBases théoriques et enjeux', outils: 'Diaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants', exercice: 'Réflexion des participants sur les méthodes qu\'ils emploient\nJeux de Rôle Script', evaluation: 'Débriefing du participant\nÉvaluation par l\'observation' },
-      { duree: '90 minutes', objectifs: 'Pause Déjeuner', contenu: '', outils: '', exercice: '', evaluation: '' },
-      { duree: '2h00', objectifs: 'Approfondissement', contenu: 'Atelier pratique: mise en application des concepts\nÉtude de cas réels', outils: 'Diaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants\nÉchanges sur les différents acteurs de la sphère', exercice: 'Exercice pratique', evaluation: 'Évaluation orale' },
-      { duree: '10 minutes', objectifs: 'Pause', contenu: '', outils: '', exercice: '', evaluation: '' },
-      { duree: '2h00', objectifs: 'Techniques avancées', contenu: 'Techniques avancées et bonnes pratiques\nStratégies et méthodologies', outils: 'Diaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants\nExercice pratique', exercice: 'Mise en situation', evaluation: 'Vérification par le formateur que le stagiaire est autonome\nÉvaluation par observation' },
-      { duree: '4h00', objectifs: 'Mise en pratique', contenu: 'Atelier pratique intensif\nÉtude de cas: analyse et identification des facteurs clés de succès', outils: 'Tour de table\nAuto-positionnement fin de formation\nFiche d\'évaluation satisfaction', exercice: 'QCM évaluation des acquis', evaluation: 'QCM d\'évaluation finale reprenant tous les modules\nCertificat de réalisation remis aux stagiaires' },
+    // Template sequences for each day - diversified content
+    const dayTemplates = [
+      { theme: 'Prospection et segmentation', objectifPrincipal: 'Analyser et segmenter un secteur de prospection', contenuPrincipal: 'Concepts de segmentation, cartographie, analyse démographique, études de cas', objectifSecondaire: 'Identifier et exploiter les sources de génération de leads', contenuSecondaire: 'Outils en ligne (portails, réseaux sociaux), techniques de pige, prospection directe', objectifTertiaire: 'Créer, gérer et entretenir une base de données de prospects', contenuTertiaire: 'Utilisation des CRM, qualification des leads, stratégies de fidélisation' },
+      { theme: 'Les leviers de l\'estimation', objectifPrincipal: 'Générer du business avec les dossiers d\'estimation', contenuPrincipal: 'Identifier les opportunités, conversion en mandats exclusifs, automatisation du suivi', objectifSecondaire: 'Apprendre à utiliser les outils adaptés', contenuSecondaire: 'Présentation des logiciels d\'estimation, exploitation des bases de données, analyse comparative', objectifTertiaire: 'Valoriser son expertise sur les réseaux sociaux', contenuTertiaire: 'Création de contenus pertinents, publication et engagement avec les prospects' },
+      { theme: 'Face à face vendeur', objectifPrincipal: 'Maîtriser le rendez-vous R1 avec un vendeur', contenuPrincipal: 'Techniques d\'accroche, simulation de la première visite, découverte des motivations', objectifSecondaire: 'Présenter et défendre une estimation', contenuSecondaire: 'Argumentation et gestion des objections, techniques de persuasion', objectifTertiaire: 'Signer des mandats et traiter les objections', contenuTertiaire: 'Techniques de closing, levée des freins psychologiques, gestion des hésitations' },
+      { theme: 'Suivi vendeur', objectifPrincipal: 'Donner du feedback et renforcer la relation client', contenuPrincipal: 'Techniques de feedback constructif, suivi des actions, gestion des recommandations', objectifSecondaire: 'Présenter et respecter les engagements vis-à-vis du client', contenuSecondaire: 'Stratégies de suivi des engagements, communication transparente, gestion des attentes', objectifTertiaire: 'Gestion des situations imprévues et fidélisation', contenuTertiaire: 'Anticiper et gérer les problèmes, transformer une insatisfaction en opportunité' },
+      { theme: 'Campagne de newsletters', objectifPrincipal: 'Conception et aspects légaux d\'une newsletter', contenuPrincipal: 'Rédaction de contenu efficace, intégration de médias, introduction au RGPD', objectifSecondaire: 'Optimisation et suivi des performances', contenuSecondaire: 'Techniques pour maximiser l\'ouverture des emails, analyse des KPIs, ajustement des campagnes', objectifTertiaire: 'Automatisation et amélioration continue', contenuTertiaire: 'Intégration aux CRM, mise en place de séquences automatiques, gestion des relances' },
+      { theme: 'Acquisition et traitement de Leads Acheteurs', objectifPrincipal: 'Vendre un rendez-vous découverte au téléphone', contenuPrincipal: 'Préparation de script d\'appel, gestion des objections, qualification des leads', objectifSecondaire: 'Identifier et qualifier les clients acheteurs', contenuSecondaire: 'Définition des critères de qualification, analyse des sources de leads, segmentation', objectifTertiaire: 'Réaliser une découverte client efficace', contenuTertiaire: 'Techniques d\'écoute active, questionnement stratégique, gestion des attentes' },
+      { theme: 'Suivi Acheteurs', objectifPrincipal: 'Obtenir le meilleur de chaque lead acheteur', contenuPrincipal: 'Collecter des feedbacks précis sur les biens visités, analyser les retours, optimiser la relation', objectifSecondaire: 'Renforcer la relation pour obtenir des recommandations', contenuSecondaire: 'Techniques pour renforcer la confiance, communication personnalisée, fidélisation', objectifTertiaire: 'Proposer des services annexes pour valoriser l\'accompagnement', contenuTertiaire: 'Présentation des services complémentaires (financement, déménagement, rénovation)' },
+      { theme: 'Face à Face Acheteurs', objectifPrincipal: 'Mettre en pratique la découverte du projet acheteur', contenuPrincipal: 'Simulation de vente d\'un rendez-vous découverte, analyse des besoins de l\'acheteur', objectifSecondaire: 'Pratiquer les visites immobilières en situation réelle', contenuSecondaire: 'Techniques de présentation d\'un bien, analyse des réactions des acheteurs', objectifTertiaire: 'Simuler des négociations immobilières réalistes', contenuTertiaire: 'Techniques de négociation, gestion des objections, conclusion d\'une vente' },
+      { theme: 'L\'Art de la Négociation', objectifPrincipal: 'Apprendre l\'utilisation des questions ouvertes', contenuPrincipal: 'Comprendre leur rôle dans la négociation, formuler des questions qui encouragent les réponses détaillées', objectifSecondaire: 'Détecter les signaux d\'achat et s\'y adapter', contenuSecondaire: 'Identifier les signaux verbaux et non verbaux, adapter sa stratégie', objectifTertiaire: 'Trouver les leviers pour conclure une négociation', contenuTertiaire: 'Identifier les facteurs clés qui influencent la décision, techniques de closing' },
+      { theme: 'Générer de la Recommandation', objectifPrincipal: 'Utiliser sa base de données pour augmenter sa notoriété', contenuPrincipal: 'Segmenter et cibler ses contacts, élaborer des campagnes de communication adaptées', objectifSecondaire: 'Utiliser les réseaux sociaux pour gagner en recommandation', contenuSecondaire: 'Développer une stratégie de contenu engageant, encourager les interactions et témoignages', objectifTertiaire: 'Identifier des sources complémentaires pour développer la recommandation', contenuTertiaire: 'Stratégie de partenariat, participation à des événements, incitations à la recommandation' },
     ];
     
-    // Select sequences based on formation hours
-    let totalHeures = 0;
-    for (const activite of activites) {
-      if (totalHeures >= heures) break;
-      sequences.push(activite);
-      const dureeNum = parseFloat(activite.duree.replace('h', '').replace(' minutes', '')) || 0;
-      totalHeures += activite.duree.includes('minutes') ? dureeNum / 60 : dureeNum;
+    for (let i = 0; i < nombreJours; i++) {
+      const template = dayTemplates[i % dayTemplates.length];
+      const isLastDay = i === nombreJours - 1;
+      
+      const sequences = [
+        { duree: '30 min', objectifs: 'Accueil des stagiaires et introduction', contenu: 'Présentation des stagiaires et du formateur, tour de table, feuille d\'émargement, présentation des objectifs', outils: 'Diaporama Canva, paperboard, livret de formation', exercice: 'Se présenter en moins de 2 minutes', evaluation: 'Questionnaire de positionnement' },
+        { duree: '2h30', objectifs: template.objectifPrincipal, contenu: template.contenuPrincipal, outils: 'Diaporama Canva, paperboard, études de cas', exercice: 'Mise en pratique sur données réelles', evaluation: 'Débriefing et QCM en fin de formation' },
+        { duree: '90 min', objectifs: 'Pause déjeuner', contenu: '', outils: '', exercice: '', evaluation: '' },
+        { duree: '1h10', objectifs: template.objectifSecondaire, contenu: template.contenuSecondaire, outils: 'Diaporama Canva, démonstration d\'outils', exercice: 'Simulation en binôme', evaluation: 'Vérification par le formateur et retour d\'expérience' },
+        { duree: '10 min', objectifs: 'Pause', contenu: '', outils: '', exercice: '', evaluation: '' },
+        { duree: '1h10', objectifs: template.objectifTertiaire, contenu: template.contenuTertiaire, outils: 'Jeux de rôle, diaporama Canva', exercice: 'Mise en situation pratique', evaluation: 'Débriefing et correction collective' },
+        { duree: '20 min', objectifs: isLastDay ? 'Évaluation des acquis et clôture de la formation' : 'Évaluation des acquis et bilan de la journée', contenu: isLastDay ? 'Synthèse, bilan et remise des certificats' : 'Synthèse et retour sur la journée', outils: 'Tour de table', exercice: '', evaluation: 'QCM et fiche d\'évaluation satisfaction' },
+      ];
+      
+      jours.push({
+        numero: i + 1,
+        titre: `Jour ${i + 1}${template.theme ? ' : ' + template.theme : ''}`,
+        sequences,
+      });
     }
     
-    return sequences;
+    // Formateur info
+    const dateDebut = new Date(formation.date_debut);
+    const dateFin = formation.date_fin ? new Date(formation.date_fin) : dateDebut;
+    
+    // Generate formateur satisfaction responses
+    const satisfactionGroupe = [
+      { numero: 1, question: "L'homogénéité du groupe était-elle satisfaisante ?", score: 4 + Math.floor(Math.random() * 2) },
+      { numero: 2, question: "Le niveau de base du groupe était-il suffisant par rapport au contenu du stage ?", score: 4 + Math.floor(Math.random() * 2) },
+      { numero: 3, question: "Le nombre de stagiaires était-il correct ?", score: 5 },
+      { numero: 4, question: "Les stagiaires ont-ils bien participé aux échanges ?", score: 4 + Math.floor(Math.random() * 2) },
+      { numero: 5, question: "Jugez-vous que les stagiaires ont globalement assimilé les techniques enseignées ?", score: 4 + Math.floor(Math.random() * 2) },
+    ];
+    
+    const satisfactionOrga = [
+      { numero: 6, question: "La salle de travail était-elle adaptée au stage ?", score: 4 + Math.floor(Math.random() * 2) },
+      { numero: 7, question: "Les stagiaires étaient-ils bien informés sur le stage ?", score: 5 },
+    ];
+    
+    const remarquesGroupe = [
+      "J'ai particulièrement apprécié l'implication et la dynamique du groupe tout au long de la formation. Les échanges étaient riches, les participants n'ont pas hésité à poser des questions pertinentes et à partager leurs expériences, ce qui a favorisé un apprentissage collaboratif.",
+      "Groupe très motivé et participatif. Les stagiaires ont fait preuve d'une grande curiosité et d'un engagement constant durant toutes les sessions.",
+      "Excellente dynamique de groupe avec des échanges constructifs. Les participants ont su créer une atmosphère propice à l'apprentissage.",
+    ];
+    
+    const bilans = [
+      "Cette formation a été un succès grâce à l'implication des participants et à une approche interactive adaptée. Les objectifs pédagogiques ont été atteints et les participants repartent avec des outils concrets pour optimiser leur prospection immobilière.",
+      "Formation très réussie avec une excellente participation. Les stagiaires ont démontré une réelle progression et maîtrisent désormais les techniques enseignées.",
+      "Les objectifs de formation ont été pleinement atteints. L'approche pratique a permis aux stagiaires d'acquérir des compétences directement applicables sur le terrain.",
+    ];
+    
+    const adaptations = [
+      "Étude de cas réelle en fonction d'un cas concret de l'un des participants à la place d'un exercice prévu. Travail en sous-groupes pour renforcer la cohésion d'équipe. Ajout de moments d'échanges une fois par journée de formation à la demande des stagiaires.",
+      "Adaptation du rythme selon les besoins du groupe. Ajout d'exercices pratiques supplémentaires sur demande des participants. Création de binômes de travail pour favoriser l'entraide.",
+      "Modification de l'ordre de certains modules pour mieux répondre aux attentes exprimées. Sessions de questions-réponses prolongées pour approfondir certains sujets.",
+    ];
+    
+    return {
+      jours,
+      formateur_info: {
+        nom: 'Julien Lafitte',
+        titre_stage: formation.titre,
+        dates: `${format(dateDebut, 'dd/MM/yy', { locale: fr })} au ${format(dateFin, 'dd/MM/yy', { locale: fr })}`,
+      },
+      adaptations_pedagogiques: adaptations[Math.floor(Math.random() * adaptations.length)],
+      satisfaction_formateur: {
+        groupe: satisfactionGroupe,
+        remarques_groupe: remarquesGroupe[Math.floor(Math.random() * remarquesGroupe.length)],
+        organisation: satisfactionOrga,
+        bilan_formation: bilans[Math.floor(Math.random() * bilans.length)],
+      },
+    };
   };
 
   const generateGrilleObservation = (stagiaire: Stagiaire, formation: Formation) => {

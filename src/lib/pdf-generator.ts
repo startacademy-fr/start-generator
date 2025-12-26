@@ -299,107 +299,241 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - 2 * margin;
   
-  // Table column widths (proportional)
+  const PRIMARY_BLUE: [number, number, number] = [68, 114, 196]; // #4472C4
+  const HEADER_BG: [number, number, number] = [231, 230, 230]; // #E7E6E6
+  const INFO_BOX: [number, number, number] = [255, 242, 204]; // #FFF2CC
+  const OBS_BOX: [number, number, number] = [222, 235, 247]; // #DEEBF7
+  
   const colWidths = [
     contentWidth * 0.10, // Durée
     contentWidth * 0.18, // Objectifs
-    contentWidth * 0.25, // Contenu
-    contentWidth * 0.17, // Outils
-    contentWidth * 0.15, // Exercice
-    contentWidth * 0.15, // Évaluation
+    contentWidth * 0.22, // Contenu
+    contentWidth * 0.18, // Outils
+    contentWidth * 0.18, // Exercice
+    contentWidth * 0.14, // Évaluation
   ];
-  
-  const headers = ['Durée', 'Objectifs', 'Contenu de la séquence', 'Outils / Pédagogie', 'Exercice pratique', 'Évaluation'];
-  
-  // Draw table header
-  doc.setFillColor(...PRIMARY_COLOR);
-  doc.rect(margin, yPos, contentWidth, 10, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'bold');
-  
-  let xPos = margin;
-  headers.forEach((header, i) => {
-    doc.text(header, xPos + 2, yPos + 7, { maxWidth: colWidths[i] - 4 });
-    xPos += colWidths[i];
-  });
-  
-  yPos += 10;
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  
-  if (contenu?.sequences) {
-    contenu.sequences.forEach((seq: any, index: number) => {
-      // Calculate row height based on content
-      const rowHeight = Math.max(15, calculateRowHeight(doc, seq, colWidths));
+  const headers = ['Durée', 'Objectifs', 'Contenu de la séance', 'Outils ou pédagogie', 'Exercice pratique', 'Évaluation'];
+
+  const drawTableHeader = (y: number): number => {
+    doc.setFillColor(...PRIMARY_BLUE);
+    doc.rect(margin, y, contentWidth, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    let xPos = margin;
+    headers.forEach((header, i) => {
+      doc.text(header, xPos + 2, y + 7, { maxWidth: colWidths[i] - 4 });
+      xPos += colWidths[i];
+    });
+    return y + 10;
+  };
+
+  const drawDayTitle = (y: number, dayTitle: string): number => {
+    if (y + 20 > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      y = 30;
+    }
+    doc.setFillColor(...HEADER_BG);
+    doc.rect(margin, y, contentWidth, 8, 'F');
+    doc.setDrawColor(...PRIMARY_BLUE);
+    doc.setLineWidth(0.8);
+    doc.line(margin, y, margin, y + 8);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(dayTitle, margin + 5, y + 6);
+    return y + 12;
+  };
+
+  const drawSequenceRow = (y: number, seq: any, index: number): number => {
+    const rowHeight = calculateRowHeight(doc, seq, colWidths);
+    
+    if (y + rowHeight > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      y = 30;
+      y = drawTableHeader(y);
+    }
+    
+    if (index % 2 === 0) {
+      doc.setFillColor(248, 249, 250);
+      doc.rect(margin, y, contentWidth, rowHeight, 'F');
+    }
+    
+    doc.setDrawColor(208, 208, 208);
+    doc.setLineWidth(0.2);
+    let xPos = margin;
+    colWidths.forEach((width) => {
+      doc.rect(xPos, y, width, rowHeight);
+      xPos += width;
+    });
+    
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    xPos = margin;
+    const cellData = [seq.duree || '', seq.objectifs || '', seq.contenu || '', seq.outils || '', seq.exercice || '', seq.evaluation || ''];
+    cellData.forEach((text, i) => {
+      if (text) {
+        const lines = doc.splitTextToSize(String(text), colWidths[i] - 4);
+        doc.text(lines, xPos + 2, y + 5);
+      }
+      xPos += colWidths[i];
+    });
+    
+    return y + rowHeight;
+  };
+
+  // Render each day
+  if (contenu?.jours && Array.isArray(contenu.jours)) {
+    contenu.jours.forEach((jour: any) => {
+      yPos = drawDayTitle(yPos, jour.titre || `Jour ${jour.numero}`);
+      yPos = drawTableHeader(yPos);
       
-      // Check if we need a new page
-      if (yPos + rowHeight > pageHeight - 40) {
-        doc.addPage();
-        yPos = 30;
-        
-        // Redraw header on new page
-        doc.setFillColor(...PRIMARY_COLOR);
-        doc.rect(margin, yPos, contentWidth, 10, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        
-        xPos = margin;
-        headers.forEach((header, i) => {
-          doc.text(header, xPos + 2, yPos + 7, { maxWidth: colWidths[i] - 4 });
-          xPos += colWidths[i];
+      if (jour.sequences && Array.isArray(jour.sequences)) {
+        jour.sequences.forEach((seq: any, index: number) => {
+          yPos = drawSequenceRow(yPos, seq, index);
         });
-        
-        yPos += 10;
-        doc.setTextColor(...TEXT_COLOR);
-        doc.setFont('helvetica', 'normal');
       }
-      
-      // Alternate row background
-      if (index % 2 === 0) {
-        doc.setFillColor(248, 250, 252); // slate-50
-        doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
-      }
-      
-      // Draw cell borders
-      doc.setDrawColor(226, 232, 240); // slate-200
-      doc.setLineWidth(0.2);
-      xPos = margin;
-      colWidths.forEach((width) => {
-        doc.rect(xPos, yPos, width, rowHeight);
-        xPos += width;
-      });
-      
-      // Draw cell content
-      xPos = margin;
-      const cellData = [
-        seq.duree || '',
-        seq.objectifs || '',
-        seq.contenu || '',
-        seq.outils || '',
-        seq.exercice || '',
-        seq.evaluation || '',
-      ];
-      
-      cellData.forEach((text, i) => {
-        if (text) {
-          doc.text(String(text), xPos + 2, yPos + 5, { 
-            maxWidth: colWidths[i] - 4,
-          });
-        }
-        xPos += colWidths[i];
-      });
-      
-      yPos += rowHeight;
+      yPos += 8;
     });
   }
-  
-  // Draw bottom border
-  doc.setDrawColor(226, 232, 240);
-  doc.line(margin, yPos, margin + contentWidth, yPos);
-  
+
+  // Formateur info section
+  if (contenu?.formateur_info) {
+    if (yPos + 50 > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      yPos = 30;
+    }
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Nom, Prénom du formateur : ${contenu.formateur_info.nom || ''}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Titre du Stage : ${contenu.formateur_info.titre_stage || ''}`, margin, yPos);
+    yPos += 6;
+    doc.text(`Dates du stage : ${contenu.formateur_info.dates || ''}`, margin, yPos);
+    yPos += 10;
+  }
+
+  // Observations table
+  if (contenu?.adaptations_pedagogiques) {
+    if (yPos + 40 > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      yPos = 30;
+    }
+    
+    doc.setFillColor(...OBS_BOX);
+    doc.rect(margin, yPos, contentWidth, 8, 'F');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Adaptations pédagogiques/observations de la formation', margin + 3, yPos + 5.5);
+    yPos += 8;
+    
+    doc.setFillColor(...OBS_BOX);
+    const adaptLines = doc.splitTextToSize(contenu.adaptations_pedagogiques, contentWidth - 10);
+    const adaptHeight = Math.max(15, adaptLines.length * 4 + 10);
+    doc.rect(margin, yPos, contentWidth, adaptHeight, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(adaptLines, margin + 5, yPos + 6);
+    yPos += adaptHeight + 10;
+  }
+
+  // Questionnaire satisfaction formateur
+  if (contenu?.satisfaction_formateur) {
+    if (yPos + 30 > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      yPos = 30;
+    }
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Questionnaire de satisfaction formateur', margin, yPos);
+    yPos += 10;
+    
+    const renderSatisfactionSection = (title: string, questions: any[], remarkKey?: string) => {
+      if (yPos + 20 > pageHeight - 40) {
+        doc.addPage();
+        addFooter(doc, pageWidth, pageHeight);
+        yPos = 30;
+      }
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, margin, yPos);
+      yPos += 8;
+      
+      questions.forEach((q: any) => {
+        if (yPos + 18 > pageHeight - 40) {
+          doc.addPage();
+          addFooter(doc, pageWidth, pageHeight);
+          yPos = 30;
+        }
+        
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, yPos, contentWidth, 16, 'F');
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${q.numero} – ${q.question}`, margin + 3, yPos + 5);
+        
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(102, 102, 102);
+        doc.text('1- pas du tout  2-Peu adapté  3-Moyennement adapté  4-Adapté  5-tout à fait adapté', margin + 3, yPos + 10);
+        
+        doc.setTextColor(...PRIMARY_BLUE);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(String(q.score), margin + contentWidth - 15, yPos + 10);
+        doc.setTextColor(0, 0, 0);
+        
+        yPos += 18;
+      });
+      
+      if (remarkKey && contenu.satisfaction_formateur[remarkKey]) {
+        if (yPos + 25 > pageHeight - 40) {
+          doc.addPage();
+          addFooter(doc, pageWidth, pageHeight);
+          yPos = 30;
+        }
+        
+        doc.setFillColor(...INFO_BOX);
+        const remarkLines = doc.splitTextToSize(contenu.satisfaction_formateur[remarkKey], contentWidth - 10);
+        const remarkHeight = Math.max(18, remarkLines.length * 4 + 12);
+        doc.rect(margin, yPos, contentWidth, remarkHeight, 'F');
+        doc.setDrawColor(214, 182, 86);
+        doc.setLineWidth(0.5);
+        doc.rect(margin, yPos, contentWidth, remarkHeight);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(remarkKey === 'remarques_groupe' ? 'Vos remarques particulières sur le groupe :' : 'Bilan de la formation :', margin + 3, yPos + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(remarkLines, margin + 3, yPos + 12);
+        yPos += remarkHeight + 8;
+      }
+    };
+    
+    if (contenu.satisfaction_formateur.groupe) {
+      renderSatisfactionSection('LE GROUPE DE STAGIAIRE', contenu.satisfaction_formateur.groupe, 'remarques_groupe');
+    }
+    
+    if (contenu.satisfaction_formateur.organisation) {
+      renderSatisfactionSection("L'ORGANISATION MATERIELLE", contenu.satisfaction_formateur.organisation, 'bilan_formation');
+    }
+  }
+
   return yPos + 5;
 }
 
