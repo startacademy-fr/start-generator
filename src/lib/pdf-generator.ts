@@ -959,9 +959,10 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
     return y + rowHeight;
   };
 
-  // Render each day
-  if (contenu?.jours && Array.isArray(contenu.jours)) {
-    contenu.jours.forEach((jour: any) => {
+  // Render each day - check both contenu.jours and contenu.sequences.jours
+  const joursData = contenu?.jours || contenu?.sequences?.jours;
+  if (joursData && Array.isArray(joursData)) {
+    joursData.forEach((jour: any) => {
       yPos = drawDayTitle(yPos, jour.titre || `Jour ${jour.numero}`);
       yPos = drawTableHeader(yPos);
       
@@ -974,8 +975,9 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
     });
   }
 
-  // Formateur info section
-  if (contenu?.formateur_info) {
+  // Formateur info section - check both contenu.formateur_info and contenu.sequences.formateur_info
+  const formateurInfo = contenu?.formateur_info || contenu?.sequences?.formateur_info;
+  if (formateurInfo) {
     if (yPos + 50 > pageHeight - 40) {
       doc.addPage();
       addFooter(doc, pageWidth, pageHeight);
@@ -985,16 +987,17 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Nom, Prénom du formateur : ${contenu.formateur_info.nom || ''}`, margin, yPos);
+    doc.text(`Nom, Prénom du formateur : ${formateurInfo.nom || ''}`, margin, yPos);
     yPos += 6;
-    doc.text(`Titre du Stage : ${contenu.formateur_info.titre_stage || ''}`, margin, yPos);
+    doc.text(`Titre du Stage : ${formateurInfo.titre_stage || ''}`, margin, yPos);
     yPos += 6;
-    doc.text(`Dates du stage : ${contenu.formateur_info.dates || ''}`, margin, yPos);
+    doc.text(`Dates du stage : ${formateurInfo.dates || ''}`, margin, yPos);
     yPos += 10;
   }
 
-  // Observations table
-  if (contenu?.adaptations_pedagogiques) {
+  // Adaptations pédagogiques - check both paths
+  const adaptations = contenu?.adaptations_pedagogiques || contenu?.sequences?.adaptations_pedagogiques;
+  if (adaptations) {
     if (yPos + 40 > pageHeight - 40) {
       doc.addPage();
       addFooter(doc, pageWidth, pageHeight);
@@ -1010,7 +1013,7 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
     yPos += 8;
     
     doc.setFillColor(...OBS_BOX);
-    const adaptLines = doc.splitTextToSize(contenu.adaptations_pedagogiques, contentWidth - 10);
+    const adaptLines = doc.splitTextToSize(adaptations, contentWidth - 10);
     const adaptHeight = Math.max(15, adaptLines.length * 4 + 10);
     doc.rect(margin, yPos, contentWidth, adaptHeight, 'F');
     doc.setFont('helvetica', 'normal');
@@ -1019,8 +1022,9 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
     yPos += adaptHeight + 10;
   }
 
-  // Questionnaire satisfaction formateur
-  if (contenu?.satisfaction_formateur) {
+  // Questionnaire satisfaction formateur - check both paths
+  const satisfactionFormateur = contenu?.satisfaction_formateur || contenu?.sequences?.satisfaction_formateur;
+  if (satisfactionFormateur) {
     if (yPos + 30 > pageHeight - 40) {
       doc.addPage();
       addFooter(doc, pageWidth, pageHeight);
@@ -1074,7 +1078,7 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
         yPos += 18;
       });
       
-      if (remarkKey && contenu.satisfaction_formateur[remarkKey]) {
+      if (remarkKey && satisfactionFormateur[remarkKey]) {
         if (yPos + 25 > pageHeight - 40) {
           doc.addPage();
           addFooter(doc, pageWidth, pageHeight);
@@ -1082,7 +1086,7 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
         }
         
         doc.setFillColor(...INFO_BOX);
-        const remarkLines = doc.splitTextToSize(contenu.satisfaction_formateur[remarkKey], contentWidth - 10);
+        const remarkLines = doc.splitTextToSize(satisfactionFormateur[remarkKey], contentWidth - 10);
         const remarkHeight = Math.max(18, remarkLines.length * 4 + 12);
         doc.rect(margin, yPos, contentWidth, remarkHeight, 'F');
         doc.setDrawColor(214, 182, 86);
@@ -1099,12 +1103,12 @@ function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, page
       }
     };
     
-    if (contenu.satisfaction_formateur.groupe) {
-      renderSatisfactionSection('LE GROUPE DE STAGIAIRE', contenu.satisfaction_formateur.groupe, 'remarques_groupe');
+    if (satisfactionFormateur.groupe) {
+      renderSatisfactionSection('LE GROUPE DE STAGIAIRE', satisfactionFormateur.groupe, 'remarques_groupe');
     }
     
-    if (contenu.satisfaction_formateur.organisation) {
-      renderSatisfactionSection("L'ORGANISATION MATERIELLE", contenu.satisfaction_formateur.organisation, 'bilan_formation');
+    if (satisfactionFormateur.organisation) {
+      renderSatisfactionSection("L'ORGANISATION MATERIELLE", satisfactionFormateur.organisation, 'bilan_formation');
     }
   }
 
