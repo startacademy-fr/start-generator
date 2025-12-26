@@ -42,8 +42,10 @@ import {
   Clock,
   AlertCircle,
   FileArchive,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, Stagiaire, DocumentStagiaire } from '@/types/database';
@@ -81,6 +83,8 @@ export default function Documents() {
   const [selectedDocTypes, setSelectedDocTypes] = useState<string[]>(DOCUMENT_TYPES.map(d => d.id));
   const [generatingProgress, setGeneratingProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Fetch formations
   const { data: formations } = useQuery({
@@ -187,6 +191,26 @@ export default function Documents() {
     onError: (error) => {
       toast.error('Erreur: ' + error.message);
       setIsGenerating(false);
+    },
+  });
+
+  // Delete documents mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('documents_stagiaires')
+        .delete()
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast.success(`${selectedIds.length} document(s) supprimé(s)`);
+      setSelectedIds([]);
+      setIsDeleteDialogOpen(false);
+    },
+    onError: (error) => {
+      toast.error('Erreur: ' + error.message);
     },
   });
 
@@ -511,6 +535,20 @@ export default function Documents() {
     return DOCUMENT_TYPES.find(d => d.id === type)?.label || type;
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredDocuments?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredDocuments?.map(d => d.id) || []);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -522,6 +560,15 @@ export default function Documents() {
           </p>
         </div>
         <div className="flex gap-2">
+          {canManage && selectedIds.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer ({selectedIds.length})
+            </Button>
+          )}
           {canManage && (
             <Button onClick={() => setIsGenerateDialogOpen(true)}>
               <Sparkles className="mr-2 h-4 w-4" />
@@ -625,6 +672,14 @@ export default function Documents() {
           <Table>
             <TableHeader>
               <TableRow>
+                {canManage && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.length === filteredDocuments?.length && filteredDocuments?.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Type</TableHead>
                 <TableHead>Stagiaire</TableHead>
                 <TableHead>Formation</TableHead>
@@ -640,7 +695,15 @@ export default function Documents() {
                 if (!inscription) return null;
                 
                 return (
-                  <TableRow key={doc.id}>
+                  <TableRow key={doc.id} className={selectedIds.includes(doc.id) ? 'bg-muted/50' : ''}>
+                    {canManage && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.includes(doc.id)}
+                          onCheckedChange={() => toggleSelect(doc.id)}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
@@ -702,6 +765,19 @@ export default function Documents() {
                         >
                           <Download className="h-4 w-4" />
                         </Button>
+                        {canManage && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            title="Supprimer"
+                            onClick={() => {
+                              setSelectedIds([doc.id]);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -807,6 +883,17 @@ export default function Documents() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Supprimer les documents"
+        description="Cette action est irréversible. Les documents sélectionnés seront définitivement supprimés."
+        itemCount={selectedIds.length}
+        onConfirm={() => deleteMutation.mutate(selectedIds)}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

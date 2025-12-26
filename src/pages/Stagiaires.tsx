@@ -26,8 +26,9 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility } from 'lucide-react';
+import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2 } from 'lucide-react';
 import type { Stagiaire } from '@/types/database';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 export default function Stagiaires() {
   const { isAdmin, isAssistante } = useAuth();
@@ -37,6 +38,8 @@ export default function Stagiaires() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStagiaire, setEditingStagiaire] = useState<Stagiaire | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Form state
   const [prenom, setPrenom] = useState('');
@@ -117,6 +120,27 @@ export default function Stagiaires() {
     },
   });
 
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('stagiaires')
+        .delete()
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stagiaires'] });
+      queryClient.invalidateQueries({ queryKey: ['stagiaire-inscriptions-counts'] });
+      toast.success(`${selectedIds.length} stagiaire(s) supprimé(s)`);
+      setSelectedIds([]);
+      setIsDeleteDialogOpen(false);
+    },
+    onError: (error) => {
+      toast.error('Erreur: ' + error.message);
+    },
+  });
+
   const openDialog = (stagiaire?: Stagiaire) => {
     if (stagiaire) {
       setEditingStagiaire(stagiaire);
@@ -174,6 +198,20 @@ export default function Stagiaires() {
     (s.entreprise && s.entreprise.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredStagiaires?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredStagiaires?.map(s => s.id) || []);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -184,134 +222,145 @@ export default function Stagiaires() {
             Gérez les stagiaires inscrits aux formations
           </p>
         </div>
-        {canManage && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => openDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nouveau stagiaire
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingStagiaire ? 'Modifier le stagiaire' : 'Nouveau stagiaire'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Renseignez les informations du stagiaire
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+        <div className="flex gap-2">
+          {canManage && selectedIds.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer ({selectedIds.length})
+            </Button>
+          )}
+          {canManage && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => openDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouveau stagiaire
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleSubmit}>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingStagiaire ? 'Modifier le stagiaire' : 'Nouveau stagiaire'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Renseignez les informations du stagiaire
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="prenom">Prénom *</Label>
+                        <Input
+                          id="prenom"
+                          value={prenom}
+                          onChange={(e) => setPrenom(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="nom">Nom *</Label>
+                        <Input
+                          id="nom"
+                          value={nom}
+                          onChange={(e) => setNom(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="prenom">Prénom *</Label>
+                      <Label htmlFor="email">Email *</Label>
                       <Input
-                        id="prenom"
-                        value={prenom}
-                        onChange={(e) => setPrenom(e.target.value)}
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="nom">Nom *</Label>
+                      <Label htmlFor="telephone">Téléphone</Label>
                       <Input
-                        id="nom"
-                        value={nom}
-                        onChange={(e) => setNom(e.target.value)}
-                        required
+                        id="telephone"
+                        type="tel"
+                        value={telephone}
+                        onChange={(e) => setTelephone(e.target.value)}
                       />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="telephone">Téléphone</Label>
-                    <Input
-                      id="telephone"
-                      type="tel"
-                      value={telephone}
-                      onChange={(e) => setTelephone(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="entreprise">Entreprise</Label>
+                        <Input
+                          id="entreprise"
+                          value={entreprise}
+                          onChange={(e) => setEntreprise(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="siret">SIRET</Label>
+                        <Input
+                          id="siret"
+                          value={siret}
+                          onChange={(e) => setSiret(e.target.value)}
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="entreprise">Entreprise</Label>
+                      <Label htmlFor="fonction">Fonction</Label>
                       <Input
-                        id="entreprise"
-                        value={entreprise}
-                        onChange={(e) => setEntreprise(e.target.value)}
+                        id="fonction"
+                        value={fonction}
+                        onChange={(e) => setFonction(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="siret">SIRET</Label>
-                      <Input
-                        id="siret"
-                        value={siret}
-                        onChange={(e) => setSiret(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fonction">Fonction</Label>
-                    <Input
-                      id="fonction"
-                      value={fonction}
-                      onChange={(e) => setFonction(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="adresse">Adresse</Label>
-                    <Textarea
-                      id="adresse"
-                      value={adresse}
-                      onChange={(e) => setAdresse(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="situation_handicap"
-                      checked={situationHandicap}
-                      onCheckedChange={(checked) => setSituationHandicap(checked as boolean)}
-                    />
-                    <Label htmlFor="situation_handicap" className="text-sm font-normal">
-                      Situation de handicap
-                    </Label>
-                  </div>
-                  {situationHandicap && (
-                    <div className="space-y-2">
-                      <Label htmlFor="besoins_specifiques">Besoins spécifiques</Label>
+                      <Label htmlFor="adresse">Adresse</Label>
                       <Textarea
-                        id="besoins_specifiques"
-                        value={besoinsSpecifiques}
-                        onChange={(e) => setBesoinsSpecifiques(e.target.value)}
+                        id="adresse"
+                        value={adresse}
+                        onChange={(e) => setAdresse(e.target.value)}
                         rows={2}
-                        placeholder="Décrivez les aménagements nécessaires..."
                       />
                     </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={closeDialog}>
-                    Annuler
-                  </Button>
-                  <Button type="submit" disabled={saveMutation.isPending}>
-                    {saveMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="situation_handicap"
+                        checked={situationHandicap}
+                        onCheckedChange={(checked) => setSituationHandicap(checked as boolean)}
+                      />
+                      <Label htmlFor="situation_handicap" className="text-sm font-normal">
+                        Situation de handicap
+                      </Label>
+                    </div>
+                    {situationHandicap && (
+                      <div className="space-y-2">
+                        <Label htmlFor="besoins_specifiques">Besoins spécifiques</Label>
+                        <Textarea
+                          id="besoins_specifiques"
+                          value={besoinsSpecifiques}
+                          onChange={(e) => setBesoinsSpecifiques(e.target.value)}
+                          rows={2}
+                          placeholder="Décrivez les aménagements nécessaires..."
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={closeDialog}>
+                      Annuler
+                    </Button>
+                    <Button type="submit" disabled={saveMutation.isPending}>
+                      {saveMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
       {/* Search */}
@@ -340,6 +389,14 @@ export default function Stagiaires() {
           <Table>
             <TableHeader>
               <TableRow>
+                {canManage && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.length === filteredStagiaires?.length && filteredStagiaires?.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Stagiaire</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Entreprise</TableHead>
@@ -350,7 +407,15 @@ export default function Stagiaires() {
             </TableHeader>
             <TableBody>
               {filteredStagiaires?.map((stagiaire) => (
-                <TableRow key={stagiaire.id}>
+                <TableRow key={stagiaire.id} className={selectedIds.includes(stagiaire.id) ? 'bg-muted/50' : ''}>
+                  {canManage && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(stagiaire.id)}
+                        onCheckedChange={() => toggleSelect(stagiaire.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="font-medium">
                       {stagiaire.prenom} {stagiaire.nom}
@@ -400,13 +465,25 @@ export default function Stagiaires() {
                   </TableCell>
                   <TableCell className="text-right">
                     {canManage && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDialog(stagiaire)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openDialog(stagiaire)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedIds([stagiaire.id]);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
@@ -415,6 +492,17 @@ export default function Stagiaires() {
           </Table>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Supprimer les stagiaires"
+        description="Cette action est irréversible. Les stagiaires sélectionnés et leurs inscriptions associées seront définitivement supprimés."
+        itemCount={selectedIds.length}
+        onConfirm={() => deleteMutation.mutate(selectedIds)}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }
