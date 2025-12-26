@@ -236,12 +236,12 @@ export default function Documents() {
       case 'deroule_pedagogique':
         return {
           ...baseContent,
-          sequences: generateSequences(formation.nombre_heures),
+          sequences: generateSequences(formation),
         };
       case 'grille_observation':
         return {
           ...baseContent,
-          observations: generateObservations(),
+          ...generateGrilleObservation(stagiaire, formation),
         };
       default:
         return baseContent;
@@ -328,23 +328,70 @@ export default function Documents() {
     return commentaires[Math.floor(Math.random() * commentaires.length)];
   };
 
-  const generateSequences = (heures: number) => {
+  const generateSequences = (formation: Formation) => {
     const sequences = [];
+    const heures = formation.nombre_heures;
     let heuresRestantes = heures;
-    let jour = 1;
     
-    while (heuresRestantes > 0) {
-      const heuresJour = Math.min(heuresRestantes, 7);
-      sequences.push({
-        jour,
-        duree: heuresJour,
-        contenu: `Séquence pédagogique jour ${jour}`,
-        objectifs: 'Objectifs atteints',
-      });
-      heuresRestantes -= heuresJour;
-      jour++;
+    // Generate realistic sequences based on formation
+    const activites = [
+      { duree: '30 minutes', objectifs: 'Accueil des stagiaires', contenu: 'Présentation des stagiaires et du formateur\nFeuille d\'émargement ½ journée\nQuestionnaire de positionnement du participant', outils: 'Café ou autre\nDiaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants', exercice: 'Se présenter en moins de deux minutes\nTour de table', evaluation: 'Questionnaire de positionnement' },
+      { duree: '3h30', objectifs: 'Introduction et bases', contenu: 'Introduction aux concepts fondamentaux\nBases théoriques et enjeux', outils: 'Diaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants', exercice: 'Réflexion des participants sur les méthodes qu\'ils emploient\nJeux de Rôle Script', evaluation: 'Débriefing du participant\nÉvaluation par l\'observation' },
+      { duree: '90 minutes', objectifs: 'Pause Déjeuner', contenu: '', outils: '', exercice: '', evaluation: '' },
+      { duree: '2h00', objectifs: 'Approfondissement', contenu: 'Atelier pratique: mise en application des concepts\nÉtude de cas réels', outils: 'Diaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants\nÉchanges sur les différents acteurs de la sphère', exercice: 'Exercice pratique', evaluation: 'Évaluation orale' },
+      { duree: '10 minutes', objectifs: 'Pause', contenu: '', outils: '', exercice: '', evaluation: '' },
+      { duree: '2h00', objectifs: 'Techniques avancées', contenu: 'Techniques avancées et bonnes pratiques\nStratégies et méthodologies', outils: 'Diaporama Canva pour la présentation et paperboard\nLivret de formation fourni aux participants\nExercice pratique', exercice: 'Mise en situation', evaluation: 'Vérification par le formateur que le stagiaire est autonome\nÉvaluation par observation' },
+      { duree: '4h00', objectifs: 'Mise en pratique', contenu: 'Atelier pratique intensif\nÉtude de cas: analyse et identification des facteurs clés de succès', outils: 'Tour de table\nAuto-positionnement fin de formation\nFiche d\'évaluation satisfaction', exercice: 'QCM évaluation des acquis', evaluation: 'QCM d\'évaluation finale reprenant tous les modules\nCertificat de réalisation remis aux stagiaires' },
+    ];
+    
+    // Select sequences based on formation hours
+    let totalHeures = 0;
+    for (const activite of activites) {
+      if (totalHeures >= heures) break;
+      sequences.push(activite);
+      const dureeNum = parseFloat(activite.duree.replace('h', '').replace(' minutes', '')) || 0;
+      totalHeures += activite.duree.includes('minutes') ? dureeNum / 60 : dureeNum;
     }
+    
     return sequences;
+  };
+
+  const generateGrilleObservation = (stagiaire: Stagiaire, formation: Formation) => {
+    const niveaux = ['A', 'B'];
+    const competences = [
+      { nom: 'Prospection porte à porte', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+      { nom: 'Prospection téléphonique', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+      { nom: 'Veille concurrentielle', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+      { nom: 'Base de données', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+      { nom: 'Réseaux sociaux', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+      { nom: 'Sphère d\'influence', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+      { nom: 'Relation clients', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
+    ];
+    
+    const commentaires = [
+      `${stagiaire.prenom} établit un bon premier contact, mais son discours manque de structure pour captiver l'interlocuteur dès les premières secondes.`,
+      `${stagiaire.prenom} est souriante et engageante, avec une bonne capacité d'adaptation.`,
+      `${stagiaire.prenom} présente bien son service et sait créer un climat de confiance.`,
+      `${stagiaire.prenom} capte bien l'intérêt des interlocuteurs et pose les bonnes questions.`,
+      `${stagiaire.prenom} a une bonne énergie et une posture dynamique.`,
+    ];
+    
+    const axes = [
+      'Travailler un pitch d\'accroche percutant pour capter immédiatement l\'attention et susciter l\'intérêt.',
+      'Développer des techniques de reformulation et de contournement des objections pour maintenir le dialogue.',
+      'Adopter une approche plus interrogative et centrée sur le besoin du prospect avant de proposer un service.',
+      'Rendre son discours plus fluide et naturel, en s\'adaptant au ton et à la personnalité du prospect.',
+      'Mieux structurer la conclusion de l\'échange en proposant directement un rendez-vous avec une date précise.',
+    ];
+    
+    return {
+      competences,
+      moyenne: niveaux[Math.floor(Math.random() * 2)],
+      observations_globales: {
+        commentaire: commentaires[Math.floor(Math.random() * commentaires.length)],
+        axe_amelioration: axes[Math.floor(Math.random() * axes.length)],
+      },
+    };
   };
 
   const generateObservations = () => ({

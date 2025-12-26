@@ -296,47 +296,289 @@ function renderSatisfaction(doc: jsPDF, yPos: number, margin: number, contenu: a
 }
 
 function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
-  doc.setFontSize(11);
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - 2 * margin;
+  
+  // Table column widths (proportional)
+  const colWidths = [
+    contentWidth * 0.10, // Durée
+    contentWidth * 0.18, // Objectifs
+    contentWidth * 0.25, // Contenu
+    contentWidth * 0.17, // Outils
+    contentWidth * 0.15, // Exercice
+    contentWidth * 0.15, // Évaluation
+  ];
+  
+  const headers = ['Durée', 'Objectifs', 'Contenu de la séquence', 'Outils / Pédagogie', 'Exercice pratique', 'Évaluation'];
+  
+  // Draw table header
+  doc.setFillColor(...PRIMARY_COLOR);
+  doc.rect(margin, yPos, contentWidth, 10, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.text('Déroulé des séquences', margin, yPos);
+  
+  let xPos = margin;
+  headers.forEach((header, i) => {
+    doc.text(header, xPos + 2, yPos + 7, { maxWidth: colWidths[i] - 4 });
+    xPos += colWidths[i];
+  });
   
   yPos += 10;
-  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
   
   if (contenu?.sequences) {
-    contenu.sequences.forEach((seq: any) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Jour ${seq.jour} (${seq.duree}h)`, margin, yPos);
-      yPos += 6;
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Contenu: ${seq.contenu}`, margin + 5, yPos);
-      yPos += 6;
-      doc.text(`Objectifs: ${seq.objectifs}`, margin + 5, yPos);
-      yPos += 10;
+    contenu.sequences.forEach((seq: any, index: number) => {
+      // Calculate row height based on content
+      const rowHeight = Math.max(15, calculateRowHeight(doc, seq, colWidths));
+      
+      // Check if we need a new page
+      if (yPos + rowHeight > pageHeight - 40) {
+        doc.addPage();
+        yPos = 30;
+        
+        // Redraw header on new page
+        doc.setFillColor(...PRIMARY_COLOR);
+        doc.rect(margin, yPos, contentWidth, 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        
+        xPos = margin;
+        headers.forEach((header, i) => {
+          doc.text(header, xPos + 2, yPos + 7, { maxWidth: colWidths[i] - 4 });
+          xPos += colWidths[i];
+        });
+        
+        yPos += 10;
+        doc.setTextColor(...TEXT_COLOR);
+        doc.setFont('helvetica', 'normal');
+      }
+      
+      // Alternate row background
+      if (index % 2 === 0) {
+        doc.setFillColor(248, 250, 252); // slate-50
+        doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
+      }
+      
+      // Draw cell borders
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setLineWidth(0.2);
+      xPos = margin;
+      colWidths.forEach((width) => {
+        doc.rect(xPos, yPos, width, rowHeight);
+        xPos += width;
+      });
+      
+      // Draw cell content
+      xPos = margin;
+      const cellData = [
+        seq.duree || '',
+        seq.objectifs || '',
+        seq.contenu || '',
+        seq.outils || '',
+        seq.exercice || '',
+        seq.evaluation || '',
+      ];
+      
+      cellData.forEach((text, i) => {
+        if (text) {
+          doc.text(String(text), xPos + 2, yPos + 5, { 
+            maxWidth: colWidths[i] - 4,
+          });
+        }
+        xPos += colWidths[i];
+      });
+      
+      yPos += rowHeight;
     });
   }
   
-  return yPos;
+  // Draw bottom border
+  doc.setDrawColor(226, 232, 240);
+  doc.line(margin, yPos, margin + contentWidth, yPos);
+  
+  return yPos + 5;
+}
+
+function calculateRowHeight(doc: jsPDF, seq: any, colWidths: number[]): number {
+  doc.setFontSize(7);
+  const cellData = [
+    seq.duree || '',
+    seq.objectifs || '',
+    seq.contenu || '',
+    seq.outils || '',
+    seq.exercice || '',
+    seq.evaluation || '',
+  ];
+  
+  let maxLines = 1;
+  cellData.forEach((text, i) => {
+    if (text) {
+      const lines = doc.splitTextToSize(String(text), colWidths[i] - 4);
+      maxLines = Math.max(maxLines, lines.length);
+    }
+  });
+  
+  return Math.max(12, maxLines * 4 + 6);
 }
 
 function renderGrilleObservation(doc: jsPDF, yPos: number, margin: number, contenu: any): number {
-  doc.setFontSize(11);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - 2 * margin;
+  
+  // Title
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Observations du formateur', margin, yPos);
+  doc.setTextColor(...PRIMARY_COLOR);
+  doc.text('GRILLE D\'AMÉLIORATION STAGIAIRE', margin, yPos);
   
   yPos += 10;
-  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   
-  if (contenu?.observations) {
-    const obs = contenu.observations;
-    doc.text(`Participation: ${obs.participation || 'Non évaluée'}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Compréhension: ${obs.comprehension || 'Non évaluée'}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Application: ${obs.application || 'Non évaluée'}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Axes d'amélioration: ${obs.axes_amelioration || 'Aucun'}`, margin, yPos);
+  // Legend
+  doc.setFillColor(240, 249, 255);
+  doc.roundedRect(margin, yPos, contentWidth, 15, 2, 2, 'F');
+  
+  yPos += 5;
+  doc.setFontSize(8);
+  doc.text('Échelle de notation : A - Objectif atteint avec maîtrise parfaite (90-100%) | B - Objectif atteint (71-89%) | C - Objectif moyennement atteint (51-70%) | D - Objectif non atteint (-50%)', margin + 3, yPos + 5, { maxWidth: contentWidth - 6 });
+  
+  yPos += 18;
+  
+  // Competences section
+  if (contenu?.competences && Array.isArray(contenu.competences)) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COMPÉTENCES ÉVALUÉES', margin, yPos);
+    yPos += 8;
+    
+    // Table header
+    const colWidths = [contentWidth * 0.55, contentWidth * 0.15, contentWidth * 0.30];
+    const headers = ['Compétence', 'Niveau', 'Observations'];
+    
+    doc.setFillColor(...PRIMARY_COLOR);
+    doc.rect(margin, yPos, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    
+    let xPos = margin;
+    headers.forEach((header, i) => {
+      doc.text(header, xPos + 2, yPos + 5.5);
+      xPos += colWidths[i];
+    });
+    
+    yPos += 8;
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont('helvetica', 'normal');
+    
+    contenu.competences.forEach((comp: any, index: number) => {
+      const rowHeight = 10;
+      
+      // Check for page break
+      if (yPos + rowHeight > pageHeight - 50) {
+        doc.addPage();
+        yPos = 30;
+        addFooter(doc, pageWidth, pageHeight);
+      }
+      
+      // Alternate row colors
+      if (index % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
+      }
+      
+      // Cell borders
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.2);
+      xPos = margin;
+      colWidths.forEach((width) => {
+        doc.rect(xPos, yPos, width, rowHeight);
+        xPos += width;
+      });
+      
+      // Cell content
+      doc.setFontSize(8);
+      doc.text(comp.nom || '', margin + 2, yPos + 6, { maxWidth: colWidths[0] - 4 });
+      
+      // Niveau with color coding
+      const niveau = comp.niveau || 'N/A';
+      const niveauColors: Record<string, [number, number, number]> = {
+        'A': [22, 163, 74],   // green
+        'B': [59, 130, 246],  // blue
+        'C': [245, 158, 11],  // amber
+        'D': [220, 38, 38],   // red
+      };
+      
+      if (niveauColors[niveau]) {
+        doc.setFillColor(...niveauColors[niveau]);
+        doc.roundedRect(margin + colWidths[0] + 3, yPos + 2, 12, 6, 1, 1, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text(niveau, margin + colWidths[0] + 6, yPos + 6);
+        doc.setTextColor(...TEXT_COLOR);
+        doc.setFont('helvetica', 'normal');
+      } else {
+        doc.text(niveau, margin + colWidths[0] + 3, yPos + 6);
+      }
+      
+      doc.text(comp.observation || '', margin + colWidths[0] + colWidths[1] + 2, yPos + 6, { maxWidth: colWidths[2] - 4 });
+      
+      yPos += rowHeight;
+    });
+  }
+  
+  // Moyenne section
+  if (contenu?.moyenne) {
+    yPos += 10;
+    doc.setFillColor(240, 249, 255);
+    doc.roundedRect(margin, yPos, contentWidth * 0.5, 12, 2, 2, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`MOYENNE GÉNÉRALE : ${contenu.moyenne}`, margin + 5, yPos + 8);
+    yPos += 15;
+  }
+  
+  // Observations et axes de progression section
+  yPos += 5;
+  if (contenu?.observations_globales) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_COLOR);
+    doc.text('OBSERVATIONS ET AXES DE PROGRESSION', margin, yPos);
+    yPos += 8;
+    
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    // Commentaire
+    if (contenu.observations_globales.commentaire) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Commentaire :', margin, yPos);
+      yPos += 5;
+      doc.setFont('helvetica', 'normal');
+      const commentLines = doc.splitTextToSize(contenu.observations_globales.commentaire, contentWidth - 5);
+      doc.text(commentLines, margin + 3, yPos);
+      yPos += commentLines.length * 4 + 5;
+    }
+    
+    // Axe d'amélioration
+    if (contenu.observations_globales.axe_amelioration) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Axe d\'amélioration :', margin, yPos);
+      yPos += 5;
+      doc.setFont('helvetica', 'normal');
+      const axeLines = doc.splitTextToSize(contenu.observations_globales.axe_amelioration, contentWidth - 5);
+      doc.text(axeLines, margin + 3, yPos);
+      yPos += axeLines.length * 4 + 5;
+    }
   }
   
   return yPos;
