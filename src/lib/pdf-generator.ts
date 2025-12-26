@@ -139,8 +139,10 @@ export function generatePDF(data: DocumentData): jsPDF {
       yPos = renderQCM(doc, yPos, margin, data.contenu, data.score);
       break;
     case 'satisfaction_chaud':
+      yPos = renderSatisfactionChaud(doc, yPos, margin, pageWidth, data.contenu, data.stagiaire);
+      break;
     case 'satisfaction_froid':
-      yPos = renderSatisfaction(doc, yPos, margin, data.contenu, data.type);
+      yPos = renderSatisfactionFroid(doc, yPos, margin, pageWidth, data.contenu, data.stagiaire, data.formation);
       break;
     case 'deroule_pedagogique':
       yPos = renderDeroulePedagogique(doc, yPos, margin, pageWidth, data.contenu);
@@ -257,42 +259,611 @@ function renderQCM(doc: jsPDF, yPos: number, margin: number, contenu: any, score
   return yPos;
 }
 
-function renderSatisfaction(doc: jsPDF, yPos: number, margin: number, contenu: any, type: string): number {
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text(type === 'satisfaction_chaud' ? 'Évaluation immédiate' : 'Évaluation différée (1-3 mois après)', margin, yPos);
+function renderSatisfactionChaud(
+  doc: jsPDF, 
+  yPos: number, 
+  margin: number, 
+  pageWidth: number, 
+  contenu: any,
+  stagiaire: { prenom: string; nom: string; email: string; entreprise?: string; fonction?: string }
+): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - 2 * margin;
+  const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
+  const SECTION_BG: [number, number, number] = [248, 249, 250];
   
-  yPos += 10;
+  // Helper function to check and add page if needed
+  const checkPageBreak = (neededSpace: number) => {
+    if (yPos + neededSpace > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      yPos = 30;
+    }
+  };
+
+  // Helper to draw rating with selection
+  const drawRatingRow = (label: string, selectedValue: string, y: number): number => {
+    const ratings = ['Très bien', 'Bien', 'Moyen', 'Mauvais'];
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(label, margin + 5, y);
+    
+    let xPos = margin + contentWidth * 0.5;
+    const optionWidth = contentWidth * 0.12;
+    
+    ratings.forEach((rating) => {
+      const isSelected = selectedValue === rating;
+      
+      if (isSelected) {
+        doc.setFillColor(...PRIMARY_BLUE);
+        doc.circle(xPos, y - 2, 3, 'F');
+      } else {
+        doc.setDrawColor(...PRIMARY_BLUE);
+        doc.setLineWidth(0.3);
+        doc.circle(xPos, y - 2, 3);
+      }
+      
+      doc.setFontSize(7);
+      doc.setTextColor(...MUTED_COLOR);
+      doc.text(rating, xPos + 5, y);
+      xPos += optionWidth;
+    });
+    
+    return y + 8;
+  };
+
+  // Title
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('Questionnaire de satisfaction formation', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 8;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Ce questionnaire de satisfaction nous permet de nous améliorer.', pageWidth / 2, yPos, { align: 'center' });
+  yPos += 5;
+  doc.text('Merci pour votre contribution.', pageWidth / 2, yPos, { align: 'center' });
   
-  const labels: Record<string, string> = {
-    organisation: 'Organisation générale',
-    contenu: 'Contenu de la formation',
-    formateur: 'Qualité du formateur',
-    supports: 'Supports pédagogiques',
-    global: 'Satisfaction globale',
-  };
-  
-  if (contenu?.evaluations) {
-    Object.entries(contenu.evaluations).forEach(([key, value]) => {
-      const label = labels[key] || key;
-      const stars = '★'.repeat(value as number) + '☆'.repeat(5 - (value as number));
-      doc.text(`${label}: ${stars} (${value}/5)`, margin, yPos);
-      yPos += 7;
-    });
-  }
-  
-  if (contenu?.commentaires) {
-    yPos += 5;
+  yPos += 12;
+
+  // Questions 1 & 2 (text responses)
+  if (contenu?.questions_initiales) {
+    checkPageBreak(30);
+    doc.setFillColor(...SECTION_BG);
+    doc.rect(margin, yPos, contentWidth, 12, 'F');
+    doc.setDrawColor(...PRIMARY_BLUE);
+    doc.setLineWidth(0.8);
+    doc.line(margin, yPos, margin, yPos + 12);
+    
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Commentaires:', margin, yPos);
-    yPos += 7;
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text('1) Comment avez-vous connu cette formation ?', margin + 5, yPos + 5);
     doc.setFont('helvetica', 'normal');
-    doc.text(`"${contenu.commentaires}"`, margin, yPos);
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(contenu.questions_initiales.connaissance || '', margin + 5, yPos + 10);
+    yPos += 15;
+    
+    doc.setFillColor(...SECTION_BG);
+    doc.rect(margin, yPos, contentWidth, 12, 'F');
+    doc.setDrawColor(...PRIMARY_BLUE);
+    doc.line(margin, yPos, margin, yPos + 12);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text("2) Qui a pris l'initiative de vous inscrire ?", margin + 5, yPos + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(contenu.questions_initiales.initiative || '', margin + 5, yPos + 10);
+    yPos += 18;
   }
+
+  // Section rendering helper
+  const renderSection = (title: string, items: { label: string; value: string }[], comment?: string) => {
+    checkPageBreak(items.length * 10 + 30);
+    
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(221, 221, 221);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, yPos, contentWidth, items.length * 8 + (comment ? 25 : 15), 3, 3);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text(title, margin + 5, yPos + 6);
+    
+    yPos += 12;
+    items.forEach((item) => {
+      yPos = drawRatingRow(item.label, item.value, yPos);
+    });
+    
+    if (comment) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.text('Commentaire :', margin + 5, yPos);
+      yPos += 4;
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...TEXT_COLOR);
+      const lines = doc.splitTextToSize(`"${comment}"`, contentWidth - 15);
+      doc.text(lines, margin + 5, yPos);
+      yPos += lines.length * 3.5;
+    }
+    
+    yPos += 8;
+  };
+
+  // a) Organisation
+  if (contenu?.organisation) {
+    renderSection('a) L\'organisation', [
+      { label: 'Communication avant la formation', value: contenu.organisation.communication },
+      { label: 'Délai de démarrage', value: contenu.organisation.delai },
+      { label: 'Durée de la formation', value: contenu.organisation.duree },
+      { label: 'Respect des engagements', value: contenu.organisation.engagements },
+    ], contenu.organisation.commentaire);
+  }
+
+  // b) Les moyens
+  if (contenu?.moyens) {
+    renderSection('b) Les moyens', [
+      { label: 'Cadre de travail général', value: contenu.moyens.cadre },
+      { label: 'Les locaux', value: contenu.moyens.locaux },
+      { label: 'Supports mis à disposition', value: contenu.moyens.supports },
+      { label: 'Matériel, informatique, connexion', value: contenu.moyens.materiel },
+    ], contenu.moyens.commentaire);
+  }
+
+  // c) La pédagogie
+  if (contenu?.pedagogie) {
+    checkPageBreak(100);
+    renderSection('c) La pédagogie', [
+      { label: 'Niveau de difficulté', value: contenu.pedagogie.difficulte },
+      { label: 'Articulation des thèmes', value: contenu.pedagogie.articulation },
+      { label: 'Qualité du contenu théorique', value: contenu.pedagogie.theorique },
+      { label: 'Qualité du contenu pratique', value: contenu.pedagogie.pratique },
+      { label: 'Rythme de progression', value: contenu.pedagogie.rythme },
+      { label: 'Approche pédagogique du formateur', value: contenu.pedagogie.approche },
+      { label: 'Écoute et disponibilité du formateur', value: contenu.pedagogie.ecoute },
+      { label: "Qualité d'animation", value: contenu.pedagogie.animation },
+    ], contenu.pedagogie.commentaire);
+  }
+
+  // d) Le groupe
+  if (contenu?.groupe) {
+    renderSection('d) Le groupe', [
+      { label: 'Ambiance générale', value: contenu.groupe.ambiance },
+      { label: 'Nombre, présence, motivation', value: contenu.groupe.nombre },
+      { label: 'Hétérogénéité', value: contenu.groupe.heterogeneite },
+      { label: 'Attention et participation', value: contenu.groupe.attention },
+    ], contenu.groupe.commentaire);
+  }
+
+  // e) Bénéfice retiré
+  if (contenu?.benefice) {
+    checkPageBreak(50);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(221, 221, 221);
+    doc.roundedRect(margin, yPos, contentWidth, 35, 3, 3);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text('e) Le bénéfice retiré', margin + 5, yPos + 6);
+    
+    yPos += 12;
+    yPos = drawRatingRow('Adéquation de la formation avec vos attentes', contenu.benefice.adequation, yPos);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Utilité de la formation :', margin + 5, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(contenu.benefice.utilite || '', margin + 50, yPos);
+    yPos += 5;
+    
+    if (contenu.benefice.commentaire) {
+      doc.setFont('helvetica', 'italic');
+      doc.text(`"${contenu.benefice.commentaire}"`, margin + 5, yPos);
+    }
+    yPos += 12;
+  }
+
+  // Questions finales
+  checkPageBreak(40);
   
-  return yPos;
+  if (contenu?.questions_finales) {
+    doc.setFillColor(...SECTION_BG);
+    doc.rect(margin, yPos, contentWidth, 10, 'F');
+    doc.setDrawColor(...PRIMARY_BLUE);
+    doc.line(margin, yPos, margin, yPos + 10);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text('4) Recommanderiez-vous cette formation ?', margin + 5, yPos + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(contenu.questions_finales.recommandation || 'Oui', margin + 100, yPos + 6);
+    yPos += 14;
+    
+    if (contenu.questions_finales.remarques) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.text('5) Autres remarques :', margin + 5, yPos);
+      yPos += 4;
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...TEXT_COLOR);
+      const lines = doc.splitTextToSize(contenu.questions_finales.remarques, contentWidth - 10);
+      doc.text(lines, margin + 5, yPos);
+      yPos += lines.length * 3.5 + 5;
+    }
+    
+    if (contenu.questions_finales.autres_themes) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.text('6) Autres thèmes souhaités :', margin + 5, yPos);
+      yPos += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...TEXT_COLOR);
+      doc.text(contenu.questions_finales.autres_themes, margin + 5, yPos);
+      yPos += 8;
+    }
+  }
+
+  // Données personnelles
+  checkPageBreak(30);
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(221, 221, 221);
+  doc.roundedRect(margin, yPos, contentWidth, 22, 3, 3);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('7) Vos données personnelles', margin + 5, yPos + 6);
+  
+  yPos += 10;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.setFontSize(8);
+  doc.text(`Nom, Prénom : ${stagiaire.prenom} ${stagiaire.nom}`, margin + 5, yPos);
+  doc.text(`Ville : ${contenu?.donnees_personnelles?.ville || 'Vence'}`, margin + 80, yPos);
+  yPos += 5;
+  doc.text(`E-mail : ${stagiaire.email}`, margin + 5, yPos);
+  doc.text(`Date : ${contenu?.donnees_personnelles?.date || format(new Date(), 'dd/MM/yyyy', { locale: fr })}`, margin + 80, yPos);
+  
+  yPos += 12;
+
+  // Note réclamations
+  checkPageBreak(20);
+  doc.setFillColor(255, 249, 230);
+  doc.setDrawColor(255, 217, 102);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin, yPos, contentWidth, 12, 2, 2, 'FD');
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Pour toutes réclamations, envoyez-nous un mail à : info@start-academy.fr', margin + 5, yPos + 7);
+  
+  yPos += 18;
+
+  // Remerciement
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('Merci de votre confiance !', pageWidth / 2, yPos, { align: 'center' });
+
+  return yPos + 10;
+}
+
+function renderSatisfactionFroid(
+  doc: jsPDF, 
+  yPos: number, 
+  margin: number, 
+  pageWidth: number, 
+  contenu: any,
+  stagiaire: { prenom: string; nom: string; email: string; entreprise?: string; fonction?: string },
+  formation: { titre: string; lieu: string; date_debut: string; date_fin?: string | null; nombre_heures: number; formateur?: string }
+): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - 2 * margin;
+  const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
+  const INTRO_BG: [number, number, number] = [240, 246, 255];
+  const QUESTION_BORDER: [number, number, number] = [68, 114, 196];
+  const SUCCESS_BG: [number, number, number] = [232, 245, 233];
+  const SUCCESS_BORDER: [number, number, number] = [76, 175, 80];
+  
+  const checkPageBreak = (neededSpace: number) => {
+    if (yPos + neededSpace > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      yPos = 30;
+    }
+  };
+
+  // Title
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('Questionnaire satisfaction à froid entreprise', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 8;
+  doc.setFontSize(12);
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('Évaluation à froid', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 6;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Votre appréciation sur la formation réalisée', pageWidth / 2, yPos, { align: 'center' });
+  
+  yPos += 10;
+
+  // Intro box
+  checkPageBreak(35);
+  doc.setFillColor(...INTRO_BG);
+  doc.setDrawColor(...PRIMARY_BLUE);
+  doc.setLineWidth(0.8);
+  doc.rect(margin, yPos, contentWidth, 30, 'FD');
+  doc.line(margin, yPos, margin, yPos + 30);
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
+  const introText = [
+    "À la fin de chaque formation, nous demandons au participant son évaluation à chaud.",
+    "Il nous apparaît tout aussi important de recueillir votre avis sur la mise en pratique après quelques mois.",
+    "Nous vous remercions de bien vouloir remplir ce questionnaire lors de l'entretien de suivi.",
+    "Merci de votre aimable collaboration."
+  ];
+  let introY = yPos + 6;
+  introText.forEach((line) => {
+    doc.text(line, margin + 5, introY);
+    introY += 5;
+  });
+  doc.setFont('helvetica', 'bold');
+  doc.text("Merci de votre aimable collaboration.", margin + 5, introY);
+  
+  yPos += 38;
+
+  // Info section
+  checkPageBreak(45);
+  doc.setFillColor(248, 249, 250);
+  doc.setDrawColor(221, 221, 221);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, yPos, contentWidth, 40, 3, 3, 'FD');
+  
+  const infoFields = [
+    { label: 'Nom et prénom du stagiaire', value: `${stagiaire.prenom} ${stagiaire.nom}` },
+    { label: 'Nom et prénom du N+1', value: contenu?.info?.n_plus_1 || '' },
+    { label: 'Intitulé de la formation', value: formation.titre },
+    { label: 'Prestataire et formateur', value: `Start Academy - ${formation.formateur || 'Julien Lafitte'}` },
+    { label: 'Date de réalisation', value: format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr }) },
+    { label: 'Action inscrite au plan de formation', value: contenu?.info?.plan_formation || 'Oui' },
+  ];
+  
+  doc.setFontSize(8);
+  let infoY = yPos + 6;
+  infoFields.forEach((field) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text(field.label + ' :', margin + 5, infoY);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(field.value, margin + 75, infoY);
+    infoY += 6;
+  });
+  
+  yPos += 48;
+
+  // Question blocks helper
+  const drawQuestionBlock = (question: string, options: string[], selectedOption: string, subQuestions?: { question: string; answer: string }[]) => {
+    const blockHeight = 20 + options.length * 6 + (subQuestions ? subQuestions.length * 15 : 0);
+    checkPageBreak(blockHeight);
+    
+    doc.setDrawColor(...QUESTION_BORDER);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(margin, yPos, contentWidth, blockHeight, 4, 4);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text(question, margin + 5, yPos + 7, { maxWidth: contentWidth - 10 });
+    
+    let optY = yPos + 14;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    options.forEach((opt) => {
+      const isSelected = selectedOption === opt;
+      if (isSelected) {
+        doc.setFillColor(...PRIMARY_BLUE);
+        doc.circle(margin + 10, optY - 1.5, 2.5, 'F');
+      } else {
+        doc.setDrawColor(...PRIMARY_BLUE);
+        doc.circle(margin + 10, optY - 1.5, 2.5);
+      }
+      doc.setTextColor(...TEXT_COLOR);
+      doc.text(opt, margin + 18, optY);
+      optY += 6;
+    });
+    
+    if (subQuestions) {
+      subQuestions.forEach((sq) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...PRIMARY_BLUE);
+        doc.text(sq.question, margin + 5, optY);
+        optY += 4;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...TEXT_COLOR);
+        const lines = doc.splitTextToSize(sq.answer || '', contentWidth - 15);
+        doc.text(lines, margin + 5, optY);
+        optY += lines.length * 3.5 + 3;
+      });
+    }
+    
+    yPos += blockHeight + 8;
+  };
+
+  // Question 1: Formation a-t-elle répondu au besoin?
+  drawQuestionBlock(
+    'La formation choisie a-t-elle répondu à son besoin/ses attentes ?',
+    ['Oui tout à fait', 'Oui partiellement', 'Non'],
+    contenu?.q1?.reponse || 'Oui tout à fait',
+    contenu?.q1?.pourquoi ? [{ question: 'Si oui partiellement ou non, pourquoi ?', answer: contenu.q1.pourquoi }] : undefined
+  );
+
+  // Question 2: Initiative
+  checkPageBreak(30);
+  doc.setDrawColor(...QUESTION_BORDER);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(margin, yPos, contentWidth, 25, 4, 4);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('Qui était à l\'initiative de cette formation ?', margin + 5, yPos + 7);
+  
+  const initiatives = ['Vous même', 'Votre collaborateur', 'Vous et votre collaborateur'];
+  const selectedInitiatives = contenu?.q2?.initiative || ['Vous et votre collaborateur'];
+  
+  let initY = yPos + 14;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  initiatives.forEach((init) => {
+    const isSelected = selectedInitiatives.includes(init);
+    if (isSelected) {
+      doc.setFillColor(...PRIMARY_BLUE);
+      doc.rect(margin + 8, initY - 3, 5, 5, 'F');
+    } else {
+      doc.setDrawColor(...PRIMARY_BLUE);
+      doc.rect(margin + 8, initY - 3, 5, 5);
+    }
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(init, margin + 18, initY);
+    initY += 6;
+  });
+  
+  yPos += 32;
+
+  // Question 3: Mise en pratique
+  checkPageBreak(60);
+  const q3Height = 55;
+  doc.setDrawColor(...QUESTION_BORDER);
+  doc.roundedRect(margin, yPos, contentWidth, q3Height, 4, 4);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('Depuis la fin de sa formation, a-t-il pu mettre en pratique les connaissances acquises ?', margin + 5, yPos + 7, { maxWidth: contentWidth - 10 });
+  
+  const pratiqueOptions = ['Oui tout à fait', 'Oui partiellement', 'Non'];
+  let pratiqueY = yPos + 14;
+  pratiqueOptions.forEach((opt) => {
+    const isSelected = (contenu?.q3?.mise_pratique || 'Oui tout à fait') === opt;
+    if (isSelected) {
+      doc.setFillColor(...PRIMARY_BLUE);
+      doc.circle(margin + 10, pratiqueY - 1.5, 2.5, 'F');
+    } else {
+      doc.setDrawColor(...PRIMARY_BLUE);
+      doc.circle(margin + 10, pratiqueY - 1.5, 2.5);
+    }
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(opt, margin + 18, pratiqueY);
+    pratiqueY += 5;
+  });
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('À quelle fréquence ?', margin + 5, pratiqueY + 2);
+  pratiqueY += 6;
+  
+  const frequences = ['Quotidiennement', 'Hebdomadairement', 'Occasionnellement', 'Rarement'];
+  frequences.forEach((freq) => {
+    const isSelected = (contenu?.q3?.frequence || 'Quotidiennement') === freq;
+    if (isSelected) {
+      doc.setFillColor(...PRIMARY_BLUE);
+      doc.circle(margin + 10, pratiqueY - 1.5, 2.5, 'F');
+    } else {
+      doc.setDrawColor(...PRIMARY_BLUE);
+      doc.circle(margin + 10, pratiqueY - 1.5, 2.5);
+    }
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont('helvetica', 'normal');
+    doc.text(freq, margin + 18, pratiqueY);
+    pratiqueY += 5;
+  });
+  
+  yPos += q3Height + 8;
+
+  // Question 4: Entretien post-formation
+  checkPageBreak(25);
+  doc.setDrawColor(...QUESTION_BORDER);
+  doc.roundedRect(margin, yPos, contentWidth, 18, 4, 4);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text("À l'issue de sa formation, avez-vous eu un entretien avec votre collaborateur ?", margin + 5, yPos + 7, { maxWidth: contentWidth - 10 });
+  
+  const entretienOptions = ['Oui', 'Non'];
+  let entretienY = yPos + 13;
+  doc.setFontSize(8);
+  entretienOptions.forEach((opt) => {
+    const isSelected = (contenu?.q4?.entretien || 'Oui') === opt;
+    if (isSelected) {
+      doc.setFillColor(...PRIMARY_BLUE);
+      doc.circle(margin + 10, entretienY - 1.5, 2.5, 'F');
+    } else {
+      doc.setDrawColor(...PRIMARY_BLUE);
+      doc.circle(margin + 10, entretienY - 1.5, 2.5);
+    }
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont('helvetica', 'normal');
+    doc.text(opt, margin + 18, entretienY);
+    entretienY += 5;
+  });
+  
+  yPos += 25;
+
+  // Remarques
+  if (contenu?.remarques) {
+    checkPageBreak(25);
+    doc.setDrawColor(...QUESTION_BORDER);
+    doc.roundedRect(margin, yPos, contentWidth, 20, 4, 4);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text('Remarques/observations/libre expression du collaborateur :', margin + 5, yPos + 7);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(8);
+    const remarquesLines = doc.splitTextToSize(contenu.remarques, contentWidth - 10);
+    doc.text(remarquesLines, margin + 5, yPos + 13);
+    yPos += 28;
+  }
+
+  // Thank you box
+  checkPageBreak(25);
+  doc.setFillColor(...SUCCESS_BG);
+  doc.setDrawColor(...SUCCESS_BORDER);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(margin, yPos, contentWidth, 18, 4, 4, 'FD');
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(46, 125, 50);
+  doc.text('La formation est un investissement important pour votre entreprise.', pageWidth / 2, yPos + 7, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Nous vous remercions d\'avoir répondu à ce questionnaire et restons à votre écoute.', pageWidth / 2, yPos + 13, { align: 'center' });
+
+  return yPos + 25;
 }
 
 function renderDeroulePedagogique(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {

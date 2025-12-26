@@ -251,11 +251,14 @@ export default function Documents() {
           questions: generateQCMReponses(),
         };
       case 'satisfaction_chaud':
+        return {
+          ...baseContent,
+          ...generateSatisfactionChaud(),
+        };
       case 'satisfaction_froid':
         return {
           ...baseContent,
-          evaluations: generateSatisfactionReponses(),
-          commentaires: generateCommentaire(),
+          ...generateSatisfactionFroid(),
         };
       case 'deroule_pedagogique':
         return {
@@ -333,13 +336,163 @@ export default function Documents() {
     return questions;
   };
 
-  const generateSatisfactionReponses = () => ({
-    organisation: 4 + Math.floor(Math.random() * 2), // 4-5
-    contenu: 4 + Math.floor(Math.random() * 2),
-    formateur: 5,
-    supports: 4 + Math.floor(Math.random() * 2),
-    global: 4 + Math.floor(Math.random() * 2),
-  });
+  const generateSatisfactionChaud = () => {
+    const ratings = ['Très bien', 'Bien'];
+    const randomRating = () => ratings[Math.floor(Math.random() * 2)];
+    
+    const connaissances = [
+      'Par mon employeur',
+      'Recherche internet',
+      'Recommandation d\'un collègue',
+      'Réseaux sociaux',
+    ];
+    
+    const initiatives = [
+      'Mon employeur',
+      'Moi-même',
+      'Décision commune avec mon manager',
+    ];
+    
+    const commentairesOrga = [
+      'Organisation parfaite, communication claire et réactive.',
+      'Très bien organisé, délais respectés.',
+      'Excellente coordination entre les intervenants.',
+    ];
+    
+    const commentairesMoyens = [
+      'Locaux agréables et bien équipés.',
+      'Supports de qualité, matériel fonctionnel.',
+      'Environnement propice à l\'apprentissage.',
+    ];
+    
+    const commentairesPeda = [
+      'Formateur très pédagogue et à l\'écoute.',
+      'Approche pratique appréciée, bon rythme.',
+      'Contenu adapté à nos besoins, exercices pertinents.',
+    ];
+    
+    const commentairesGroupe = [
+      'Groupe dynamique et participatif.',
+      'Bonne ambiance, échanges enrichissants.',
+      'Cohésion du groupe, entraide entre participants.',
+    ];
+    
+    const utilites = [
+      'Application immédiate dans mon travail quotidien.',
+      'Compétences directement utilisables sur le terrain.',
+      'Amélioration significative de mes pratiques.',
+    ];
+    
+    const remarques = [
+      'Formation très complète et bien structurée.',
+      'Je recommande vivement cette formation.',
+      'Rien à redire, tout était parfait.',
+      '',
+    ];
+    
+    const autresThemes = [
+      'Négociation avancée',
+      'Gestion du temps',
+      'Communication digitale',
+      '',
+    ];
+    
+    return {
+      questions_initiales: {
+        connaissance: connaissances[Math.floor(Math.random() * connaissances.length)],
+        initiative: initiatives[Math.floor(Math.random() * initiatives.length)],
+      },
+      organisation: {
+        communication: randomRating(),
+        delai: randomRating(),
+        duree: randomRating(),
+        engagements: randomRating(),
+        commentaire: commentairesOrga[Math.floor(Math.random() * commentairesOrga.length)],
+      },
+      moyens: {
+        cadre: randomRating(),
+        locaux: randomRating(),
+        supports: randomRating(),
+        materiel: randomRating(),
+        commentaire: commentairesMoyens[Math.floor(Math.random() * commentairesMoyens.length)],
+      },
+      pedagogie: {
+        difficulte: randomRating(),
+        articulation: randomRating(),
+        theorique: randomRating(),
+        pratique: randomRating(),
+        rythme: randomRating(),
+        approche: 'Très bien',
+        ecoute: 'Très bien',
+        animation: randomRating(),
+        commentaire: commentairesPeda[Math.floor(Math.random() * commentairesPeda.length)],
+      },
+      groupe: {
+        ambiance: randomRating(),
+        nombre: randomRating(),
+        heterogeneite: randomRating(),
+        attention: randomRating(),
+        commentaire: commentairesGroupe[Math.floor(Math.random() * commentairesGroupe.length)],
+      },
+      benefice: {
+        adequation: randomRating(),
+        utilite: utilites[Math.floor(Math.random() * utilites.length)],
+        commentaire: 'Formation très enrichissante.',
+      },
+      questions_finales: {
+        recommandation: 'Oui, sans hésitation',
+        remarques: remarques[Math.floor(Math.random() * remarques.length)],
+        autres_themes: autresThemes[Math.floor(Math.random() * autresThemes.length)],
+      },
+      donnees_personnelles: {
+        ville: 'Nice',
+        date: format(new Date(), 'dd/MM/yyyy', { locale: fr }),
+      },
+    };
+  };
+
+  const generateSatisfactionFroid = () => {
+    const n_plus_1 = [
+      'Marie Dupont',
+      'Pierre Martin',
+      'Sophie Bernard',
+      'Jean Moreau',
+    ];
+    
+    const pourquois = [
+      'Les objectifs de formation correspondent parfaitement aux besoins du poste.',
+      'Le contenu était en adéquation avec les attentes exprimées.',
+      'La formation a permis de combler les lacunes identifiées.',
+    ];
+    
+    const remarquesCollab = [
+      'Le collaborateur a montré une réelle progression depuis la formation. Il applique quotidiennement les techniques apprises et a gagné en confiance.',
+      'Amélioration notable des compétences, mise en pratique régulière des acquis.',
+      'Très satisfait de l\'évolution du collaborateur suite à cette formation.',
+    ];
+    
+    return {
+      info: {
+        n_plus_1: n_plus_1[Math.floor(Math.random() * n_plus_1.length)],
+        plan_formation: 'Oui',
+      },
+      q1: {
+        reponse: 'Oui tout à fait',
+        pourquoi: pourquois[Math.floor(Math.random() * pourquois.length)],
+      },
+      q2: {
+        initiative: ['Vous et votre collaborateur'],
+      },
+      q3: {
+        mise_pratique: 'Oui tout à fait',
+        frequence: 'Quotidiennement',
+      },
+      q4: {
+        entretien: 'Oui',
+      },
+      remarques: remarquesCollab[Math.floor(Math.random() * remarquesCollab.length)],
+    };
+  };
 
   const generateCommentaire = () => {
     const commentaires = [
