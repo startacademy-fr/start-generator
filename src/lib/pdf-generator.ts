@@ -90,9 +90,9 @@ export function generatePDF(data: DocumentData): jsPDF {
   doc.setFont('helvetica', 'bold');
   doc.text('Date(s):', margin + 5, yPos);
   doc.setFont('helvetica', 'normal');
-  const dateText = data.formation.date_fin 
-    ? `Du ${format(new Date(data.formation.date_debut), 'dd/MM/yyyy', { locale: fr })} au ${format(new Date(data.formation.date_fin), 'dd/MM/yyyy', { locale: fr })}`
-    : format(new Date(data.formation.date_debut), 'dd MMMM yyyy', { locale: fr });
+  // Toujours afficher la date de fin de formation (ou date de début si pas de date de fin)
+  const displayDate = data.formation.date_fin || data.formation.date_debut;
+  const dateText = format(new Date(displayDate), 'dd MMMM yyyy', { locale: fr });
   doc.text(dateText, margin + 35, yPos);
 
   yPos += 8;
@@ -629,34 +629,37 @@ function renderSatisfactionFroid(
   yPos += 38;
 
   // Info section
-  checkPageBreak(45);
+  checkPageBreak(50);
   doc.setFillColor(248, 249, 250);
   doc.setDrawColor(221, 221, 221);
   doc.setLineWidth(0.3);
-  doc.roundedRect(margin, yPos, contentWidth, 40, 3, 3, 'FD');
+  doc.roundedRect(margin, yPos, contentWidth, 48, 3, 3, 'FD');
+  
+  // Utiliser la date de fin de formation
+  const displayDate = formation.date_fin || formation.date_debut;
   
   const infoFields = [
     { label: 'Nom et prénom du stagiaire', value: `${stagiaire.prenom} ${stagiaire.nom}` },
     { label: 'Nom et prénom du N+1', value: contenu?.info?.n_plus_1 || '' },
     { label: 'Intitulé de la formation', value: formation.titre },
     { label: 'Prestataire et formateur', value: `Start Academy - ${formation.formateur || 'Julien Lafitte'}` },
-    { label: 'Date de réalisation', value: format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr }) },
+    { label: 'Date de réalisation', value: format(new Date(displayDate), 'dd/MM/yyyy', { locale: fr }) },
     { label: 'Action inscrite au plan de formation', value: contenu?.info?.plan_formation || 'Oui' },
   ];
   
   doc.setFontSize(8);
-  let infoY = yPos + 6;
+  let infoY = yPos + 8;
   infoFields.forEach((field) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
     doc.text(field.label + ' :', margin + 5, infoY);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT_COLOR);
-    doc.text(field.value, margin + 75, infoY);
-    infoY += 6;
+    doc.text(field.value, margin + 80, infoY);
+    infoY += 7;
   });
   
-  yPos += 48;
+  yPos += 52;
 
   // Question blocks helper
   const drawQuestionBlock = (question: string, options: string[], selectedOption: string, subQuestions?: { question: string; answer: string }[]) => {
