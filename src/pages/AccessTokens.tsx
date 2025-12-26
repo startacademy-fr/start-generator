@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -43,6 +44,7 @@ import {
 import { format, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, Stagiaire } from '@/types/database';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 
 interface InscriptionWithDetails {
   id: string;
@@ -60,6 +62,8 @@ export default function AccessTokens() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [createFormation, setCreateFormation] = useState<string>('');
   const [generatedLinks, setGeneratedLinks] = useState<{ stagiaire: string; link: string }[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Fetch formations
   const { data: formations } = useQuery({
@@ -154,6 +158,26 @@ export default function AccessTokens() {
     },
   });
 
+  // Delete tokens mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('access_tokens')
+        .delete()
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['access-tokens'] });
+      toast.success(`${selectedIds.length} lien(s) supprimé(s)`);
+      setSelectedIds([]);
+      setIsDeleteDialogOpen(false);
+    },
+    onError: (error) => {
+      toast.error('Erreur: ' + error.message);
+    },
+  });
+
   // Revoke token mutation
   const revokeMutation = useMutation({
     mutationFn: async (tokenId: string) => {
@@ -201,6 +225,20 @@ export default function AccessTokens() {
     return 'active';
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredTokens?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredTokens?.map(t => t.id) || []);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -211,12 +249,23 @@ export default function AccessTokens() {
             Gérez les liens sécurisés pour le portail stagiaire
           </p>
         </div>
-        {canManage && (
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Générer des liens
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canManage && selectedIds.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer ({selectedIds.length})
+            </Button>
+          )}
+          {canManage && (
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Générer des liens
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -267,6 +316,14 @@ export default function AccessTokens() {
           <Table>
             <TableHeader>
               <TableRow>
+                {canManage && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.length === filteredTokens?.length && filteredTokens?.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Stagiaire</TableHead>
                 <TableHead>Formation</TableHead>
                 <TableHead>Statut</TableHead>
@@ -282,7 +339,15 @@ export default function AccessTokens() {
                 const status = getTokenStatus(token);
                 
                 return (
-                  <TableRow key={token.id}>
+                  <TableRow key={token.id} className={selectedIds.includes(token.id) ? 'bg-muted/50' : ''}>
+                    {canManage && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.includes(token.id)}
+                          onCheckedChange={() => toggleSelect(token.id)}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium">
                       {inscription.stagiaire.prenom} {inscription.stagiaire.nom}
                     </TableCell>
@@ -341,10 +406,22 @@ export default function AccessTokens() {
                                 size="icon"
                                 onClick={() => revokeMutation.mutate(token.id)}
                               >
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <XCircle className="h-4 w-4 text-orange-500" />
                               </Button>
                             )}
                           </>
+                        )}
+                        {canManage && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => {
+                              setSelectedIds([token.id]);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -443,6 +520,17 @@ export default function AccessTokens() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Supprimer les liens d'accès"
+        description="Cette action est irréversible. Les liens sélectionnés seront définitivement supprimés et les stagiaires ne pourront plus accéder au portail avec ces liens."
+        itemCount={selectedIds.length}
+        onConfirm={() => deleteMutation.mutate(selectedIds)}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }
