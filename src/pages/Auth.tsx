@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import logo from '@/assets/logo.png';
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -236,11 +237,9 @@ export default function Auth() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg">
-                <GraduationCap className="h-8 w-8 text-primary-foreground" />
-              </div>
+              <img src={logo} alt="Start Academy" className="h-16 w-auto" />
             </div>
-            <h1 className="text-3xl font-display font-semibold text-foreground">
+            <h1 className="text-3xl font-semibold text-foreground" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               Start Academy
             </h1>
             <p className="text-muted-foreground">
@@ -308,11 +307,9 @@ export default function Auth() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg">
-                <GraduationCap className="h-8 w-8 text-primary-foreground" />
-              </div>
+              <img src={logo} alt="Start Academy" className="h-16 w-auto" />
             </div>
-            <h1 className="text-3xl font-display font-semibold text-foreground">
+            <h1 className="text-3xl font-semibold text-foreground" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               Start Academy
             </h1>
             <p className="text-muted-foreground">
@@ -377,11 +374,9 @@ export default function Auth() {
         {/* Logo and Title */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg">
-              <GraduationCap className="h-8 w-8 text-primary-foreground" />
-            </div>
+            <img src={logo} alt="Start Academy" className="h-16 w-auto" />
           </div>
-          <h1 className="text-3xl font-display font-semibold text-foreground">
+          <h1 className="text-3xl font-semibold text-foreground" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             Start Academy
           </h1>
           <p className="text-muted-foreground">
