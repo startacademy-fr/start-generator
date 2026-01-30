@@ -35,14 +35,25 @@ interface ImportRow {
   fonction?: string;
   adresse?: string;
   situation_handicap?: boolean;
+  anciennete?: string;
+  diplome_plus_eleve?: string;
+  taches_quotidiennes?: string;
+  date_naissance?: string;
+  nom_jeune_fille?: string;
+  numero_securite_sociale?: string;
   status: 'new' | 'update' | 'error';
   errorMessage?: string;
+  existingId?: string;
 }
 
 type ImportStep = 'upload' | 'mapping' | 'preview' | 'result';
 
 const REQUIRED_COLUMNS = ['prenom', 'nom', 'email'];
-const OPTIONAL_COLUMNS = ['telephone', 'entreprise', 'siret', 'fonction', 'adresse', 'situation_handicap'];
+const OPTIONAL_COLUMNS = [
+  'telephone', 'entreprise', 'siret', 'fonction', 'adresse', 'situation_handicap',
+  'anciennete', 'diplome_plus_eleve', 'taches_quotidiennes', 
+  'date_naissance', 'nom_jeune_fille', 'numero_securite_sociale'
+];
 const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 
 export default function Import() {
@@ -71,17 +82,44 @@ export default function Import() {
     },
   });
 
-  // Fetch existing stagiaires emails
-  const { data: existingEmails } = useQuery({
-    queryKey: ['stagiaires-emails'],
+  // Fetch existing stagiaires for duplicate detection (email OR nom+prenom)
+  const { data: existingStagiaires } = useQuery({
+    queryKey: ['stagiaires-all'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stagiaires')
-        .select('id, email');
+        .select('id, email, prenom, nom');
       if (error) throw error;
-      return data.reduce((acc, s) => ({ ...acc, [s.email.toLowerCase()]: s.id }), {} as Record<string, string>);
+      return data;
     },
   });
+
+  // Helper function to find duplicate by email OR (nom + prenom + email match on 2+ fields)
+  const findExistingStagiaire = (prenom: string, nom: string, email: string) => {
+    if (!existingStagiaires) return null;
+    
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPrenom = prenom.toLowerCase().trim();
+    const normalizedNom = nom.toLowerCase().trim();
+    
+    for (const s of existingStagiaires) {
+      const sEmail = s.email.toLowerCase().trim();
+      const sPrenom = s.prenom.toLowerCase().trim();
+      const sNom = s.nom.toLowerCase().trim();
+      
+      // Count matching fields
+      let matchCount = 0;
+      if (sEmail === normalizedEmail) matchCount++;
+      if (sPrenom === normalizedPrenom) matchCount++;
+      if (sNom === normalizedNom) matchCount++;
+      
+      // If 2+ fields match (including email match, or nom+prenom match), consider it a duplicate
+      if (matchCount >= 2) {
+        return s.id;
+      }
+    }
+    return null;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -162,7 +200,8 @@ export default function Import() {
         };
       }
 
-      const isExisting = existingEmails?.[email];
+      // Check for duplicate using enhanced logic (email OR nom+prenom)
+      const existingId = findExistingStagiaire(prenom, nom, email);
 
       return {
         prenom,
@@ -176,7 +215,14 @@ export default function Import() {
         situation_handicap: columnMapping.situation_handicap 
           ? ['oui', 'yes', '1', 'true'].includes((row[parseInt(columnMapping.situation_handicap)] || '').toLowerCase())
           : false,
-        status: isExisting ? 'update' : 'new',
+        anciennete: columnMapping.anciennete ? row[parseInt(columnMapping.anciennete)] : undefined,
+        diplome_plus_eleve: columnMapping.diplome_plus_eleve ? row[parseInt(columnMapping.diplome_plus_eleve)] : undefined,
+        taches_quotidiennes: columnMapping.taches_quotidiennes ? row[parseInt(columnMapping.taches_quotidiennes)] : undefined,
+        date_naissance: columnMapping.date_naissance ? row[parseInt(columnMapping.date_naissance)] : undefined,
+        nom_jeune_fille: columnMapping.nom_jeune_fille ? row[parseInt(columnMapping.nom_jeune_fille)] : undefined,
+        numero_securite_sociale: columnMapping.numero_securite_sociale ? row[parseInt(columnMapping.numero_securite_sociale)] : undefined,
+        status: existingId ? 'update' : 'new',
+        existingId: existingId || undefined,
       };
     });
 
@@ -203,13 +249,19 @@ export default function Import() {
             fonction: row.fonction || null,
             adresse: row.adresse || null,
             situation_handicap: row.situation_handicap || false,
+            anciennete: row.anciennete || null,
+            diplome_plus_eleve: row.diplome_plus_eleve || null,
+            taches_quotidiennes: row.taches_quotidiennes || null,
+            date_naissance: row.date_naissance || null,
+            nom_jeune_fille: row.nom_jeune_fille || null,
+            numero_securite_sociale: row.numero_securite_sociale || null,
           };
 
           let stagiaireId: string;
 
-          if (row.status === 'update') {
-            // Update existing
-            stagiaireId = existingEmails![row.email];
+          if (row.status === 'update' && row.existingId) {
+            // Update existing - using the found ID from duplicate detection
+            stagiaireId = row.existingId;
             const { error } = await supabase
               .from('stagiaires')
               .update(stagiaireData)
@@ -259,7 +311,7 @@ export default function Import() {
       setImportResult(result);
       setStep('result');
       queryClient.invalidateQueries({ queryKey: ['stagiaires'] });
-      queryClient.invalidateQueries({ queryKey: ['stagiaires-emails'] });
+      queryClient.invalidateQueries({ queryKey: ['stagiaires-all'] });
       queryClient.invalidateQueries({ queryKey: ['inscriptions-counts'] });
       toast.success(`Import terminé: ${result.created} créés, ${result.updated} mis à jour`);
     },
