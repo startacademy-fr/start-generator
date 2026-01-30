@@ -661,9 +661,22 @@ function renderSatisfactionFroid(
   
   yPos += 52;
 
-  // Question blocks helper
+  // Question blocks helper with proper height calculation
   const drawQuestionBlock = (question: string, options: string[], selectedOption: string, subQuestions?: { question: string; answer: string }[]) => {
-    const blockHeight = 20 + options.length * 6 + (subQuestions ? subQuestions.length * 15 : 0);
+    // Calculate proper height based on content
+    const questionLines = doc.splitTextToSize(question, contentWidth - 15);
+    const questionHeight = questionLines.length * 4;
+    
+    let subQuestionsHeight = 0;
+    if (subQuestions) {
+      subQuestions.forEach((sq) => {
+        subQuestionsHeight += 8; // Question title
+        const answerLines = doc.splitTextToSize(sq.answer || '', contentWidth - 20);
+        subQuestionsHeight += answerLines.length * 4 + 6;
+      });
+    }
+    
+    const blockHeight = 12 + questionHeight + (options.length * 7) + subQuestionsHeight + 8;
     checkPageBreak(blockHeight);
     
     doc.setDrawColor(...QUESTION_BORDER);
@@ -673,40 +686,43 @@ function renderSatisfactionFroid(
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
-    doc.text(question, margin + 5, yPos + 7, { maxWidth: contentWidth - 10 });
+    doc.text(questionLines, margin + 8, yPos + 8);
     
-    let optY = yPos + 14;
+    let optY = yPos + 10 + questionHeight;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     options.forEach((opt) => {
       const isSelected = selectedOption === opt;
       if (isSelected) {
         doc.setFillColor(...PRIMARY_BLUE);
-        doc.circle(margin + 10, optY - 1.5, 2.5, 'F');
+        doc.circle(margin + 12, optY, 2.5, 'F');
       } else {
         doc.setDrawColor(...PRIMARY_BLUE);
-        doc.circle(margin + 10, optY - 1.5, 2.5);
+        doc.setLineWidth(0.5);
+        doc.circle(margin + 12, optY, 2.5);
       }
       doc.setTextColor(...TEXT_COLOR);
-      doc.text(opt, margin + 18, optY);
-      optY += 6;
+      doc.text(opt, margin + 20, optY + 1);
+      optY += 7;
     });
     
     if (subQuestions) {
+      optY += 2;
       subQuestions.forEach((sq) => {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...PRIMARY_BLUE);
-        doc.text(sq.question, margin + 5, optY);
-        optY += 4;
+        doc.setFontSize(8);
+        doc.text(sq.question, margin + 8, optY);
+        optY += 5;
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...TEXT_COLOR);
-        const lines = doc.splitTextToSize(sq.answer || '', contentWidth - 15);
-        doc.text(lines, margin + 5, optY);
-        optY += lines.length * 3.5 + 3;
+        const lines = doc.splitTextToSize(sq.answer || '', contentWidth - 20);
+        doc.text(lines, margin + 8, optY);
+        optY += lines.length * 4 + 4;
       });
     }
     
-    yPos += blockHeight + 8;
+    yPos += blockHeight + 6;
   };
 
   // Question 1: Formation a-t-elle répondu au besoin?
@@ -717,138 +733,150 @@ function renderSatisfactionFroid(
     contenu?.q1?.pourquoi ? [{ question: 'Si oui partiellement ou non, pourquoi ?', answer: contenu.q1.pourquoi }] : undefined
   );
 
-  // Question 2: Initiative
-  checkPageBreak(30);
+  // Question 2: Initiative (with checkboxes)
+  const q2Height = 38;
+  checkPageBreak(q2Height);
   doc.setDrawColor(...QUESTION_BORDER);
   doc.setLineWidth(0.8);
-  doc.roundedRect(margin, yPos, contentWidth, 25, 4, 4);
+  doc.roundedRect(margin, yPos, contentWidth, q2Height, 4, 4);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PRIMARY_BLUE);
-  doc.text('Qui était à l\'initiative de cette formation ?', margin + 5, yPos + 7);
+  doc.text('Qui était à l\'initiative de cette formation ?', margin + 8, yPos + 8);
   
   const initiatives = ['Vous même', 'Votre collaborateur', 'Vous et votre collaborateur'];
   const selectedInitiatives = contenu?.q2?.initiative || ['Vous et votre collaborateur'];
   
-  let initY = yPos + 14;
+  let initY = yPos + 16;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   initiatives.forEach((init) => {
     const isSelected = selectedInitiatives.includes(init);
     if (isSelected) {
       doc.setFillColor(...PRIMARY_BLUE);
-      doc.rect(margin + 8, initY - 3, 5, 5, 'F');
+      doc.rect(margin + 10, initY - 3, 4, 4, 'F');
     } else {
       doc.setDrawColor(...PRIMARY_BLUE);
-      doc.rect(margin + 8, initY - 3, 5, 5);
+      doc.setLineWidth(0.5);
+      doc.rect(margin + 10, initY - 3, 4, 4);
     }
     doc.setTextColor(...TEXT_COLOR);
-    doc.text(init, margin + 18, initY);
-    initY += 6;
+    doc.text(init, margin + 20, initY);
+    initY += 7;
   });
   
-  yPos += 32;
+  yPos += q2Height + 6;
 
   // Question 3: Mise en pratique
-  checkPageBreak(60);
-  const q3Height = 55;
+  const q3Height = 70;
+  checkPageBreak(q3Height);
   doc.setDrawColor(...QUESTION_BORDER);
+  doc.setLineWidth(0.8);
   doc.roundedRect(margin, yPos, contentWidth, q3Height, 4, 4);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PRIMARY_BLUE);
-  doc.text('Depuis la fin de sa formation, a-t-il pu mettre en pratique les connaissances acquises ?', margin + 5, yPos + 7, { maxWidth: contentWidth - 10 });
+  doc.text('Depuis la fin de sa formation, a-t-il pu mettre en pratique les connaissances acquises ?', margin + 8, yPos + 8, { maxWidth: contentWidth - 15 });
   
   const pratiqueOptions = ['Oui tout à fait', 'Oui partiellement', 'Non'];
-  let pratiqueY = yPos + 14;
+  let pratiqueY = yPos + 16;
+  doc.setFontSize(8);
   pratiqueOptions.forEach((opt) => {
     const isSelected = (contenu?.q3?.mise_pratique || 'Oui tout à fait') === opt;
     if (isSelected) {
       doc.setFillColor(...PRIMARY_BLUE);
-      doc.circle(margin + 10, pratiqueY - 1.5, 2.5, 'F');
+      doc.circle(margin + 12, pratiqueY, 2.5, 'F');
     } else {
       doc.setDrawColor(...PRIMARY_BLUE);
-      doc.circle(margin + 10, pratiqueY - 1.5, 2.5);
+      doc.setLineWidth(0.5);
+      doc.circle(margin + 12, pratiqueY, 2.5);
     }
     doc.setTextColor(...TEXT_COLOR);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(opt, margin + 18, pratiqueY);
-    pratiqueY += 5;
+    doc.text(opt, margin + 20, pratiqueY + 1);
+    pratiqueY += 7;
   });
   
+  pratiqueY += 2;
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PRIMARY_BLUE);
-  doc.text('À quelle fréquence ?', margin + 5, pratiqueY + 2);
-  pratiqueY += 6;
+  doc.text('À quelle fréquence ?', margin + 8, pratiqueY);
+  pratiqueY += 7;
   
   const frequences = ['Quotidiennement', 'Hebdomadairement', 'Occasionnellement', 'Rarement'];
   frequences.forEach((freq) => {
     const isSelected = (contenu?.q3?.frequence || 'Quotidiennement') === freq;
     if (isSelected) {
       doc.setFillColor(...PRIMARY_BLUE);
-      doc.circle(margin + 10, pratiqueY - 1.5, 2.5, 'F');
+      doc.circle(margin + 12, pratiqueY, 2.5, 'F');
     } else {
       doc.setDrawColor(...PRIMARY_BLUE);
-      doc.circle(margin + 10, pratiqueY - 1.5, 2.5);
+      doc.setLineWidth(0.5);
+      doc.circle(margin + 12, pratiqueY, 2.5);
     }
     doc.setTextColor(...TEXT_COLOR);
     doc.setFont('helvetica', 'normal');
-    doc.text(freq, margin + 18, pratiqueY);
-    pratiqueY += 5;
+    doc.text(freq, margin + 20, pratiqueY + 1);
+    pratiqueY += 7;
   });
   
-  yPos += q3Height + 8;
+  yPos += q3Height + 6;
 
   // Question 4: Entretien post-formation
-  checkPageBreak(25);
+  const q4Height = 28;
+  checkPageBreak(q4Height);
   doc.setDrawColor(...QUESTION_BORDER);
-  doc.roundedRect(margin, yPos, contentWidth, 18, 4, 4);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(margin, yPos, contentWidth, q4Height, 4, 4);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PRIMARY_BLUE);
-  doc.text("À l'issue de sa formation, avez-vous eu un entretien avec votre collaborateur ?", margin + 5, yPos + 7, { maxWidth: contentWidth - 10 });
+  doc.text("À l'issue de sa formation, avez-vous eu un entretien avec votre collaborateur ?", margin + 8, yPos + 8, { maxWidth: contentWidth - 15 });
   
   const entretienOptions = ['Oui', 'Non'];
-  let entretienY = yPos + 13;
+  let entretienY = yPos + 16;
   doc.setFontSize(8);
   entretienOptions.forEach((opt) => {
     const isSelected = (contenu?.q4?.entretien || 'Oui') === opt;
     if (isSelected) {
       doc.setFillColor(...PRIMARY_BLUE);
-      doc.circle(margin + 10, entretienY - 1.5, 2.5, 'F');
+      doc.circle(margin + 12, entretienY, 2.5, 'F');
     } else {
       doc.setDrawColor(...PRIMARY_BLUE);
-      doc.circle(margin + 10, entretienY - 1.5, 2.5);
+      doc.setLineWidth(0.5);
+      doc.circle(margin + 12, entretienY, 2.5);
     }
     doc.setTextColor(...TEXT_COLOR);
     doc.setFont('helvetica', 'normal');
-    doc.text(opt, margin + 18, entretienY);
-    entretienY += 5;
+    doc.text(opt, margin + 20, entretienY + 1);
+    entretienY += 7;
   });
   
-  yPos += 25;
+  yPos += q4Height + 6;
 
   // Remarques
   if (contenu?.remarques) {
-    checkPageBreak(25);
+    const remarquesLines = doc.splitTextToSize(contenu.remarques, contentWidth - 16);
+    const remarquesHeight = 16 + remarquesLines.length * 4;
+    checkPageBreak(remarquesHeight);
+    
     doc.setDrawColor(...QUESTION_BORDER);
-    doc.roundedRect(margin, yPos, contentWidth, 20, 4, 4);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(margin, yPos, contentWidth, remarquesHeight, 4, 4);
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
-    doc.text('Remarques/observations/libre expression du collaborateur :', margin + 5, yPos + 7);
+    doc.text('Remarques/observations/libre expression du collaborateur :', margin + 8, yPos + 8);
     
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT_COLOR);
     doc.setFontSize(8);
-    const remarquesLines = doc.splitTextToSize(contenu.remarques, contentWidth - 10);
-    doc.text(remarquesLines, margin + 5, yPos + 13);
-    yPos += 28;
+    doc.text(remarquesLines, margin + 8, yPos + 15);
+    yPos += remarquesHeight + 6;
   }
 
   // Thank you box
