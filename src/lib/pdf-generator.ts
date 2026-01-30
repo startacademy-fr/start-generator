@@ -155,19 +155,8 @@ export function generatePDF(data: DocumentData): jsPDF {
       doc.text('Contenu du document', margin, yPos);
   }
 
-  // Submission info
-  if (data.date_soumission) {
-    yPos += 15;
-    doc.setFontSize(9);
-    doc.setTextColor(...MUTED_COLOR);
-    doc.text(
-      `Document soumis le ${format(new Date(data.date_soumission), 'dd/MM/yyyy à HH:mm', { locale: fr })}`,
-      margin,
-      yPos
-    );
-  }
-
   // Footer
+  addFooter(doc, pageWidth, pageHeight);
   addFooter(doc, pageWidth, pageHeight);
 
   return doc;
@@ -601,30 +590,27 @@ function renderSatisfactionFroid(
   
   yPos += 10;
 
-  // Intro box
-  checkPageBreak(35);
+  // Intro box with proper line breaks
+  checkPageBreak(38);
   doc.setFillColor(...INTRO_BG);
   doc.setDrawColor(...PRIMARY_BLUE);
   doc.setLineWidth(0.8);
-  doc.rect(margin, yPos, contentWidth, 30, 'FD');
-  doc.line(margin, yPos, margin, yPos + 30);
+  doc.rect(margin, yPos, contentWidth, 34, 'FD');
+  doc.line(margin, yPos, margin, yPos + 34);
   
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...TEXT_COLOR);
-  const introText = [
-    "À la fin de chaque formation, nous demandons au participant son évaluation à chaud.",
-    "Il nous apparaît tout aussi important de recueillir votre avis sur la mise en pratique après quelques mois.",
-    "Nous vous remercions de bien vouloir remplir ce questionnaire lors de l'entretien de suivi.",
-    "Merci de votre aimable collaboration."
-  ];
-  let introY = yPos + 6;
-  introText.forEach((line) => {
-    doc.text(line, margin + 5, introY);
-    introY += 5;
-  });
+  
+  let introY = yPos + 8;
+  doc.text("À la fin de chaque formation, nous demandons au participant son évaluation à chaud.", margin + 8, introY);
+  introY += 6;
+  doc.text("Il nous apparaît tout aussi important de recueillir votre avis sur la mise en pratique après quelques mois.", margin + 8, introY);
+  introY += 6;
+  doc.text("Nous vous remercions de bien vouloir remplir ce questionnaire lors de l'entretien de suivi.", margin + 8, introY);
+  introY += 8;
   doc.setFont('helvetica', 'bold');
-  doc.text("Merci de votre aimable collaboration.", margin + 5, introY);
+  doc.text("Merci de votre aimable collaboration.", margin + 8, introY);
   
   yPos += 38;
 
