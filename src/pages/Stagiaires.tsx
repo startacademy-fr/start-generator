@@ -602,7 +602,6 @@ export default function Stagiaires() {
                 <TableHead>Contact</TableHead>
                 <TableHead>Entreprise</TableHead>
                 <TableHead>Formations</TableHead>
-                <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -676,17 +675,17 @@ export default function Stagiaires() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {inscriptionsCounts?.[stagiaire.id] || 0} formation(s)
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {stagiaire.situation_handicap && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Accessibility className="h-3 w-3" />
-                        PSH
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">
+                        {inscriptionsCounts?.[stagiaire.id] || 0} formation(s)
                       </Badge>
-                    )}
+                      {stagiaire.situation_handicap && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Accessibility className="h-3 w-3" />
+                          PSH
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     {canManage && (
