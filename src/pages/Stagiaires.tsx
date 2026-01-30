@@ -5,6 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -27,7 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download } from 'lucide-react';
-import type { Stagiaire } from '@/types/database';
+import type { Stagiaire, Civilite } from '@/types/database';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -43,6 +50,7 @@ export default function Stagiaires() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Form state
+  const [civilite, setCivilite] = useState<Civilite | ''>('');
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
@@ -93,6 +101,7 @@ export default function Stagiaires() {
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (formData: {
+      civilite: Civilite | null;
       prenom: string;
       nom: string;
       email: string;
@@ -157,6 +166,7 @@ export default function Stagiaires() {
   const openDialog = (stagiaire?: Stagiaire) => {
     if (stagiaire) {
       setEditingStagiaire(stagiaire);
+      setCivilite(stagiaire.civilite || '');
       setPrenom(stagiaire.prenom);
       setNom(stagiaire.nom);
       setEmail(stagiaire.email);
@@ -175,6 +185,7 @@ export default function Stagiaires() {
       setNumeroSecuriteSociale(stagiaire.numero_securite_sociale || '');
     } else {
       setEditingStagiaire(null);
+      setCivilite('');
       setPrenom('');
       setNom('');
       setEmail('');
@@ -203,6 +214,7 @@ export default function Stagiaires() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveMutation.mutate({
+      civilite: civilite || null,
       prenom,
       nom,
       email,
@@ -217,7 +229,7 @@ export default function Stagiaires() {
       diplome_plus_eleve: diplomePlusEleve || null,
       taches_quotidiennes: tachesQuotidiennes || null,
       date_naissance: dateNaissance || null,
-      nom_jeune_fille: nomJeuneFille || null,
+      nom_jeune_fille: civilite === 'Mme' ? (nomJeuneFille || null) : null,
       numero_securite_sociale: numeroSecuriteSociale || null,
     });
   };
@@ -266,6 +278,7 @@ export default function Stagiaires() {
     }
 
     const headers = [
+      'Civilité',
       'Prénom',
       'Nom',
       'Nom de jeune fille',
@@ -287,6 +300,7 @@ export default function Stagiaires() {
     const csvContent = [
       headers.join(';'),
       ...stagiaires.map(s => [
+        s.civilite || '',
         s.prenom,
         s.nom,
         s.nom_jeune_fille || '',
@@ -361,7 +375,19 @@ export default function Stagiaires() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="civilite">Civilité</Label>
+                        <Select value={civilite} onValueChange={(v) => setCivilite(v as Civilite)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Civilité" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="M.">M.</SelectItem>
+                            <SelectItem value="Mme">Mme</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="prenom">Prénom *</Label>
                         <Input
@@ -382,15 +408,17 @@ export default function Stagiaires() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nom_jeune_fille">Nom de jeune fille</Label>
-                        <Input
-                          id="nom_jeune_fille"
-                          value={nomJeuneFille}
-                          onChange={(e) => setNomJeuneFille(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
+                      {civilite === 'Mme' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="nom_jeune_fille">Nom de jeune fille</Label>
+                          <Input
+                            id="nom_jeune_fille"
+                            value={nomJeuneFille}
+                            onChange={(e) => setNomJeuneFille(e.target.value)}
+                          />
+                        </div>
+                      )}
+                      <div className={`space-y-2 ${civilite !== 'Mme' ? 'col-span-2' : ''}`}>
                         <Label htmlFor="date_naissance">Date de naissance *</Label>
                         <Input
                           id="date_naissance"
