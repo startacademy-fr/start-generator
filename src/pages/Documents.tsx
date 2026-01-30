@@ -155,8 +155,8 @@ export default function Documents() {
           );
 
           if (!existing) {
-            // Generate document content based on type
-            const content = generateDocumentContent(docType, inscription.stagiaire, formation);
+            // Generate document content based on type (async for AI-powered generation)
+            const content = await generateDocumentContent(docType, inscription.stagiaire, formation);
             
             const { error } = await supabase
               .from('documents_stagiaires')
@@ -215,7 +215,7 @@ export default function Documents() {
   });
 
   // Helper functions for document generation
-  const generateDocumentContent = (type: string, stagiaire: Stagiaire, formation: Formation) => {
+  const generateDocumentContent = async (type: string, stagiaire: Stagiaire, formation: Formation) => {
     const baseContent = {
       stagiaire: {
         prenom: stagiaire.prenom,
@@ -223,6 +223,9 @@ export default function Documents() {
         email: stagiaire.email,
         entreprise: stagiaire.entreprise,
         fonction: stagiaire.fonction,
+        anciennete: stagiaire.anciennete,
+        diplomes: stagiaire.diplomes,
+        taches_quotidiennes: stagiaire.taches_quotidiennes,
       },
       formation: {
         titre: formation.titre,
@@ -230,14 +233,18 @@ export default function Documents() {
         date_debut: formation.date_debut,
         date_fin: formation.date_fin,
         nombre_heures: formation.nombre_heures,
+        programme: formation.programme,
       },
     };
 
     switch (type) {
       case 'questionnaire_positionnement':
+        const competencies = await generateCompetenciesWithAI(formation);
         return {
           ...baseContent,
-          reponses: generatePositionnementReponses(),
+          competences: generatePositionnementReponses(competencies),
+          objectifs_personnels: generateObjectifsPersonnels(),
+          commentaires: generateCommentaires(),
         };
       case 'analyse_besoin':
         return {
@@ -302,14 +309,108 @@ export default function Documents() {
     }
   };
 
+  // AI-powered competency generation
+  const generateCompetenciesWithAI = async (formation: Formation): Promise<string[]> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-competencies', {
+        body: {
+          formationTitre: formation.titre,
+          programme: formation.programme,
+          nombreCompetences: 6,
+        },
+      });
+
+      if (error) {
+        console.error('AI generation error:', error);
+        // Fallback to default competencies based on title
+        return generateFallbackCompetencies(formation.titre);
+      }
+
+      return data.competencies || generateFallbackCompetencies(formation.titre);
+    } catch (error) {
+      console.error('Failed to generate competencies:', error);
+      return generateFallbackCompetencies(formation.titre);
+    }
+  };
+
+  // Fallback competencies when AI is unavailable
+  const generateFallbackCompetencies = (titre: string): string[] => {
+    const lowerTitre = titre.toLowerCase();
+    
+    if (lowerTitre.includes('immobilier') || lowerTitre.includes('agent')) {
+      return [
+        'Maîtriser les techniques de prospection immobilière',
+        'Évaluer un bien immobilier selon les critères du marché',
+        'Conduire un entretien de découverte client',
+        'Négocier les conditions de vente ou de location',
+        'Rédiger les documents contractuels conformes',
+        'Utiliser les outils numériques de l\'immobilier',
+      ];
+    }
+    
+    if (lowerTitre.includes('vente') || lowerTitre.includes('commercial')) {
+      return [
+        'Maîtriser les techniques de vente',
+        'Identifier les besoins du client',
+        'Argumenter et convaincre',
+        'Gérer les objections',
+        'Conclure une vente',
+        'Fidéliser la clientèle',
+      ];
+    }
+    
+    if (lowerTitre.includes('management') || lowerTitre.includes('manager')) {
+      return [
+        'Animer et motiver son équipe',
+        'Déléguer efficacement',
+        'Conduire des entretiens professionnels',
+        'Gérer les conflits',
+        'Fixer des objectifs SMART',
+        'Évaluer les performances',
+      ];
+    }
+    
+    // Default generic competencies
+    return [
+      'Comprendre les fondamentaux du domaine',
+      'Appliquer les méthodologies apprises',
+      'Analyser des situations professionnelles',
+      'Mettre en pratique les acquis',
+      'Communiquer efficacement',
+      'Développer son autonomie professionnelle',
+    ];
+  };
+
   // Random content generators
-  const generatePositionnementReponses = () => {
-    const niveaux = ['Débutant', 'Intermédiaire', 'Avancé'];
-    return {
-      niveau_actuel: niveaux[Math.floor(Math.random() * 3)],
-      experience_anterieure: Math.random() > 0.5 ? 'Oui' : 'Non',
-      objectifs_personnels: 'Développer mes compétences professionnelles',
-    };
+  const generatePositionnementReponses = (competencies: string[]) => {
+    return competencies.map((label) => {
+      // Générer des scores avant/après cohérents (progression visible)
+      const avant = Math.floor(Math.random() * 2) + 1; // 1 ou 2 (ne maîtrise pas / doit approfondir)
+      const apres = Math.min(4, avant + Math.floor(Math.random() * 2) + 1); // +1 à +2 niveaux, max 4
+      return { label, avant, apres };
+    });
+  };
+
+  const generateObjectifsPersonnels = () => {
+    const objectifs = [
+      'Renforcer mes compétences techniques pour évoluer dans mon poste',
+      'Acquérir de nouvelles méthodes de travail plus efficaces',
+      'Développer mon expertise pour devenir référent dans mon domaine',
+      'Améliorer ma performance quotidienne grâce aux nouvelles techniques',
+      'Valider mes acquis et obtenir une reconnaissance professionnelle',
+    ];
+    return objectifs[Math.floor(Math.random() * objectifs.length)];
+  };
+
+  const generateCommentaires = () => {
+    const commentaires = [
+      'Formation très enrichissante qui correspond à mes attentes.',
+      'J\'ai pu mettre en pratique les acquis dès le retour en poste.',
+      'Excellent formateur, pédagogie adaptée à notre niveau.',
+      'Contenu complet et bien structuré.',
+      '',
+    ];
+    return commentaires[Math.floor(Math.random() * commentaires.length)];
   };
 
   const generateObjectifs = () => [

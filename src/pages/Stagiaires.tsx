@@ -52,6 +52,9 @@ export default function Stagiaires() {
   const [adresse, setAdresse] = useState('');
   const [situationHandicap, setSituationHandicap] = useState(false);
   const [besoinsSpecifiques, setBesoinsSpecifiques] = useState('');
+  const [anciennete, setAnciennete] = useState('');
+  const [diplomes, setDiplomes] = useState('');
+  const [tachesQuotidiennes, setTachesQuotidiennes] = useState('');
 
   // Fetch stagiaires
   const { data: stagiaires, isLoading } = useQuery({
@@ -96,6 +99,9 @@ export default function Stagiaires() {
       adresse: string | null;
       situation_handicap: boolean;
       besoins_specifiques: string | null;
+      anciennete: string | null;
+      diplomes: string | null;
+      taches_quotidiennes: string | null;
     }) => {
       if (editingStagiaire) {
         const { error } = await supabase
@@ -154,6 +160,9 @@ export default function Stagiaires() {
       setAdresse(stagiaire.adresse || '');
       setSituationHandicap(stagiaire.situation_handicap || false);
       setBesoinsSpecifiques(stagiaire.besoins_specifiques || '');
+      setAnciennete(stagiaire.anciennete || '');
+      setDiplomes(stagiaire.diplomes || '');
+      setTachesQuotidiennes(stagiaire.taches_quotidiennes || '');
     } else {
       setEditingStagiaire(null);
       setPrenom('');
@@ -166,6 +175,9 @@ export default function Stagiaires() {
       setAdresse('');
       setSituationHandicap(false);
       setBesoinsSpecifiques('');
+      setAnciennete('');
+      setDiplomes('');
+      setTachesQuotidiennes('');
     }
     setIsDialogOpen(true);
   };
@@ -188,6 +200,9 @@ export default function Stagiaires() {
       adresse: adresse || null,
       situation_handicap: situationHandicap,
       besoins_specifiques: besoinsSpecifiques || null,
+      anciennete: anciennete || null,
+      diplomes: diplomes || null,
+      taches_quotidiennes: tachesQuotidiennes || null,
     });
   };
 
@@ -308,12 +323,42 @@ export default function Stagiaires() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fonction">Fonction</Label>
+                        <Input
+                          id="fonction"
+                          value={fonction}
+                          onChange={(e) => setFonction(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="anciennete">Ancienneté</Label>
+                        <Input
+                          id="anciennete"
+                          value={anciennete}
+                          onChange={(e) => setAnciennete(e.target.value)}
+                          placeholder="Ex: 3 ans"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="fonction">Fonction</Label>
+                      <Label htmlFor="diplomes">Diplômes / Certifications</Label>
                       <Input
-                        id="fonction"
-                        value={fonction}
-                        onChange={(e) => setFonction(e.target.value)}
+                        id="diplomes"
+                        value={diplomes}
+                        onChange={(e) => setDiplomes(e.target.value)}
+                        placeholder="Ex: BTS Commerce, Licence Pro..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="taches_quotidiennes">Tâches quotidiennes</Label>
+                      <Textarea
+                        id="taches_quotidiennes"
+                        value={tachesQuotidiennes}
+                        onChange={(e) => setTachesQuotidiennes(e.target.value)}
+                        rows={2}
+                        placeholder="Ex: Prospection, relation client, gestion de dossiers..."
                       />
                     </div>
                     <div className="space-y-2">

@@ -42,6 +42,7 @@ export interface Formation {
   date_debut: string;
   date_fin: string | null;
   archived: boolean;
+  programme: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -60,6 +61,9 @@ export interface Stagiaire {
   adresse: string | null;
   situation_handicap: boolean;
   besoins_specifiques: string | null;
+  anciennete: string | null;
+  diplomes: string | null;
+  taches_quotidiennes: string | null;
   created_at: string;
   updated_at: string;
 }
