@@ -360,6 +360,7 @@ export type Database = {
           adresse: string | null
           anciennete: string | null
           besoins_specifiques: string | null
+          civilite: string | null
           created_at: string
           date_naissance: string | null
           diplome_plus_eleve: string | null
@@ -381,6 +382,7 @@ export type Database = {
           adresse?: string | null
           anciennete?: string | null
           besoins_specifiques?: string | null
+          civilite?: string | null
           created_at?: string
           date_naissance?: string | null
           diplome_plus_eleve?: string | null
@@ -402,6 +404,7 @@ export type Database = {
           adresse?: string | null
           anciennete?: string | null
           besoins_specifiques?: string | null
+          civilite?: string | null
           created_at?: string
           date_naissance?: string | null
           diplome_plus_eleve?: string | null

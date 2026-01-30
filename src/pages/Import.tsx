@@ -26,6 +26,7 @@ import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, XCircle, Download, 
 import type { Formation } from '@/types/database';
 
 interface ImportRow {
+  civilite?: 'M.' | 'Mme';
   prenom: string;
   nom: string;
   email: string;
@@ -51,7 +52,7 @@ type ImportStep = 'upload' | 'mapping' | 'preview' | 'result';
 
 const REQUIRED_COLUMNS = ['prenom', 'nom', 'email'];
 const OPTIONAL_COLUMNS = [
-  'telephone', 'entreprise', 'siret', 'fonction', 'adresse', 'situation_handicap',
+  'civilite', 'telephone', 'entreprise', 'siret', 'fonction', 'adresse', 'situation_handicap',
   'anciennete', 'diplome_plus_eleve', 'taches_quotidiennes', 
   'date_naissance', 'nom_jeune_fille', 'numero_securite_sociale', 'besoins_specifiques'
 ];
@@ -151,6 +152,8 @@ export default function Import() {
         // Auto-map columns with exact matching for exported CSV headers
         const autoMapping: Record<string, string> = {};
         const headerMappings: Record<string, string> = {
+          'civilité': 'civilite',
+          'civilite': 'civilite',
           'prénom': 'prenom',
           'prenom': 'prenom',
           'nom': 'nom',
@@ -256,7 +259,12 @@ export default function Import() {
       // Check for duplicate using enhanced logic (email OR nom+prenom)
       const existingId = findExistingStagiaire(prenom, nom, email);
 
+      // Parse civilite value
+      const rawCivilite = mapping.civilite ? row[parseInt(mapping.civilite)]?.trim() : undefined;
+      const civilite = rawCivilite === 'M.' || rawCivilite === 'Mme' ? rawCivilite : undefined;
+
       return {
+        civilite,
         prenom,
         nom,
         email,
@@ -310,6 +318,7 @@ export default function Import() {
       for (const row of validRows) {
         try {
           const stagiaireData = {
+            civilite: row.civilite || null,
             prenom: row.prenom,
             nom: row.nom,
             email: row.email,
@@ -323,7 +332,7 @@ export default function Import() {
             diplome_plus_eleve: row.diplome_plus_eleve || null,
             taches_quotidiennes: row.taches_quotidiennes || null,
             date_naissance: row.date_naissance || null,
-            nom_jeune_fille: row.nom_jeune_fille || null,
+            nom_jeune_fille: row.civilite === 'Mme' ? (row.nom_jeune_fille || null) : null,
             numero_securite_sociale: row.numero_securite_sociale || null,
             besoins_specifiques: row.besoins_specifiques || null,
           };

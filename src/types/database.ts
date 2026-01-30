@@ -49,11 +49,14 @@ export interface Formation {
   formateur?: Profile;
 }
 
+export type Civilite = 'M.' | 'Mme';
+
 export interface Stagiaire {
   id: string;
   email: string;
   prenom: string;
   nom: string;
+  civilite: Civilite | null;
   telephone: string | null;
   entreprise: string | null;
   fonction: string | null;
