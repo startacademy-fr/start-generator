@@ -615,15 +615,9 @@ function renderSatisfactionFroid(
   yPos += 38;
 
   // Info section
-  checkPageBreak(50);
-  doc.setFillColor(248, 249, 250);
-  doc.setDrawColor(221, 221, 221);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, yPos, contentWidth, 48, 3, 3, 'FD');
-  
   // Utiliser la date de fin de formation
   const displayDate = formation.date_fin || formation.date_debut;
-  
+
   const infoFields = [
     { label: 'Nom et prénom du stagiaire', value: `${stagiaire.prenom} ${stagiaire.nom}` },
     { label: 'Nom et prénom du N+1', value: contenu?.info?.n_plus_1 || '' },
@@ -632,20 +626,54 @@ function renderSatisfactionFroid(
     { label: 'Date de réalisation', value: format(new Date(displayDate), 'dd/MM/yyyy', { locale: fr }) },
     { label: 'Action inscrite au plan de formation', value: contenu?.info?.plan_formation || 'Oui' },
   ];
-  
+
+  // Layout constants (mm)
+  const boxPaddingX = 8;
+  const boxPaddingY = 8;
+  const labelX = margin + boxPaddingX;
+  const labelWidth = 70;
+  const valueX = labelX + labelWidth + 4;
+  const valueWidth = margin + contentWidth - boxPaddingX - valueX;
+  const lineHeight = 4.5;
+  const rowGap = 2.5;
+
+  // Measure required height (wrap values inside the box)
   doc.setFontSize(8);
-  let infoY = yPos + 8;
-  infoFields.forEach((field) => {
+  doc.setFont('helvetica', 'normal');
+  const measuredRows = infoFields.map((field) => {
+    const lines = doc.splitTextToSize(field.value || '', valueWidth);
+    const height = Math.max(lineHeight, lines.length * lineHeight);
+    return { field, lines, height };
+  });
+  const infoBoxHeight =
+    boxPaddingY +
+    measuredRows.reduce((sum, r) => sum + r.height, 0) +
+    rowGap * (measuredRows.length - 1) +
+    boxPaddingY;
+
+  checkPageBreak(infoBoxHeight + 6);
+  doc.setFillColor(248, 249, 250);
+  doc.setDrawColor(221, 221, 221);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, yPos, contentWidth, infoBoxHeight, 3, 3, 'FD');
+
+  // Render fields
+  let infoY = yPos + boxPaddingY;
+  measuredRows.forEach(({ field, lines, height }) => {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
-    doc.text(field.label + ' :', margin + 5, infoY);
+    doc.text(`${field.label} :`, labelX, infoY + 1, { maxWidth: labelWidth });
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT_COLOR);
-    doc.text(field.value, margin + 80, infoY);
-    infoY += 7;
+    lines.forEach((line: string, idx: number) => {
+      doc.text(line, valueX, infoY + 1 + idx * lineHeight, { maxWidth: valueWidth });
+    });
+
+    infoY += height + rowGap;
   });
-  
-  yPos += 52;
+
+  yPos += infoBoxHeight + 10;
 
   // Question blocks helper with proper height calculation
   const drawQuestionBlock = (question: string, options: string[], selectedOption: string, subQuestions?: { question: string; answer: string }[]) => {
