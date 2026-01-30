@@ -62,8 +62,11 @@ export interface Stagiaire {
   situation_handicap: boolean;
   besoins_specifiques: string | null;
   anciennete: string | null;
-  diplomes: string | null;
+  diplome_plus_eleve: string | null;
   taches_quotidiennes: string | null;
+  date_naissance: string | null;
+  nom_jeune_fille: string | null;
+  numero_securite_sociale: string | null;
   created_at: string;
   updated_at: string;
 }

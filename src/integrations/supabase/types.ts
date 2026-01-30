@@ -361,12 +361,15 @@ export type Database = {
           anciennete: string | null
           besoins_specifiques: string | null
           created_at: string
-          diplomes: string | null
+          date_naissance: string | null
+          diplome_plus_eleve: string | null
           email: string
           entreprise: string | null
           fonction: string | null
           id: string
           nom: string
+          nom_jeune_fille: string | null
+          numero_securite_sociale: string | null
           prenom: string
           siret: string | null
           situation_handicap: boolean | null
@@ -379,12 +382,15 @@ export type Database = {
           anciennete?: string | null
           besoins_specifiques?: string | null
           created_at?: string
-          diplomes?: string | null
+          date_naissance?: string | null
+          diplome_plus_eleve?: string | null
           email: string
           entreprise?: string | null
           fonction?: string | null
           id?: string
           nom: string
+          nom_jeune_fille?: string | null
+          numero_securite_sociale?: string | null
           prenom: string
           siret?: string | null
           situation_handicap?: boolean | null
@@ -397,12 +403,15 @@ export type Database = {
           anciennete?: string | null
           besoins_specifiques?: string | null
           created_at?: string
-          diplomes?: string | null
+          date_naissance?: string | null
+          diplome_plus_eleve?: string | null
           email?: string
           entreprise?: string | null
           fonction?: string | null
           id?: string
           nom?: string
+          nom_jeune_fille?: string | null
+          numero_securite_sociale?: string | null
           prenom?: string
           siret?: string | null
           situation_handicap?: boolean | null
