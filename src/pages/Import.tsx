@@ -41,6 +41,7 @@ interface ImportRow {
   date_naissance?: string;
   nom_jeune_fille?: string;
   numero_securite_sociale?: string;
+  besoins_specifiques?: string;
   status: 'new' | 'update' | 'error';
   errorMessage?: string;
   existingId?: string;
@@ -52,7 +53,7 @@ const REQUIRED_COLUMNS = ['prenom', 'nom', 'email'];
 const OPTIONAL_COLUMNS = [
   'telephone', 'entreprise', 'siret', 'fonction', 'adresse', 'situation_handicap',
   'anciennete', 'diplome_plus_eleve', 'taches_quotidiennes', 
-  'date_naissance', 'nom_jeune_fille', 'numero_securite_sociale'
+  'date_naissance', 'nom_jeune_fille', 'numero_securite_sociale', 'besoins_specifiques'
 ];
 const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 
@@ -129,8 +130,14 @@ export default function Import() {
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split('\n').filter(line => line.trim());
+      let text = event.target?.result as string;
+      
+      // Remove BOM if present (UTF-8 BOM: \uFEFF)
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
+      
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
       const parsed = lines.map(line => {
         // Handle both comma and semicolon separators
         const separator = line.includes(';') ? ';' : ',';
@@ -141,41 +148,87 @@ export default function Import() {
         setHeaders(parsed[0]);
         setRawData(parsed.slice(1));
         
-        // Auto-map columns
+        // Auto-map columns with exact matching for exported CSV headers
         const autoMapping: Record<string, string> = {};
+        const headerMappings: Record<string, string> = {
+          'prénom': 'prenom',
+          'prenom': 'prenom',
+          'nom': 'nom',
+          'nom de jeune fille': 'nom_jeune_fille',
+          'date de naissance': 'date_naissance',
+          'email': 'email',
+          'e-mail': 'email',
+          'téléphone': 'telephone',
+          'telephone': 'telephone',
+          'n° sécurité sociale': 'numero_securite_sociale',
+          'numero securite sociale': 'numero_securite_sociale',
+          'entreprise': 'entreprise',
+          'siret': 'siret',
+          'fonction': 'fonction',
+          'ancienneté': 'anciennete',
+          'anciennete': 'anciennete',
+          'diplôme le plus élevé': 'diplome_plus_eleve',
+          'diplome le plus eleve': 'diplome_plus_eleve',
+          'tâches quotidiennes': 'taches_quotidiennes',
+          'taches quotidiennes': 'taches_quotidiennes',
+          'adresse': 'adresse',
+          'situation handicap': 'situation_handicap',
+          'besoins spécifiques': 'besoins_specifiques',
+          'besoins specifiques': 'besoins_specifiques',
+        };
+        
         parsed[0].forEach((header, index) => {
-          const normalizedHeader = header.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          const matchedColumn = ALL_COLUMNS.find(col => 
-            normalizedHeader.includes(col) || col.includes(normalizedHeader)
-          );
-          if (matchedColumn) {
-            autoMapping[matchedColumn] = index.toString();
+          // Normalize header: lowercase, remove accents, trim
+          const normalizedHeader = header.toLowerCase().trim()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const originalLower = header.toLowerCase().trim();
+          
+          // Try exact match first (with accents)
+          if (headerMappings[originalLower]) {
+            autoMapping[headerMappings[originalLower]] = index.toString();
+          }
+          // Then try normalized match (without accents)
+          else if (headerMappings[normalizedHeader]) {
+            autoMapping[headerMappings[normalizedHeader]] = index.toString();
+          }
+          // Fallback: check if header contains column name
+          else {
+            const matchedColumn = ALL_COLUMNS.find(col => 
+              normalizedHeader.includes(col.replace(/_/g, ' ')) || 
+              normalizedHeader.includes(col) ||
+              col.includes(normalizedHeader)
+            );
+            if (matchedColumn) {
+              autoMapping[matchedColumn] = index.toString();
+            }
           }
         });
+        
         setColumnMapping(autoMapping);
-        setStep('mapping');
+        
+        // If all required columns are mapped, skip directly to preview
+        const allRequiredMapped = REQUIRED_COLUMNS.every(col => autoMapping[col] !== undefined);
+        if (allRequiredMapped) {
+          // Auto-validate and go to preview
+          setStep('preview');
+          // Trigger validation after state update
+          setTimeout(() => {
+            validateAndPreviewWithMapping(autoMapping, parsed.slice(1));
+          }, 0);
+        } else {
+          setStep('mapping');
+        }
       }
     };
-    reader.readAsText(selectedFile);
+    // Read as UTF-8 explicitly
+    reader.readAsText(selectedFile, 'UTF-8');
   };
 
-  const handleMappingChange = (column: string, headerIndex: string) => {
-    if (headerIndex === 'not_mapped') {
-      setColumnMapping(prev => {
-        const newMapping = { ...prev };
-        delete newMapping[column];
-        return newMapping;
-      });
-    } else {
-      setColumnMapping(prev => ({ ...prev, [column]: headerIndex }));
-    }
-  };
-
-  const validateAndPreview = () => {
-    const preview: ImportRow[] = rawData.map(row => {
-      const prenom = columnMapping.prenom ? row[parseInt(columnMapping.prenom)] || '' : '';
-      const nom = columnMapping.nom ? row[parseInt(columnMapping.nom)] || '' : '';
-      const email = columnMapping.email ? row[parseInt(columnMapping.email)]?.toLowerCase() || '' : '';
+  const validateAndPreviewWithMapping = (mapping: Record<string, string>, data: string[][]) => {
+    const preview: ImportRow[] = data.map(row => {
+      const prenom = mapping.prenom ? row[parseInt(mapping.prenom)] || '' : '';
+      const nom = mapping.nom ? row[parseInt(mapping.nom)] || '' : '';
+      const email = mapping.email ? row[parseInt(mapping.email)]?.toLowerCase() || '' : '';
       
       // Check for required fields
       if (!prenom || !nom || !email) {
@@ -207,26 +260,43 @@ export default function Import() {
         prenom,
         nom,
         email,
-        telephone: columnMapping.telephone ? row[parseInt(columnMapping.telephone)] : undefined,
-        entreprise: columnMapping.entreprise ? row[parseInt(columnMapping.entreprise)] : undefined,
-        siret: columnMapping.siret ? row[parseInt(columnMapping.siret)] : undefined,
-        fonction: columnMapping.fonction ? row[parseInt(columnMapping.fonction)] : undefined,
-        adresse: columnMapping.adresse ? row[parseInt(columnMapping.adresse)] : undefined,
-        situation_handicap: columnMapping.situation_handicap 
-          ? ['oui', 'yes', '1', 'true'].includes((row[parseInt(columnMapping.situation_handicap)] || '').toLowerCase())
+        telephone: mapping.telephone ? row[parseInt(mapping.telephone)] : undefined,
+        entreprise: mapping.entreprise ? row[parseInt(mapping.entreprise)] : undefined,
+        siret: mapping.siret ? row[parseInt(mapping.siret)] : undefined,
+        fonction: mapping.fonction ? row[parseInt(mapping.fonction)] : undefined,
+        adresse: mapping.adresse ? row[parseInt(mapping.adresse)] : undefined,
+        situation_handicap: mapping.situation_handicap 
+          ? ['oui', 'yes', '1', 'true'].includes((row[parseInt(mapping.situation_handicap)] || '').toLowerCase())
           : false,
-        anciennete: columnMapping.anciennete ? row[parseInt(columnMapping.anciennete)] : undefined,
-        diplome_plus_eleve: columnMapping.diplome_plus_eleve ? row[parseInt(columnMapping.diplome_plus_eleve)] : undefined,
-        taches_quotidiennes: columnMapping.taches_quotidiennes ? row[parseInt(columnMapping.taches_quotidiennes)] : undefined,
-        date_naissance: columnMapping.date_naissance ? row[parseInt(columnMapping.date_naissance)] : undefined,
-        nom_jeune_fille: columnMapping.nom_jeune_fille ? row[parseInt(columnMapping.nom_jeune_fille)] : undefined,
-        numero_securite_sociale: columnMapping.numero_securite_sociale ? row[parseInt(columnMapping.numero_securite_sociale)] : undefined,
+        anciennete: mapping.anciennete ? row[parseInt(mapping.anciennete)] : undefined,
+        diplome_plus_eleve: mapping.diplome_plus_eleve ? row[parseInt(mapping.diplome_plus_eleve)] : undefined,
+        taches_quotidiennes: mapping.taches_quotidiennes ? row[parseInt(mapping.taches_quotidiennes)] : undefined,
+        date_naissance: mapping.date_naissance ? row[parseInt(mapping.date_naissance)] : undefined,
+        nom_jeune_fille: mapping.nom_jeune_fille ? row[parseInt(mapping.nom_jeune_fille)] : undefined,
+        numero_securite_sociale: mapping.numero_securite_sociale ? row[parseInt(mapping.numero_securite_sociale)] : undefined,
+        besoins_specifiques: mapping.besoins_specifiques ? row[parseInt(mapping.besoins_specifiques)] : undefined,
         status: existingId ? 'update' : 'new',
         existingId: existingId || undefined,
       };
     });
 
     setPreviewData(preview);
+  };
+
+  const handleMappingChange = (column: string, headerIndex: string) => {
+    if (headerIndex === 'not_mapped') {
+      setColumnMapping(prev => {
+        const newMapping = { ...prev };
+        delete newMapping[column];
+        return newMapping;
+      });
+    } else {
+      setColumnMapping(prev => ({ ...prev, [column]: headerIndex }));
+    }
+  };
+
+  const validateAndPreview = () => {
+    validateAndPreviewWithMapping(columnMapping, rawData);
     setStep('preview');
   };
 
@@ -255,6 +325,7 @@ export default function Import() {
             date_naissance: row.date_naissance || null,
             nom_jeune_fille: row.nom_jeune_fille || null,
             numero_securite_sociale: row.numero_securite_sociale || null,
+            besoins_specifiques: row.besoins_specifiques || null,
           };
 
           let stagiaireId: string;
