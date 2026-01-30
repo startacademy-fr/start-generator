@@ -130,10 +130,10 @@ export function generatePDF(data: DocumentData): jsPDF {
   switch (data.type) {
     case 'questionnaire_positionnement':
     case 'positionnement':
-      yPos = renderPositionnement(doc, yPos, margin, data.contenu);
+      yPos = renderPositionnement(doc, yPos, margin, pageWidth, data.contenu);
       break;
     case 'analyse_besoin':
-      yPos = renderAnalyseBesoin(doc, yPos, margin, data.contenu);
+      yPos = renderAnalyseBesoin(doc, yPos, margin, pageWidth, data.contenu);
       break;
     case 'qcm':
       yPos = renderQCM(doc, yPos, margin, data.contenu, data.score);
@@ -162,53 +162,82 @@ export function generatePDF(data: DocumentData): jsPDF {
   return doc;
 }
 
-function renderPositionnement(doc: jsPDF, yPos: number, margin: number, contenu: any): number {
+function renderPositionnement(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
+  const contentWidth = pageWidth - 2 * margin;
+  const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
+  
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
   doc.text('Auto-évaluation initiale', margin, yPos);
   
   yPos += 10;
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
   doc.setFontSize(10);
   
   if (contenu?.reponses) {
-    doc.text(`Niveau actuel déclaré: ${contenu.reponses.niveau_actuel || 'Non renseigné'}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Expérience antérieure: ${contenu.reponses.experience_anterieure || 'Non renseigné'}`, margin, yPos);
-    yPos += 7;
-    doc.text(`Objectifs personnels: ${contenu.reponses.objectifs_personnels || 'Non renseigné'}`, margin, yPos);
+    const fields = [
+      { label: 'Niveau estimé', value: contenu.reponses.niveau_actuel || contenu.reponses.niveau_estime },
+      { label: 'Expérience antérieure', value: contenu.reponses.experience_anterieure },
+      { label: 'Objectifs personnels', value: contenu.reponses.objectifs_personnels },
+    ];
+    
+    fields.forEach((field) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.setFontSize(9);
+      doc.text(`${field.label}:`, margin, yPos);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...TEXT_COLOR);
+      const valueText = field.value || 'Non renseigné';
+      const lines = doc.splitTextToSize(valueText, contentWidth - 60);
+      doc.text(lines, margin + 55, yPos);
+      yPos += Math.max(7, lines.length * 5 + 2);
+    });
   }
   
   return yPos;
 }
 
-function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, contenu: any): number {
+function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
+  const contentWidth = pageWidth - 2 * margin;
+  const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
+  
+  // Objectifs de formation section
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
   doc.text('Objectifs de formation', margin, yPos);
   
   yPos += 8;
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
   doc.setFontSize(10);
   
-  if (contenu?.objectifs) {
+  if (contenu?.objectifs && Array.isArray(contenu.objectifs)) {
     contenu.objectifs.forEach((obj: string) => {
-      doc.text(`• ${obj}`, margin + 5, yPos);
-      yPos += 6;
+      const lines = doc.splitTextToSize(`• ${obj}`, contentWidth - 10);
+      doc.text(lines, margin + 5, yPos);
+      yPos += lines.length * 5 + 2;
     });
   }
   
-  yPos += 5;
+  yPos += 8;
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
   doc.text('Attentes exprimées', margin, yPos);
   
   yPos += 8;
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
   
-  if (contenu?.attentes) {
+  if (contenu?.attentes && Array.isArray(contenu.attentes)) {
     contenu.attentes.forEach((att: string) => {
-      doc.text(`• ${att}`, margin + 5, yPos);
-      yPos += 6;
+      const lines = doc.splitTextToSize(`• ${att}`, contentWidth - 10);
+      doc.text(lines, margin + 5, yPos);
+      yPos += lines.length * 5 + 2;
     });
   }
   
@@ -351,36 +380,51 @@ function renderSatisfactionChaud(
     yPos += 18;
   }
 
-  // Section rendering helper
+  // Section rendering helper with dynamic height calculation
   const renderSection = (title: string, items: { label: string; value: string }[], comment?: string) => {
-    checkPageBreak(items.length * 10 + 30);
+    // Calculate dynamic height based on content
+    const titleHeight = 12;
+    const itemHeight = 8;
+    const itemsHeight = items.length * itemHeight;
+    
+    // Calculate comment height with text wrapping
+    let commentHeight = 0;
+    let commentLines: string[] = [];
+    if (comment) {
+      doc.setFontSize(8);
+      commentLines = doc.splitTextToSize(`"${comment}"`, contentWidth - 20);
+      commentHeight = 10 + commentLines.length * 4;
+    }
+    
+    const totalHeight = titleHeight + itemsHeight + commentHeight + 8;
+    checkPageBreak(totalHeight);
     
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(221, 221, 221);
     doc.setLineWidth(0.3);
-    doc.roundedRect(margin, yPos, contentWidth, items.length * 8 + (comment ? 25 : 15), 3, 3);
+    doc.roundedRect(margin, yPos, contentWidth, totalHeight, 3, 3);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
-    doc.text(title, margin + 5, yPos + 6);
+    doc.text(title, margin + 8, yPos + 8);
     
-    yPos += 12;
+    yPos += titleHeight;
     items.forEach((item) => {
       yPos = drawRatingRow(item.label, item.value, yPos);
     });
     
-    if (comment) {
+    if (comment && commentLines.length > 0) {
+      yPos += 2;
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...PRIMARY_BLUE);
-      doc.text('Commentaire :', margin + 5, yPos);
-      yPos += 4;
+      doc.text('Commentaire :', margin + 8, yPos);
+      yPos += 5;
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...TEXT_COLOR);
-      const lines = doc.splitTextToSize(`"${comment}"`, contentWidth - 15);
-      doc.text(lines, margin + 5, yPos);
-      yPos += lines.length * 3.5;
+      doc.text(commentLines, margin + 8, yPos);
+      yPos += commentLines.length * 4;
     }
     
     yPos += 8;
@@ -433,31 +477,42 @@ function renderSatisfactionChaud(
 
   // e) Bénéfice retiré
   if (contenu?.benefice) {
-    checkPageBreak(50);
+    // Calculate dynamic height
+    let beneficeCommentLines: string[] = [];
+    if (contenu.benefice.commentaire) {
+      doc.setFontSize(8);
+      beneficeCommentLines = doc.splitTextToSize(`"${contenu.benefice.commentaire}"`, contentWidth - 20);
+    }
+    const beneficeHeight = 22 + (beneficeCommentLines.length > 0 ? beneficeCommentLines.length * 4 + 6 : 0);
+    
+    checkPageBreak(beneficeHeight);
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(221, 221, 221);
-    doc.roundedRect(margin, yPos, contentWidth, 35, 3, 3);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, yPos, contentWidth, beneficeHeight, 3, 3);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
-    doc.text('e) Le bénéfice retiré', margin + 5, yPos + 6);
+    doc.text('e) Le bénéfice retiré', margin + 8, yPos + 8);
     
     yPos += 12;
     yPos = drawRatingRow('Adéquation de la formation avec vos attentes', contenu.benefice.adequation, yPos);
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('Utilité de la formation :', margin + 5, yPos);
+    doc.text('Utilité de la formation :', margin + 8, yPos);
     doc.setFont('helvetica', 'normal');
-    doc.text(contenu.benefice.utilite || '', margin + 50, yPos);
-    yPos += 5;
+    doc.text(contenu.benefice.utilite || '', margin + 55, yPos);
+    yPos += 6;
     
-    if (contenu.benefice.commentaire) {
+    if (beneficeCommentLines.length > 0) {
       doc.setFont('helvetica', 'italic');
-      doc.text(`"${contenu.benefice.commentaire}"`, margin + 5, yPos);
+      doc.setTextColor(...TEXT_COLOR);
+      doc.text(beneficeCommentLines, margin + 8, yPos);
+      yPos += beneficeCommentLines.length * 4;
     }
-    yPos += 12;
+    yPos += 8;
   }
 
   // Questions finales
