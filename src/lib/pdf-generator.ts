@@ -186,14 +186,61 @@ function renderPositionnementLandscape(
   const HEADER_BG: [number, number, number] = [0, 156, 180];
   const LIGHT_CYAN: [number, number, number] = [232, 247, 250];
   const BORDER_COLOR: [number, number, number] = [200, 200, 200];
+  const footerSpace = 25; // Reserve space for footer
   
-  const checkPageBreak = (neededSpace: number) => {
-    if (yPos + neededSpace > pageHeight - 35) {
-      doc.addPage('landscape');
-      yPos = 30;
+  // Helper to redraw table headers after page break
+  const drawTableHeaders = (tableX: number, startY: number, compColWidth: number, checkColWidth: number): number => {
+    let headerY = startY;
+    
+    // Compétences header
+    doc.setFillColor(...HEADER_BG);
+    doc.rect(tableX, headerY, compColWidth, 20, 'F');
+    
+    // Avant la formation header
+    doc.rect(tableX + compColWidth, headerY, checkColWidth * 4, 10, 'F');
+    
+    // Après la formation header
+    doc.rect(tableX + compColWidth + checkColWidth * 4, headerY, checkColWidth * 4, 10, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Compétences', tableX + compColWidth / 2, headerY + 12, { align: 'center' });
+    doc.text('Avant la formation', tableX + compColWidth + checkColWidth * 2, headerY + 7, { align: 'center' });
+    doc.text('Après la formation', tableX + compColWidth + checkColWidth * 6, headerY + 7, { align: 'center' });
+    
+    // Table header row 2 - sub-headers
+    headerY += 10;
+    const subHeaders = ['Je ne maîtrise pas', 'Je dois approfondir', 'Je maîtrise partiellement', 'Je maîtrise complètement'];
+    
+    // Avant sub-headers
+    for (let i = 0; i < 4; i++) {
+      doc.setFillColor(...HEADER_BG);
+      doc.rect(tableX + compColWidth + i * checkColWidth, headerY, checkColWidth, 10, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      const lines = doc.splitTextToSize(subHeaders[i], checkColWidth - 2);
+      doc.text(lines, tableX + compColWidth + i * checkColWidth + checkColWidth / 2, headerY + 4, { align: 'center' });
     }
-    return yPos;
+    
+    // Après sub-headers (light cyan background)
+    for (let i = 0; i < 4; i++) {
+      doc.setFillColor(...LIGHT_CYAN);
+      doc.rect(tableX + compColWidth + (4 + i) * checkColWidth, headerY, checkColWidth, 10, 'F');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      const lines = doc.splitTextToSize(subHeaders[i], checkColWidth - 2);
+      doc.text(lines, tableX + compColWidth + (4 + i) * checkColWidth + checkColWidth / 2, headerY + 4, { align: 'center' });
+    }
+    
+    return headerY + 10;
   };
+
+  // START NEW PAGE for the questionnaire content (keep header on page 1)
+  doc.addPage('landscape');
+  yPos = 25;
 
   // Title
   doc.setFontSize(14);
@@ -207,70 +254,31 @@ function renderPositionnementLandscape(
   doc.setTextColor(...TEXT_COLOR);
   doc.text('(à remplir par le stagiaire en début de formation et en fin de formation)', pageWidth / 2, yPos, { align: 'center' });
   
-  yPos += 12;
+  yPos += 10;
 
   // Competencies table with before/after checkboxes
   const competencies = contenu?.competences || [];
   
   // Column widths for landscape format
-  const compColWidth = 50; // Competences column
+  const compColWidth = 55; // Competences column - slightly wider
   const checkColWidth = (contentWidth - compColWidth) / 8; // 4 levels x 2 (avant + après)
   
-  // Table header row 1 - main sections
   const tableX = margin;
-  let headerY = yPos;
   
-  // Compétences header
-  doc.setFillColor(...HEADER_BG);
-  doc.rect(tableX, headerY, compColWidth, 20, 'F');
-  
-  // Avant la formation header
-  doc.rect(tableX + compColWidth, headerY, checkColWidth * 4, 10, 'F');
-  
-  // Après la formation header
-  doc.rect(tableX + compColWidth + checkColWidth * 4, headerY, checkColWidth * 4, 10, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Compétences', tableX + compColWidth / 2, headerY + 12, { align: 'center' });
-  doc.text('Avant la formation', tableX + compColWidth + checkColWidth * 2, headerY + 7, { align: 'center' });
-  doc.text('Après la formation', tableX + compColWidth + checkColWidth * 6, headerY + 7, { align: 'center' });
-  
-  // Table header row 2 - sub-headers
-  headerY += 10;
-  const subHeaders = ['Je ne maîtrise pas', 'Je dois approfondir', 'Je maîtrise partiellement', 'Je maîtrise complètement'];
-  
-  // Avant sub-headers
-  for (let i = 0; i < 4; i++) {
-    doc.setFillColor(...HEADER_BG);
-    doc.rect(tableX + compColWidth + i * checkColWidth, headerY, checkColWidth, 10, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    const lines = doc.splitTextToSize(subHeaders[i], checkColWidth - 2);
-    doc.text(lines, tableX + compColWidth + i * checkColWidth + checkColWidth / 2, headerY + 4, { align: 'center' });
-  }
-  
-  // Après sub-headers (light cyan background)
-  for (let i = 0; i < 4; i++) {
-    doc.setFillColor(...LIGHT_CYAN);
-    doc.rect(tableX + compColWidth + (4 + i) * checkColWidth, headerY, checkColWidth, 10, 'F');
-    doc.setTextColor(...PRIMARY_BLUE);
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    const lines = doc.splitTextToSize(subHeaders[i], checkColWidth - 2);
-    doc.text(lines, tableX + compColWidth + (4 + i) * checkColWidth + checkColWidth / 2, headerY + 4, { align: 'center' });
-  }
-  
-  yPos = headerY + 10;
+  // Draw initial table headers
+  yPos = drawTableHeaders(tableX, yPos, compColWidth, checkColWidth);
   
   // Table rows
   competencies.forEach((comp: { label: string; avant: number; apres: number }, idx: number) => {
-    yPos = checkPageBreak(12);
+    const rowHeight = 14; // Slightly taller rows for better readability
     
-    const rowHeight = 12;
-    const isEven = idx % 2 === 0;
+    // Check if we need a page break (leave space for footer)
+    if (yPos + rowHeight > pageHeight - footerSpace) {
+      doc.addPage('landscape');
+      yPos = 25;
+      // Redraw headers on new page
+      yPos = drawTableHeaders(tableX, yPos, compColWidth, checkColWidth);
+    }
     
     // Competence cell
     doc.setFillColor(255, 255, 255);
@@ -327,75 +335,80 @@ function renderPositionnementLandscape(
     yPos += rowHeight;
   });
   
-  yPos += 10;
+  yPos += 8;
   
-  // Comments section
+  // Check if signature section fits on current page (needs ~30mm)
+  const signatureSpaceNeeded = 35;
+  if (yPos + signatureSpaceNeeded > pageHeight - footerSpace) {
+    doc.addPage('landscape');
+    yPos = 25;
+  }
+  
+  // Comments section (compact)
   if (contenu?.commentaires || contenu?.objectifs_personnels) {
-    yPos = checkPageBreak(35);
-    
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
-    doc.text('Commentaires et objectifs personnels :', margin, yPos);
+    doc.text('Commentaires / Objectifs :', margin, yPos);
     
-    yPos += 6;
+    yPos += 5;
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...TEXT_COLOR);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     
-    if (contenu.objectifs_personnels) {
-      const objLines = doc.splitTextToSize(contenu.objectifs_personnels, contentWidth);
-      doc.text(objLines, margin, yPos);
-      yPos += objLines.length * 4 + 5;
-    }
-    
-    if (contenu.commentaires) {
-      const comLines = doc.splitTextToSize(contenu.commentaires, contentWidth);
-      doc.text(comLines, margin, yPos);
-      yPos += comLines.length * 4 + 5;
+    const commentText = [contenu.objectifs_personnels, contenu.commentaires].filter(Boolean).join(' - ');
+    if (commentText) {
+      const comLines = doc.splitTextToSize(commentText, contentWidth);
+      doc.text(comLines.slice(0, 2), margin, yPos); // Max 2 lines
+      yPos += Math.min(comLines.length, 2) * 4 + 3;
     }
   }
   
-  // Signature section
   yPos += 5;
-  yPos = checkPageBreak(20);
   
+  // Signature section - properly positioned within margins
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...TEXT_COLOR);
   
-  // Two signature boxes side by side
-  const sigBoxWidth = 80;
-  const dateBoxWidth = 50;
-  const gap = 20;
+  // Calculate proper widths to fit within page
+  const availableWidth = contentWidth;
+  const sigBoxWidth = 70;
+  const dateBoxWidth = 40;
+  const sectionWidth = sigBoxWidth + dateBoxWidth + 10;
+  const gapBetweenSections = (availableWidth - sectionWidth * 2) / 3;
   
-  doc.text('Signature du stagiaire (début de formation) :', margin, yPos);
-  doc.text('Signature du stagiaire (fin de formation) :', margin + sigBoxWidth + dateBoxWidth + gap * 2, yPos);
+  const leftSectionX = margin + gapBetweenSections;
+  const rightSectionX = leftSectionX + sectionWidth + gapBetweenSections;
   
-  yPos += 3;
+  doc.text('Signature (début de formation) :', leftSectionX, yPos);
+  doc.text('Signature (fin de formation) :', rightSectionX, yPos);
+  
+  yPos += 4;
   doc.setDrawColor(...BORDER_COLOR);
   doc.setLineWidth(0.5);
-  doc.rect(margin, yPos, sigBoxWidth, 15);
-  doc.rect(margin + sigBoxWidth + 5, yPos, dateBoxWidth, 15);
-  doc.rect(margin + sigBoxWidth + dateBoxWidth + gap * 2, yPos, sigBoxWidth, 15);
-  doc.rect(margin + sigBoxWidth * 2 + dateBoxWidth + gap * 2 + 5, yPos, dateBoxWidth, 15);
   
-  // Labels
+  // Left signature box and date
+  doc.rect(leftSectionX, yPos, sigBoxWidth, 12);
+  doc.rect(leftSectionX + sigBoxWidth + 5, yPos, dateBoxWidth, 12);
+  
+  // Right signature box and date  
+  doc.rect(rightSectionX, yPos, sigBoxWidth, 12);
+  doc.rect(rightSectionX + sigBoxWidth + 5, yPos, dateBoxWidth, 12);
+  
+  // Labels and dates
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text('Date :', margin + sigBoxWidth + 7, yPos + 9);
-  doc.text('Date :', margin + sigBoxWidth * 2 + dateBoxWidth + gap * 2 + 7, yPos + 9);
   
-  // Pre-fill dates
   const startDate = format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr });
   const endDate = formation.date_fin 
     ? format(new Date(formation.date_fin), 'dd/MM/yyyy', { locale: fr })
     : startDate;
   
-  doc.text(startDate, margin + sigBoxWidth + 20, yPos + 9);
-  doc.text(endDate, margin + sigBoxWidth * 2 + dateBoxWidth + gap * 2 + 20, yPos + 9);
+  doc.text(`Date : ${startDate}`, leftSectionX + sigBoxWidth + 8, yPos + 7);
+  doc.text(`Date : ${endDate}`, rightSectionX + sigBoxWidth + 8, yPos + 7);
 
-  return yPos + 20;
+  return yPos + 15;
 }
 
 function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
