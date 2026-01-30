@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download } from 'lucide-react';
 import type { Stagiaire } from '@/types/database';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -259,6 +259,65 @@ export default function Stagiaires() {
     return missing;
   };
 
+  const exportToCSV = () => {
+    if (!stagiaires || stagiaires.length === 0) {
+      toast.error('Aucun stagiaire à exporter');
+      return;
+    }
+
+    const headers = [
+      'Prénom',
+      'Nom',
+      'Nom de jeune fille',
+      'Date de naissance',
+      'Email',
+      'Téléphone',
+      'N° Sécurité sociale',
+      'Entreprise',
+      'SIRET',
+      'Fonction',
+      'Ancienneté',
+      'Diplôme le plus élevé',
+      'Tâches quotidiennes',
+      'Adresse',
+      'Situation handicap',
+      'Besoins spécifiques'
+    ];
+
+    const csvContent = [
+      headers.join(';'),
+      ...stagiaires.map(s => [
+        s.prenom,
+        s.nom,
+        s.nom_jeune_fille || '',
+        s.date_naissance || '',
+        s.email,
+        s.telephone || '',
+        s.numero_securite_sociale || '',
+        s.entreprise || '',
+        s.siret || '',
+        s.fonction || '',
+        s.anciennete || '',
+        s.diplome_plus_eleve || '',
+        (s.taches_quotidiennes || '').replace(/[\n\r]+/g, ' '),
+        (s.adresse || '').replace(/[\n\r]+/g, ' '),
+        s.situation_handicap ? 'Oui' : 'Non',
+        (s.besoins_specifiques || '').replace(/[\n\r]+/g, ' ')
+      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `stagiaires_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Export CSV téléchargé');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -270,6 +329,10 @@ export default function Stagiaires() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="mr-2 h-4 w-4" />
+            Exporter
+          </Button>
           {canManage && selectedIds.length > 0 && (
             <Button 
               variant="destructive" 
