@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2 } from 'lucide-react';
+import { GraduationCap, Loader2, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
-import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -23,12 +23,27 @@ const signupSchema = z.object({
   nom: z.string().min(1, "Le nom est requis"),
 });
 
+const resetSchema = z.object({
+  email: z.string().email("Email invalide"),
+});
+
+const newPasswordSchema = z.object({
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  confirmPassword: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
 export default function Auth() {
   const navigate = useNavigate();
-  const { signIn, signUp, user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { signIn, signUp, resetPassword, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -40,11 +55,24 @@ export default function Auth() {
   const [signupPrenom, setSignupPrenom] = useState('');
   const [signupNom, setSignupNom] = useState('');
 
+  // Reset password state
+  const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Check if user came from password reset email
   useEffect(() => {
-    if (user && !authLoading) {
+    const isReset = searchParams.get('reset') === 'true';
+    if (isReset) {
+      setShowNewPassword(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user && !authLoading && !showNewPassword) {
       navigate('/dashboard', { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, showNewPassword]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,10 +153,220 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const result = resetSchema.safeParse({ email: resetEmail });
+    if (!result.success) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: result.error.errors[0].message,
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await resetPassword(resetEmail);
+    setLoading(false);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur est survenue. Veuillez réessayer.",
+      });
+    } else {
+      toast({
+        title: "Email envoyé",
+        description: "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.",
+      });
+      setShowForgotPassword(false);
+      setResetEmail('');
+    }
+  };
+
+  const handleNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const result = newPasswordSchema.safeParse({ password: newPassword, confirmPassword });
+    if (!result.success) {
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: result.error.errors[0].message,
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setLoading(false);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le mot de passe. Le lien a peut-être expiré.",
+      });
+    } else {
+      toast({
+        title: "Mot de passe mis à jour",
+        description: "Votre mot de passe a été modifié avec succès.",
+      });
+      setShowNewPassword(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      navigate('/dashboard', { replace: true });
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // New password form (after clicking reset link)
+  if (showNewPassword) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg">
+                <GraduationCap className="h-8 w-8 text-primary-foreground" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-display font-semibold text-foreground">
+              Start Academy
+            </h1>
+            <p className="text-muted-foreground">
+              Nouveau mot de passe
+            </p>
+          </div>
+
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>Définir un nouveau mot de passe</CardTitle>
+              <CardDescription>
+                Entrez votre nouveau mot de passe ci-dessous.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleNewPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Mise à jour...
+                    </>
+                  ) : (
+                    "Mettre à jour le mot de passe"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-xs text-muted-foreground">
+            START ACADEMY – 618 boulevard Jean Maurel inférieur 06140 Vence
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Forgot password form
+  if (showForgotPassword) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg">
+                <GraduationCap className="h-8 w-8 text-primary-foreground" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-display font-semibold text-foreground">
+              Start Academy
+            </h1>
+            <p className="text-muted-foreground">
+              Réinitialisation du mot de passe
+            </p>
+          </div>
+
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>Mot de passe oublié ?</CardTitle>
+              <CardDescription>
+                Entrez votre email et nous vous enverrons un lien de réinitialisation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="votre@email.fr"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi...
+                    </>
+                  ) : (
+                    "Envoyer le lien de réinitialisation"
+                  )}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  className="w-full"
+                  onClick={() => setShowForgotPassword(false)}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Retour à la connexion
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-xs text-muted-foreground">
+            START ACADEMY – 618 boulevard Jean Maurel inférieur 06140 Vence
+          </p>
+        </div>
       </div>
     );
   }
@@ -176,7 +414,20 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Mot de passe</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Mot de passe</Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="px-0 h-auto text-sm text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                          setShowForgotPassword(true);
+                          setResetEmail(loginEmail);
+                        }}
+                      >
+                        Mot de passe oublié ?
+                      </Button>
+                    </div>
                     <Input
                       id="login-password"
                       type="password"
