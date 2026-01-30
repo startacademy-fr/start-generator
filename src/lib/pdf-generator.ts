@@ -45,7 +45,9 @@ const TEXT_COLOR: [number, number, number] = [30, 41, 59]; // slate-800
 const MUTED_COLOR: [number, number, number] = [100, 116, 139]; // slate-500
 
 export function generatePDF(data: DocumentData): jsPDF {
-  const doc = new jsPDF();
+  // Use landscape orientation for positioning questionnaire
+  const isPositionnement = data.type === 'questionnaire_positionnement' || data.type === 'positionnement';
+  const doc = isPositionnement ? new jsPDF({ orientation: 'landscape' }) : new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
@@ -134,7 +136,7 @@ export function generatePDF(data: DocumentData): jsPDF {
   switch (data.type) {
     case 'questionnaire_positionnement':
     case 'positionnement':
-      yPos = renderPositionnement(doc, yPos, margin, pageWidth, data.contenu, data.stagiaire, data.formation);
+      yPos = renderPositionnementLandscape(doc, yPos, margin, pageWidth, pageHeight, data.contenu, data.stagiaire, data.formation);
       break;
     case 'analyse_besoin':
       yPos = renderAnalyseBesoin(doc, yPos, margin, pageWidth, data.contenu);
@@ -159,214 +161,195 @@ export function generatePDF(data: DocumentData): jsPDF {
       doc.text('Contenu du document', margin, yPos);
   }
 
-  // Footer
-  addFooter(doc, pageWidth, pageHeight);
-  addFooter(doc, pageWidth, pageHeight);
+  // Footer on all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(doc, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight());
+  }
 
   return doc;
 }
 
-function renderPositionnement(
+function renderPositionnementLandscape(
   doc: jsPDF, 
   yPos: number, 
   margin: number, 
   pageWidth: number, 
+  pageHeight: number,
   contenu: any,
   stagiaire: DocumentData['stagiaire'],
   formation: DocumentData['formation']
 ): number {
-  const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - 2 * margin;
-  const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
-  const HEADER_BG: [number, number, number] = [68, 114, 196];
-  const LIGHT_BG: [number, number, number] = [248, 249, 250];
-  const BORDER_COLOR: [number, number, number] = [221, 221, 221];
+  const PRIMARY_BLUE: [number, number, number] = [0, 156, 180]; // Cyan color like the reference
+  const HEADER_BG: [number, number, number] = [0, 156, 180];
+  const LIGHT_CYAN: [number, number, number] = [232, 247, 250];
+  const BORDER_COLOR: [number, number, number] = [200, 200, 200];
   
   const checkPageBreak = (neededSpace: number) => {
-    if (yPos + neededSpace > pageHeight - 40) {
-      doc.addPage();
-      addFooter(doc, pageWidth, pageHeight);
+    if (yPos + neededSpace > pageHeight - 35) {
+      doc.addPage('landscape');
       yPos = 30;
     }
+    return yPos;
   };
 
   // Title
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PRIMARY_BLUE);
   doc.text('Questionnaire de positionnement et auto-évaluation', pageWidth / 2, yPos, { align: 'center' });
   
-  yPos += 12;
-
-  // Section 1: Profil de l'apprenant
-  doc.setFillColor(...HEADER_BG);
-  doc.rect(margin, yPos, contentWidth, 8, 'F');
-  doc.setTextColor(255, 255, 255);
+  yPos += 6;
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PROFIL DE L\'APPRENANT', margin + 5, yPos + 6);
-  
-  yPos += 12;
-  
-  // Profile fields in a table-like layout
-  const profileFields = [
-    { label: 'Nom', value: stagiaire.nom },
-    { label: 'Prénom', value: stagiaire.prenom },
-    { label: 'Fonction / Ancienneté', value: `${stagiaire.fonction || 'Non renseigné'}${stagiaire.anciennete ? ` / ${stagiaire.anciennete}` : ''}` },
-    { label: 'Diplômes', value: stagiaire.diplomes || 'Non renseigné' },
-    { label: 'Tâches quotidiennes', value: stagiaire.taches_quotidiennes || 'Non renseigné' },
-    { label: 'Date début de formation', value: format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr }) },
-    { label: 'Date fin de formation', value: formation.date_fin ? format(new Date(formation.date_fin), 'dd/MM/yyyy', { locale: fr }) : format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr }) },
-  ];
-  
-  const labelWidth = 55;
-  const valueWidth = contentWidth - labelWidth;
-  
-  profileFields.forEach((field) => {
-    checkPageBreak(10);
-    doc.setDrawColor(...BORDER_COLOR);
-    doc.setLineWidth(0.3);
-    
-    // Label cell
-    doc.setFillColor(...LIGHT_BG);
-    doc.rect(margin, yPos, labelWidth, 7, 'FD');
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...TEXT_COLOR);
-    doc.text(field.label, margin + 2, yPos + 5);
-    
-    // Value cell
-    doc.setFillColor(255, 255, 255);
-    doc.rect(margin + labelWidth, yPos, valueWidth, 7, 'FD');
-    doc.setFont('helvetica', 'normal');
-    const valueLines = doc.splitTextToSize(field.value || '', valueWidth - 4);
-    doc.text(valueLines[0] || '', margin + labelWidth + 2, yPos + 5);
-    
-    yPos += 7;
-  });
-  
-  yPos += 8;
-
-  // Section 2: Auto-positionnement des acquis
-  checkPageBreak(60);
-  doc.setFillColor(...HEADER_BG);
-  doc.rect(margin, yPos, contentWidth, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('AUTO-POSITIONNEMENT DES ACQUIS', margin + 5, yPos + 6);
-  
-  yPos += 12;
-  
-  // Legend
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'italic');
   doc.setTextColor(...TEXT_COLOR);
-  const legend = [
-    '1 = Je ne maîtrise pas',
-    '2 = Je dois approfondir',
-    '3 = Je maîtrise partiellement',
-    '4 = Je maîtrise complètement'
-  ];
-  legend.forEach((item, idx) => {
-    doc.text(item, margin + (idx * 45), yPos);
-  });
+  doc.text('(à remplir par le stagiaire en début de formation et en fin de formation)', pageWidth / 2, yPos, { align: 'center' });
   
-  yPos += 8;
+  yPos += 12;
+
+  // Competencies table with before/after checkboxes
+  const competencies = contenu?.competences || [];
   
-  // Competencies table header
-  const colWidths = {
-    competence: contentWidth - 60,
-    avant: 30,
-    apres: 30
-  };
+  // Column widths for landscape format
+  const compColWidth = 50; // Competences column
+  const checkColWidth = (contentWidth - compColWidth) / 8; // 4 levels x 2 (avant + après)
   
-  // Header row
+  // Table header row 1 - main sections
+  const tableX = margin;
+  let headerY = yPos;
+  
+  // Compétences header
   doc.setFillColor(...HEADER_BG);
-  doc.rect(margin, yPos, colWidths.competence, 10, 'F');
-  doc.rect(margin + colWidths.competence, yPos, colWidths.avant, 10, 'F');
-  doc.rect(margin + colWidths.competence + colWidths.avant, yPos, colWidths.apres, 10, 'F');
+  doc.rect(tableX, headerY, compColWidth, 20, 'F');
+  
+  // Avant la formation header
+  doc.rect(tableX + compColWidth, headerY, checkColWidth * 4, 10, 'F');
+  
+  // Après la formation header
+  doc.rect(tableX + compColWidth + checkColWidth * 4, headerY, checkColWidth * 4, 10, 'F');
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text('Compétences évaluées', margin + 3, yPos + 7);
-  doc.text('Avant', margin + colWidths.competence + colWidths.avant / 2, yPos + 7, { align: 'center' });
-  doc.text('Après', margin + colWidths.competence + colWidths.avant + colWidths.apres / 2, yPos + 7, { align: 'center' });
+  doc.text('Compétences', tableX + compColWidth / 2, headerY + 12, { align: 'center' });
+  doc.text('Avant la formation', tableX + compColWidth + checkColWidth * 2, headerY + 7, { align: 'center' });
+  doc.text('Après la formation', tableX + compColWidth + checkColWidth * 6, headerY + 7, { align: 'center' });
   
-  yPos += 10;
+  // Table header row 2 - sub-headers
+  headerY += 10;
+  const subHeaders = ['Je ne maîtrise pas', 'Je dois approfondir', 'Je maîtrise partiellement', 'Je maîtrise complètement'];
   
-  // Competencies rows
-  const competencies = contenu?.competences || [];
+  // Avant sub-headers
+  for (let i = 0; i < 4; i++) {
+    doc.setFillColor(...HEADER_BG);
+    doc.rect(tableX + compColWidth + i * checkColWidth, headerY, checkColWidth, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    const lines = doc.splitTextToSize(subHeaders[i], checkColWidth - 2);
+    doc.text(lines, tableX + compColWidth + i * checkColWidth + checkColWidth / 2, headerY + 4, { align: 'center' });
+  }
   
+  // Après sub-headers (light cyan background)
+  for (let i = 0; i < 4; i++) {
+    doc.setFillColor(...LIGHT_CYAN);
+    doc.rect(tableX + compColWidth + (4 + i) * checkColWidth, headerY, checkColWidth, 10, 'F');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    const lines = doc.splitTextToSize(subHeaders[i], checkColWidth - 2);
+    doc.text(lines, tableX + compColWidth + (4 + i) * checkColWidth + checkColWidth / 2, headerY + 4, { align: 'center' });
+  }
+  
+  yPos = headerY + 10;
+  
+  // Table rows
   competencies.forEach((comp: { label: string; avant: number; apres: number }, idx: number) => {
-    checkPageBreak(12);
-    const bgColor: [number, number, number] = idx % 2 === 0 ? [255, 255, 255] : LIGHT_BG;
+    yPos = checkPageBreak(12);
     
-    // Calculate row height based on text
-    doc.setFontSize(8);
-    const compLines = doc.splitTextToSize(comp.label, colWidths.competence - 6);
-    const rowHeight = Math.max(8, compLines.length * 4 + 4);
+    const rowHeight = 12;
+    const isEven = idx % 2 === 0;
     
-    doc.setFillColor(...bgColor);
+    // Competence cell
+    doc.setFillColor(255, 255, 255);
     doc.setDrawColor(...BORDER_COLOR);
     doc.setLineWidth(0.3);
-    doc.rect(margin, yPos, colWidths.competence, rowHeight, 'FD');
-    doc.rect(margin + colWidths.competence, yPos, colWidths.avant, rowHeight, 'FD');
-    doc.rect(margin + colWidths.competence + colWidths.avant, yPos, colWidths.apres, rowHeight, 'FD');
+    doc.rect(tableX, yPos, compColWidth, rowHeight, 'FD');
     
-    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(compLines, margin + 3, yPos + 5);
+    doc.setTextColor(...TEXT_COLOR);
+    const compLines = doc.splitTextToSize(comp.label, compColWidth - 4);
+    doc.text(compLines, tableX + 2, yPos + 5);
     
-    // Rating circles for Avant
-    const avantX = margin + colWidths.competence + colWidths.avant / 2;
-    doc.text(comp.avant.toString(), avantX, yPos + rowHeight / 2 + 2, { align: 'center' });
+    // Avant checkboxes (4 columns)
+    for (let i = 0; i < 4; i++) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(tableX + compColWidth + i * checkColWidth, yPos, checkColWidth, rowHeight, 'FD');
+      
+      // Draw checkbox
+      const checkX = tableX + compColWidth + i * checkColWidth + checkColWidth / 2 - 2.5;
+      const checkY = yPos + rowHeight / 2 - 2.5;
+      const isChecked = comp.avant === (i + 1);
+      
+      doc.setDrawColor(...BORDER_COLOR);
+      doc.setLineWidth(0.5);
+      doc.rect(checkX, checkY, 5, 5);
+      
+      if (isChecked) {
+        doc.setFillColor(...PRIMARY_BLUE);
+        doc.rect(checkX + 0.5, checkY + 0.5, 4, 4, 'F');
+      }
+    }
     
-    // Rating circles for Après
-    const apresX = margin + colWidths.competence + colWidths.avant + colWidths.apres / 2;
-    doc.setTextColor(22, 163, 74); // Green for improvement
-    doc.setFont('helvetica', 'bold');
-    doc.text(comp.apres.toString(), apresX, yPos + rowHeight / 2 + 2, { align: 'center' });
+    // Après checkboxes (4 columns with light cyan background)
+    for (let i = 0; i < 4; i++) {
+      doc.setFillColor(...LIGHT_CYAN);
+      doc.rect(tableX + compColWidth + (4 + i) * checkColWidth, yPos, checkColWidth, rowHeight, 'FD');
+      
+      // Draw checkbox
+      const checkX = tableX + compColWidth + (4 + i) * checkColWidth + checkColWidth / 2 - 2.5;
+      const checkY = yPos + rowHeight / 2 - 2.5;
+      const isChecked = comp.apres === (i + 1);
+      
+      doc.setDrawColor(...BORDER_COLOR);
+      doc.setLineWidth(0.5);
+      doc.rect(checkX, checkY, 5, 5);
+      
+      if (isChecked) {
+        doc.setFillColor(22, 163, 74); // Green for après
+        doc.rect(checkX + 0.5, checkY + 0.5, 4, 4, 'F');
+      }
+    }
     
     yPos += rowHeight;
   });
   
   yPos += 10;
   
-  // Section 3: Commentaires et objectifs
+  // Comments section
   if (contenu?.commentaires || contenu?.objectifs_personnels) {
-    checkPageBreak(40);
-    doc.setFillColor(...HEADER_BG);
-    doc.rect(margin, yPos, contentWidth, 8, 'F');
-    doc.setTextColor(255, 255, 255);
+    yPos = checkPageBreak(35);
+    
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('COMMENTAIRES ET OBJECTIFS', margin + 5, yPos + 6);
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text('Commentaires et objectifs personnels :', margin, yPos);
     
-    yPos += 12;
+    yPos += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(9);
     
     if (contenu.objectifs_personnels) {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...PRIMARY_BLUE);
-      doc.text('Objectifs personnels :', margin, yPos);
-      yPos += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...TEXT_COLOR);
       const objLines = doc.splitTextToSize(contenu.objectifs_personnels, contentWidth);
       doc.text(objLines, margin, yPos);
       yPos += objLines.length * 4 + 5;
     }
     
     if (contenu.commentaires) {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...PRIMARY_BLUE);
-      doc.text('Commentaires :', margin, yPos);
-      yPos += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...TEXT_COLOR);
       const comLines = doc.splitTextToSize(contenu.commentaires, contentWidth);
       doc.text(comLines, margin, yPos);
       yPos += comLines.length * 4 + 5;
@@ -374,29 +357,45 @@ function renderPositionnement(
   }
   
   // Signature section
-  yPos += 10;
-  checkPageBreak(25);
+  yPos += 5;
+  yPos = checkPageBreak(20);
+  
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...TEXT_COLOR);
-  doc.text('Signature du stagiaire :', margin, yPos);
-  doc.text('Date :', margin + 100, yPos);
   
-  yPos += 5;
+  // Two signature boxes side by side
+  const sigBoxWidth = 80;
+  const dateBoxWidth = 50;
+  const gap = 20;
+  
+  doc.text('Signature du stagiaire (début de formation) :', margin, yPos);
+  doc.text('Signature du stagiaire (fin de formation) :', margin + sigBoxWidth + dateBoxWidth + gap * 2, yPos);
+  
+  yPos += 3;
   doc.setDrawColor(...BORDER_COLOR);
   doc.setLineWidth(0.5);
-  doc.rect(margin, yPos, 80, 15);
-  doc.rect(margin + 100, yPos, 50, 15);
+  doc.rect(margin, yPos, sigBoxWidth, 15);
+  doc.rect(margin + sigBoxWidth + 5, yPos, dateBoxWidth, 15);
+  doc.rect(margin + sigBoxWidth + dateBoxWidth + gap * 2, yPos, sigBoxWidth, 15);
+  doc.rect(margin + sigBoxWidth * 2 + dateBoxWidth + gap * 2 + 5, yPos, dateBoxWidth, 15);
   
-  // Pre-fill date with formation end date
-  doc.setFontSize(8);
+  // Labels
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  const signatureDate = formation.date_fin 
+  doc.text('Date :', margin + sigBoxWidth + 7, yPos + 9);
+  doc.text('Date :', margin + sigBoxWidth * 2 + dateBoxWidth + gap * 2 + 7, yPos + 9);
+  
+  // Pre-fill dates
+  const startDate = format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr });
+  const endDate = formation.date_fin 
     ? format(new Date(formation.date_fin), 'dd/MM/yyyy', { locale: fr })
-    : format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr });
-  doc.text(signatureDate, margin + 105, yPos + 10);
+    : startDate;
+  
+  doc.text(startDate, margin + sigBoxWidth + 20, yPos + 9);
+  doc.text(endDate, margin + sigBoxWidth * 2 + dateBoxWidth + gap * 2 + 20, yPos + 9);
 
-  return yPos + 25;
+  return yPos + 20;
 }
 
 function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
@@ -1592,41 +1591,29 @@ function renderGrilleObservation(doc: jsPDF, yPos: number, margin: number, conte
 }
 
 function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number) {
-  const footerY = pageHeight - 20;
-  const margin = 20;
+  const footerY = pageHeight - 15;
+  const margin = 15;
   
   // Separator line
   doc.setDrawColor(...MUTED_COLOR);
   doc.setLineWidth(0.3);
-  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+  doc.line(margin, footerY - 3, pageWidth - margin, footerY - 3);
   
-  // Footer text
-  doc.setFontSize(8);
+  // Footer text - new official Qualiopi text
+  doc.setFontSize(6);
   doc.setTextColor(...MUTED_COLOR);
   doc.setFont('helvetica', 'normal');
   
   doc.text(
-    'START ACADEMY – siège social 618 boulevard Jean Maurel inférieur 06140 Vence',
+    'START ACADEMY – Siège social 618 boulevard Jean Maurel inférieur 06140 Vence – N° SIRET 95131909400011 - NDA 93 06 10481 06',
     pageWidth / 2,
     footerY,
     { align: 'center' }
   );
   doc.text(
-    'N° SIRET 95131909400011 – NDA 93 06 10481 06',
+    'Coordonnées de contact : Angélique LAFITTE - E-mail : formation@start-academy.fr – 06 16 24 63 43 - Version 02 vérifié du 28/01/2026',
     pageWidth / 2,
     footerY + 4,
-    { align: 'center' }
-  );
-  doc.text(
-    'Contact : Julien LAFITTE – info@start-academy.fr – 06 22 80 65 09',
-    pageWidth / 2,
-    footerY + 8,
-    { align: 'center' }
-  );
-  doc.text(
-    'Version 01 – vérifié le 02/01/2026',
-    pageWidth / 2,
-    footerY + 12,
     { align: 'center' }
   );
 }
