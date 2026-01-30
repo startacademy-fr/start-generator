@@ -202,6 +202,7 @@ export type Database = {
           id: string
           lieu: string
           nombre_heures: number
+          programme: string | null
           titre: string
           updated_at: string
         }
@@ -214,6 +215,7 @@ export type Database = {
           id?: string
           lieu: string
           nombre_heures: number
+          programme?: string | null
           titre: string
           updated_at?: string
         }
@@ -226,6 +228,7 @@ export type Database = {
           id?: string
           lieu?: string
           nombre_heures?: number
+          programme?: string | null
           titre?: string
           updated_at?: string
         }
@@ -355,8 +358,10 @@ export type Database = {
       stagiaires: {
         Row: {
           adresse: string | null
+          anciennete: string | null
           besoins_specifiques: string | null
           created_at: string
+          diplomes: string | null
           email: string
           entreprise: string | null
           fonction: string | null
@@ -365,13 +370,16 @@ export type Database = {
           prenom: string
           siret: string | null
           situation_handicap: boolean | null
+          taches_quotidiennes: string | null
           telephone: string | null
           updated_at: string
         }
         Insert: {
           adresse?: string | null
+          anciennete?: string | null
           besoins_specifiques?: string | null
           created_at?: string
+          diplomes?: string | null
           email: string
           entreprise?: string | null
           fonction?: string | null
@@ -380,13 +388,16 @@ export type Database = {
           prenom: string
           siret?: string | null
           situation_handicap?: boolean | null
+          taches_quotidiennes?: string | null
           telephone?: string | null
           updated_at?: string
         }
         Update: {
           adresse?: string | null
+          anciennete?: string | null
           besoins_specifiques?: string | null
           created_at?: string
+          diplomes?: string | null
           email?: string
           entreprise?: string | null
           fonction?: string | null
@@ -395,6 +406,7 @@ export type Database = {
           prenom?: string
           siret?: string | null
           situation_handicap?: boolean | null
+          taches_quotidiennes?: string | null
           telephone?: string | null
           updated_at?: string
         }

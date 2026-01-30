@@ -10,6 +10,9 @@ interface DocumentData {
     email: string;
     entreprise?: string;
     fonction?: string;
+    anciennete?: string;
+    diplomes?: string;
+    taches_quotidiennes?: string;
   };
   formation: {
     titre: string;
@@ -18,6 +21,7 @@ interface DocumentData {
     date_fin?: string | null;
     nombre_heures: number;
     formateur?: string;
+    programme?: string;
   };
   contenu: any;
   score?: number | null;
@@ -130,7 +134,7 @@ export function generatePDF(data: DocumentData): jsPDF {
   switch (data.type) {
     case 'questionnaire_positionnement':
     case 'positionnement':
-      yPos = renderPositionnement(doc, yPos, margin, pageWidth, data.contenu);
+      yPos = renderPositionnement(doc, yPos, margin, pageWidth, data.contenu, data.stagiaire, data.formation);
       break;
     case 'analyse_besoin':
       yPos = renderAnalyseBesoin(doc, yPos, margin, pageWidth, data.contenu);
@@ -162,43 +166,237 @@ export function generatePDF(data: DocumentData): jsPDF {
   return doc;
 }
 
-function renderPositionnement(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
+function renderPositionnement(
+  doc: jsPDF, 
+  yPos: number, 
+  margin: number, 
+  pageWidth: number, 
+  contenu: any,
+  stagiaire: DocumentData['stagiaire'],
+  formation: DocumentData['formation']
+): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - 2 * margin;
   const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
+  const HEADER_BG: [number, number, number] = [68, 114, 196];
+  const LIGHT_BG: [number, number, number] = [248, 249, 250];
+  const BORDER_COLOR: [number, number, number] = [221, 221, 221];
   
-  doc.setFontSize(11);
+  const checkPageBreak = (neededSpace: number) => {
+    if (yPos + neededSpace > pageHeight - 40) {
+      doc.addPage();
+      addFooter(doc, pageWidth, pageHeight);
+      yPos = 30;
+    }
+  };
+
+  // Title
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PRIMARY_BLUE);
-  doc.text('Auto-évaluation initiale', margin, yPos);
+  doc.text('Questionnaire de positionnement et auto-évaluation', pageWidth / 2, yPos, { align: 'center' });
   
-  yPos += 10;
+  yPos += 12;
+
+  // Section 1: Profil de l'apprenant
+  doc.setFillColor(...HEADER_BG);
+  doc.rect(margin, yPos, contentWidth, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PROFIL DE L\'APPRENANT', margin + 5, yPos + 6);
+  
+  yPos += 12;
+  
+  // Profile fields in a table-like layout
+  const profileFields = [
+    { label: 'Nom', value: stagiaire.nom },
+    { label: 'Prénom', value: stagiaire.prenom },
+    { label: 'Fonction / Ancienneté', value: `${stagiaire.fonction || 'Non renseigné'}${stagiaire.anciennete ? ` / ${stagiaire.anciennete}` : ''}` },
+    { label: 'Diplômes', value: stagiaire.diplomes || 'Non renseigné' },
+    { label: 'Tâches quotidiennes', value: stagiaire.taches_quotidiennes || 'Non renseigné' },
+    { label: 'Date début de formation', value: format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr }) },
+    { label: 'Date fin de formation', value: formation.date_fin ? format(new Date(formation.date_fin), 'dd/MM/yyyy', { locale: fr }) : format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr }) },
+  ];
+  
+  const labelWidth = 55;
+  const valueWidth = contentWidth - labelWidth;
+  
+  profileFields.forEach((field) => {
+    checkPageBreak(10);
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.3);
+    
+    // Label cell
+    doc.setFillColor(...LIGHT_BG);
+    doc.rect(margin, yPos, labelWidth, 7, 'FD');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text(field.label, margin + 2, yPos + 5);
+    
+    // Value cell
+    doc.setFillColor(255, 255, 255);
+    doc.rect(margin + labelWidth, yPos, valueWidth, 7, 'FD');
+    doc.setFont('helvetica', 'normal');
+    const valueLines = doc.splitTextToSize(field.value || '', valueWidth - 4);
+    doc.text(valueLines[0] || '', margin + labelWidth + 2, yPos + 5);
+    
+    yPos += 7;
+  });
+  
+  yPos += 8;
+
+  // Section 2: Auto-positionnement des acquis
+  checkPageBreak(60);
+  doc.setFillColor(...HEADER_BG);
+  doc.rect(margin, yPos, contentWidth, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AUTO-POSITIONNEMENT DES ACQUIS', margin + 5, yPos + 6);
+  
+  yPos += 12;
+  
+  // Legend
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...TEXT_COLOR);
-  doc.setFontSize(10);
+  const legend = [
+    '1 = Je ne maîtrise pas',
+    '2 = Je dois approfondir',
+    '3 = Je maîtrise partiellement',
+    '4 = Je maîtrise complètement'
+  ];
+  legend.forEach((item, idx) => {
+    doc.text(item, margin + (idx * 45), yPos);
+  });
   
-  if (contenu?.reponses) {
-    const fields = [
-      { label: 'Niveau estimé', value: contenu.reponses.niveau_actuel || contenu.reponses.niveau_estime },
-      { label: 'Expérience antérieure', value: contenu.reponses.experience_anterieure },
-      { label: 'Objectifs personnels', value: contenu.reponses.objectifs_personnels },
-    ];
+  yPos += 8;
+  
+  // Competencies table header
+  const colWidths = {
+    competence: contentWidth - 60,
+    avant: 30,
+    apres: 30
+  };
+  
+  // Header row
+  doc.setFillColor(...HEADER_BG);
+  doc.rect(margin, yPos, colWidths.competence, 10, 'F');
+  doc.rect(margin + colWidths.competence, yPos, colWidths.avant, 10, 'F');
+  doc.rect(margin + colWidths.competence + colWidths.avant, yPos, colWidths.apres, 10, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Compétences évaluées', margin + 3, yPos + 7);
+  doc.text('Avant', margin + colWidths.competence + colWidths.avant / 2, yPos + 7, { align: 'center' });
+  doc.text('Après', margin + colWidths.competence + colWidths.avant + colWidths.apres / 2, yPos + 7, { align: 'center' });
+  
+  yPos += 10;
+  
+  // Competencies rows
+  const competencies = contenu?.competences || [];
+  
+  competencies.forEach((comp: { label: string; avant: number; apres: number }, idx: number) => {
+    checkPageBreak(12);
+    const bgColor: [number, number, number] = idx % 2 === 0 ? [255, 255, 255] : LIGHT_BG;
     
-    fields.forEach((field) => {
+    // Calculate row height based on text
+    doc.setFontSize(8);
+    const compLines = doc.splitTextToSize(comp.label, colWidths.competence - 6);
+    const rowHeight = Math.max(8, compLines.length * 4 + 4);
+    
+    doc.setFillColor(...bgColor);
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, yPos, colWidths.competence, rowHeight, 'FD');
+    doc.rect(margin + colWidths.competence, yPos, colWidths.avant, rowHeight, 'FD');
+    doc.rect(margin + colWidths.competence + colWidths.avant, yPos, colWidths.apres, rowHeight, 'FD');
+    
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFont('helvetica', 'normal');
+    doc.text(compLines, margin + 3, yPos + 5);
+    
+    // Rating circles for Avant
+    const avantX = margin + colWidths.competence + colWidths.avant / 2;
+    doc.text(comp.avant.toString(), avantX, yPos + rowHeight / 2 + 2, { align: 'center' });
+    
+    // Rating circles for Après
+    const apresX = margin + colWidths.competence + colWidths.avant + colWidths.apres / 2;
+    doc.setTextColor(22, 163, 74); // Green for improvement
+    doc.setFont('helvetica', 'bold');
+    doc.text(comp.apres.toString(), apresX, yPos + rowHeight / 2 + 2, { align: 'center' });
+    
+    yPos += rowHeight;
+  });
+  
+  yPos += 10;
+  
+  // Section 3: Commentaires et objectifs
+  if (contenu?.commentaires || contenu?.objectifs_personnels) {
+    checkPageBreak(40);
+    doc.setFillColor(...HEADER_BG);
+    doc.rect(margin, yPos, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COMMENTAIRES ET OBJECTIFS', margin + 5, yPos + 6);
+    
+    yPos += 12;
+    
+    if (contenu.objectifs_personnels) {
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...PRIMARY_BLUE);
-      doc.setFontSize(9);
-      doc.text(`${field.label}:`, margin, yPos);
-      
+      doc.text('Objectifs personnels :', margin, yPos);
+      yPos += 5;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...TEXT_COLOR);
-      const valueText = field.value || 'Non renseigné';
-      const lines = doc.splitTextToSize(valueText, contentWidth - 60);
-      doc.text(lines, margin + 55, yPos);
-      yPos += Math.max(7, lines.length * 5 + 2);
-    });
+      const objLines = doc.splitTextToSize(contenu.objectifs_personnels, contentWidth);
+      doc.text(objLines, margin, yPos);
+      yPos += objLines.length * 4 + 5;
+    }
+    
+    if (contenu.commentaires) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.text('Commentaires :', margin, yPos);
+      yPos += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...TEXT_COLOR);
+      const comLines = doc.splitTextToSize(contenu.commentaires, contentWidth);
+      doc.text(comLines, margin, yPos);
+      yPos += comLines.length * 4 + 5;
+    }
   }
   
-  return yPos;
+  // Signature section
+  yPos += 10;
+  checkPageBreak(25);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Signature du stagiaire :', margin, yPos);
+  doc.text('Date :', margin + 100, yPos);
+  
+  yPos += 5;
+  doc.setDrawColor(...BORDER_COLOR);
+  doc.setLineWidth(0.5);
+  doc.rect(margin, yPos, 80, 15);
+  doc.rect(margin + 100, yPos, 50, 15);
+  
+  // Pre-fill date with formation end date
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const signatureDate = formation.date_fin 
+    ? format(new Date(formation.date_fin), 'dd/MM/yyyy', { locale: fr })
+    : format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr });
+  doc.text(signatureDate, margin + 105, yPos + 10);
+
+  return yPos + 25;
 }
 
 function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {

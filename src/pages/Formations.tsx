@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ export default function Formations() {
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [formateurId, setFormateurId] = useState('');
+  const [programme, setProgramme] = useState('');
   const [selectedStagiaireIds, setSelectedStagiaireIds] = useState<string[]>([]);
 
   // Fetch formations
@@ -151,6 +153,7 @@ export default function Formations() {
       date_debut: string;
       date_fin: string | null;
       formateur_id: string | null;
+      programme: string | null;
       stagiaireIds: string[];
     }) => {
       let formationId: string;
@@ -165,6 +168,7 @@ export default function Formations() {
             date_debut: formData.date_debut,
             date_fin: formData.date_fin,
             formateur_id: formData.formateur_id,
+            programme: formData.programme,
           })
           .eq('id', editingFormation.id);
         if (error) throw error;
@@ -204,6 +208,7 @@ export default function Formations() {
             date_debut: formData.date_debut,
             date_fin: formData.date_fin,
             formateur_id: formData.formateur_id,
+            programme: formData.programme,
           })
           .select('id')
           .single();
@@ -262,6 +267,7 @@ export default function Formations() {
       setDateDebut(formation.date_debut);
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
+      setProgramme(formation.programme || '');
       // Load current inscriptions
       const { data } = await supabase
         .from('inscriptions')
@@ -276,6 +282,7 @@ export default function Formations() {
       setDateDebut('');
       setDateFin('');
       setFormateurId('');
+      setProgramme('');
       setSelectedStagiaireIds([]);
     }
     setIsDialogOpen(true);
@@ -285,6 +292,7 @@ export default function Formations() {
     setIsDialogOpen(false);
     setEditingFormation(null);
     setSelectedStagiaireIds([]);
+    setProgramme('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -296,6 +304,7 @@ export default function Formations() {
       date_debut: dateDebut,
       date_fin: dateFin || null,
       formateur_id: formateurId || null,
+      programme: programme || null,
       stagiaireIds: selectedStagiaireIds,
     });
   };
@@ -408,6 +417,19 @@ export default function Formations() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="programme">Programme de formation (optionnel)</Label>
+                    <Textarea
+                      id="programme"
+                      value={programme}
+                      onChange={(e) => setProgramme(e.target.value)}
+                      rows={4}
+                      placeholder="Collez ici le programme détaillé de la formation pour une génération automatique des compétences plus précise..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Le programme est utilisé par l'IA pour générer des compétences pertinentes dans les questionnaires de positionnement.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label>Stagiaires inscrits</Label>
