@@ -224,7 +224,7 @@ export default function Documents() {
         entreprise: stagiaire.entreprise,
         fonction: stagiaire.fonction,
         anciennete: stagiaire.anciennete,
-        diplomes: stagiaire.diplomes,
+        diplomes: stagiaire.diplome_plus_eleve,
         taches_quotidiennes: stagiaire.taches_quotidiennes,
       },
       formation: {

@@ -26,9 +26,10 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle } from 'lucide-react';
 import type { Stagiaire } from '@/types/database';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Stagiaires() {
   const { isAdmin, isAssistante } = useAuth();
@@ -53,8 +54,11 @@ export default function Stagiaires() {
   const [situationHandicap, setSituationHandicap] = useState(false);
   const [besoinsSpecifiques, setBesoinsSpecifiques] = useState('');
   const [anciennete, setAnciennete] = useState('');
-  const [diplomes, setDiplomes] = useState('');
+  const [diplomePlusEleve, setDiplomePlusEleve] = useState('');
   const [tachesQuotidiennes, setTachesQuotidiennes] = useState('');
+  const [dateNaissance, setDateNaissance] = useState('');
+  const [nomJeuneFille, setNomJeuneFille] = useState('');
+  const [numeroSecuriteSociale, setNumeroSecuriteSociale] = useState('');
 
   // Fetch stagiaires
   const { data: stagiaires, isLoading } = useQuery({
@@ -100,8 +104,11 @@ export default function Stagiaires() {
       situation_handicap: boolean;
       besoins_specifiques: string | null;
       anciennete: string | null;
-      diplomes: string | null;
+      diplome_plus_eleve: string | null;
       taches_quotidiennes: string | null;
+      date_naissance: string | null;
+      nom_jeune_fille: string | null;
+      numero_securite_sociale: string | null;
     }) => {
       if (editingStagiaire) {
         const { error } = await supabase
@@ -161,8 +168,11 @@ export default function Stagiaires() {
       setSituationHandicap(stagiaire.situation_handicap || false);
       setBesoinsSpecifiques(stagiaire.besoins_specifiques || '');
       setAnciennete(stagiaire.anciennete || '');
-      setDiplomes(stagiaire.diplomes || '');
+      setDiplomePlusEleve(stagiaire.diplome_plus_eleve || '');
       setTachesQuotidiennes(stagiaire.taches_quotidiennes || '');
+      setDateNaissance(stagiaire.date_naissance || '');
+      setNomJeuneFille(stagiaire.nom_jeune_fille || '');
+      setNumeroSecuriteSociale(stagiaire.numero_securite_sociale || '');
     } else {
       setEditingStagiaire(null);
       setPrenom('');
@@ -176,8 +186,11 @@ export default function Stagiaires() {
       setSituationHandicap(false);
       setBesoinsSpecifiques('');
       setAnciennete('');
-      setDiplomes('');
+      setDiplomePlusEleve('');
       setTachesQuotidiennes('');
+      setDateNaissance('');
+      setNomJeuneFille('');
+      setNumeroSecuriteSociale('');
     }
     setIsDialogOpen(true);
   };
@@ -201,8 +214,11 @@ export default function Stagiaires() {
       situation_handicap: situationHandicap,
       besoins_specifiques: besoinsSpecifiques || null,
       anciennete: anciennete || null,
-      diplomes: diplomes || null,
+      diplome_plus_eleve: diplomePlusEleve || null,
       taches_quotidiennes: tachesQuotidiennes || null,
+      date_naissance: dateNaissance || null,
+      nom_jeune_fille: nomJeuneFille || null,
+      numero_securite_sociale: numeroSecuriteSociale || null,
     });
   };
 
@@ -225,6 +241,22 @@ export default function Stagiaires() {
     } else {
       setSelectedIds(filteredStagiaires?.map(s => s.id) || []);
     }
+  };
+
+  // Check if a stagiaire has incomplete required profile fields
+  const isProfileIncomplete = (stagiaire: Stagiaire): boolean => {
+    return !stagiaire.date_naissance || 
+           !stagiaire.anciennete || 
+           !stagiaire.diplome_plus_eleve;
+  };
+
+  // Get list of missing fields for tooltip
+  const getMissingFields = (stagiaire: Stagiaire): string[] => {
+    const missing: string[] = [];
+    if (!stagiaire.date_naissance) missing.push('Date de naissance');
+    if (!stagiaire.anciennete) missing.push('Ancienneté');
+    if (!stagiaire.diplome_plus_eleve) missing.push('Diplôme le plus élevé');
+    return missing;
   };
 
   return (
@@ -286,6 +318,26 @@ export default function Stagiaires() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nom_jeune_fille">Nom de jeune fille</Label>
+                        <Input
+                          id="nom_jeune_fille"
+                          value={nomJeuneFille}
+                          onChange={(e) => setNomJeuneFille(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="date_naissance">Date de naissance *</Label>
+                        <Input
+                          id="date_naissance"
+                          type="date"
+                          value={dateNaissance}
+                          onChange={(e) => setDateNaissance(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email *</Label>
                       <Input
@@ -296,14 +348,25 @@ export default function Stagiaires() {
                         required
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="telephone">Téléphone</Label>
-                      <Input
-                        id="telephone"
-                        type="tel"
-                        value={telephone}
-                        onChange={(e) => setTelephone(e.target.value)}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="telephone">Téléphone</Label>
+                        <Input
+                          id="telephone"
+                          type="tel"
+                          value={telephone}
+                          onChange={(e) => setTelephone(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="numero_securite_sociale">N° Sécurité sociale</Label>
+                        <Input
+                          id="numero_securite_sociale"
+                          value={numeroSecuriteSociale}
+                          onChange={(e) => setNumeroSecuriteSociale(e.target.value)}
+                          placeholder="Ex: 1 85 12 75 108 123 45"
+                        />
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -333,22 +396,24 @@ export default function Stagiaires() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="anciennete">Ancienneté</Label>
+                        <Label htmlFor="anciennete">Ancienneté *</Label>
                         <Input
                           id="anciennete"
                           value={anciennete}
                           onChange={(e) => setAnciennete(e.target.value)}
                           placeholder="Ex: 3 ans"
+                          required
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="diplomes">Diplômes / Certifications</Label>
+                      <Label htmlFor="diplome_plus_eleve">Diplôme le plus élevé *</Label>
                       <Input
-                        id="diplomes"
-                        value={diplomes}
-                        onChange={(e) => setDiplomes(e.target.value)}
-                        placeholder="Ex: BTS Commerce, Licence Pro..."
+                        id="diplome_plus_eleve"
+                        value={diplomePlusEleve}
+                        onChange={(e) => setDiplomePlusEleve(e.target.value)}
+                        placeholder="Ex: BTS Commerce, Licence Pro, Master..."
+                        required
                       />
                     </div>
                     <div className="space-y-2">
@@ -462,14 +527,38 @@ export default function Stagiaires() {
                     </TableCell>
                   )}
                   <TableCell>
-                    <div className="font-medium">
-                      {stagiaire.prenom} {stagiaire.nom}
-                    </div>
-                    {stagiaire.fonction && (
-                      <div className="text-sm text-muted-foreground">
-                        {stagiaire.fonction}
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <div className="font-medium">
+                          {stagiaire.prenom} {stagiaire.nom}
+                        </div>
+                        {stagiaire.fonction && (
+                          <div className="text-sm text-muted-foreground">
+                            {stagiaire.fonction}
+                          </div>
+                        )}
                       </div>
-                    )}
+                      {isProfileIncomplete(stagiaire) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center">
+                                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p className="font-semibold text-amber-600 mb-1">Profil incomplet</p>
+                              <p className="text-xs">Champs manquants :</p>
+                              <ul className="text-xs list-disc list-inside">
+                                {getMissingFields(stagiaire).map((field) => (
+                                  <li key={field}>{field}</li>
+                                ))}
+                              </ul>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
