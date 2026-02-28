@@ -869,31 +869,181 @@ export default function Documents() {
 
   const generateGrilleObservation = (stagiaire: Stagiaire, formation: Formation) => {
     const niveaux = ['A', 'B'];
-    const competences = [
-      { nom: 'Prospection porte à porte', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-      { nom: 'Prospection téléphonique', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-      { nom: 'Veille concurrentielle', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-      { nom: 'Base de données', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-      { nom: 'Réseaux sociaux', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-      { nom: 'Sphère d\'influence', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-      { nom: 'Relation clients', niveau: niveaux[Math.floor(Math.random() * 2)], observation: '' },
-    ];
+    const titre = formation.titre.toLowerCase();
+    const programme = (formation.programme || '').toLowerCase();
     
-    const commentaires = [
-      `${stagiaire.prenom} établit un bon premier contact, mais son discours manque de structure pour captiver l'interlocuteur dès les premières secondes.`,
-      `${stagiaire.prenom} est souriante et engageante, avec une bonne capacité d'adaptation.`,
-      `${stagiaire.prenom} présente bien son service et sait créer un climat de confiance.`,
-      `${stagiaire.prenom} capte bien l'intérêt des interlocuteurs et pose les bonnes questions.`,
-      `${stagiaire.prenom} a une bonne énergie et une posture dynamique.`,
-    ];
+    // Generate competencies adapted to the formation topic
+    const getCompetencesForFormation = (): string[] => {
+      if (titre.includes('immobilier') || titre.includes('agent') || programme.includes('immobilier')) {
+        if (titre.includes('prospection') || programme.includes('prospection')) {
+          return [
+            'Prospection porte à porte',
+            'Prospection téléphonique',
+            'Veille concurrentielle',
+            'Base de données et CRM',
+            'Réseaux sociaux professionnels',
+            'Sphère d\'influence',
+            'Relation clients',
+          ];
+        }
+        if (titre.includes('estimation') || programme.includes('estimation')) {
+          return [
+            'Analyse comparative de marché',
+            'Évaluation de biens immobiliers',
+            'Argumentation de l\'estimation',
+            'Gestion des mandats',
+            'Relation vendeur',
+            'Utilisation des outils d\'estimation',
+            'Négociation du prix',
+          ];
+        }
+        return [
+          'Prospection et prise de contact',
+          'Estimation et valorisation de biens',
+          'Négociation commerciale',
+          'Relation client et suivi',
+          'Réseaux sociaux et visibilité',
+          'Rédaction d\'annonces',
+          'Veille juridique et réglementaire',
+        ];
+      }
+      
+      if (titre.includes('ia') || titre.includes('intelligence artificielle') || titre.includes('augmenté') || programme.includes('intelligence artificielle')) {
+        return [
+          'Compréhension des concepts IA',
+          'Rédaction de prompts efficaces',
+          'Utilisation des outils IA métier',
+          'Analyse critique des résultats IA',
+          'Automatisation de tâches récurrentes',
+          'Création de contenus assistée par IA',
+          'Intégration IA dans le workflow',
+        ];
+      }
+      
+      if (titre.includes('management') || titre.includes('manager') || programme.includes('management')) {
+        return [
+          'Leadership et posture managériale',
+          'Délégation et responsabilisation',
+          'Animation de réunions',
+          'Gestion des conflits',
+          'Entretiens professionnels',
+          'Fixation d\'objectifs',
+          'Feedback constructif',
+        ];
+      }
+      
+      if (titre.includes('vente') || titre.includes('commercial') || programme.includes('vente')) {
+        return [
+          'Prise de contact et accroche',
+          'Découverte des besoins client',
+          'Argumentaire de vente',
+          'Traitement des objections',
+          'Closing et conclusion',
+          'Fidélisation client',
+          'Utilisation du CRM',
+        ];
+      }
+      
+      if (titre.includes('recrutement') || programme.includes('recrutement')) {
+        return [
+          'Définition du profil recherché',
+          'Rédaction d\'offres d\'emploi',
+          'Sourcing et chasse de candidats',
+          'Conduite d\'entretien',
+          'Évaluation des compétences',
+          'Prise de références',
+          'Intégration des nouveaux collaborateurs',
+        ];
+      }
+      
+      if (titre.includes('communication') || programme.includes('communication')) {
+        return [
+          'Communication verbale',
+          'Communication non verbale',
+          'Écoute active',
+          'Prise de parole en public',
+          'Rédaction professionnelle',
+          'Gestion des situations difficiles',
+          'Travail en équipe',
+        ];
+      }
+      
+      // Generic fallback
+      return [
+        'Maîtrise des fondamentaux',
+        'Application des méthodes',
+        'Analyse de situations',
+        'Mise en pratique',
+        'Communication professionnelle',
+        'Autonomie dans les tâches',
+        'Esprit d\'initiative',
+      ];
+    };
+
+    const competenceNames = getCompetencesForFormation();
+    const competences = competenceNames.map(nom => ({
+      nom,
+      niveau: niveaux[Math.floor(Math.random() * 2)],
+      observation: '',
+    }));
     
-    const axes = [
-      'Travailler un pitch d\'accroche percutant pour capter immédiatement l\'attention et susciter l\'intérêt.',
-      'Développer des techniques de reformulation et de contournement des objections pour maintenir le dialogue.',
-      'Adopter une approche plus interrogative et centrée sur le besoin du prospect avant de proposer un service.',
-      'Rendre son discours plus fluide et naturel, en s\'adaptant au ton et à la personnalité du prospect.',
-      'Mieux structurer la conclusion de l\'échange en proposant directement un rendez-vous avec une date précise.',
-    ];
+    // Adapted comments based on formation
+    const getCommentaires = (): string[] => {
+      if (titre.includes('immobilier') || programme.includes('immobilier')) {
+        return [
+          `${stagiaire.prenom} établit un bon premier contact, mais son discours manque de structure pour captiver l'interlocuteur dès les premières secondes.`,
+          `${stagiaire.prenom} est à l'aise dans la relation client et sait créer un climat de confiance rapidement.`,
+          `${stagiaire.prenom} présente bien les biens et sait mettre en avant les points forts pour convaincre.`,
+          `${stagiaire.prenom} capte bien l'intérêt des prospects et adapte son discours au profil de l'interlocuteur.`,
+          `${stagiaire.prenom} a une bonne énergie et une posture professionnelle dans ses interactions terrain.`,
+        ];
+      }
+      if (titre.includes('ia') || titre.includes('augmenté')) {
+        return [
+          `${stagiaire.prenom} fait preuve d'une bonne curiosité et s'adapte rapidement aux nouveaux outils numériques.`,
+          `${stagiaire.prenom} comprend bien les enjeux de l'IA et identifie des cas d'usage pertinents pour son métier.`,
+          `${stagiaire.prenom} maîtrise les bases de la rédaction de prompts et obtient des résultats exploitables.`,
+          `${stagiaire.prenom} est proactif(ve) dans l'expérimentation des outils IA proposés durant la formation.`,
+        ];
+      }
+      return [
+        `${stagiaire.prenom} fait preuve d'une bonne implication et participe activement aux exercices.`,
+        `${stagiaire.prenom} comprend bien les concepts et les applique correctement en situation pratique.`,
+        `${stagiaire.prenom} est à l'écoute et pose des questions pertinentes pour approfondir sa compréhension.`,
+        `${stagiaire.prenom} montre une progression régulière tout au long de la formation.`,
+        `${stagiaire.prenom} a une bonne capacité d'adaptation et s'intègre bien dans le groupe.`,
+      ];
+    };
+    
+    const getAxes = (): string[] => {
+      if (titre.includes('immobilier') || programme.includes('immobilier')) {
+        return [
+          'Travailler un pitch d\'accroche percutant pour capter immédiatement l\'attention et susciter l\'intérêt.',
+          'Développer des techniques de reformulation et de contournement des objections pour maintenir le dialogue.',
+          'Adopter une approche plus interrogative et centrée sur le besoin du prospect avant de proposer un service.',
+          'Rendre son discours plus fluide et naturel, en s\'adaptant au ton et à la personnalité du prospect.',
+          'Mieux structurer la conclusion de l\'échange en proposant directement un rendez-vous avec une date précise.',
+        ];
+      }
+      if (titre.includes('ia') || titre.includes('augmenté')) {
+        return [
+          'Approfondir la rédaction de prompts complexes pour obtenir des résultats plus précis.',
+          'Développer un esprit critique face aux résultats générés par l\'IA.',
+          'Explorer davantage les possibilités d\'automatisation dans son quotidien professionnel.',
+          'Prendre l\'habitude de vérifier et adapter systématiquement les contenus produits par l\'IA.',
+        ];
+      }
+      return [
+        'Approfondir les aspects théoriques pour mieux structurer sa pratique.',
+        'Développer davantage de réflexes dans l\'application des méthodes apprises.',
+        'Renforcer la prise d\'initiative et l\'autonomie dans les situations complexes.',
+        'Travailler la synthèse et la communication des résultats obtenus.',
+        'Poursuivre l\'entraînement pratique pour consolider les acquis.',
+      ];
+    };
+
+    const commentaires = getCommentaires();
+    const axes = getAxes();
     
     return {
       competences,

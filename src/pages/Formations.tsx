@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Upload, FileText, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, Profile, Stagiaire } from '@/types/database';
@@ -52,6 +52,9 @@ export default function Formations() {
   const [formateurId, setFormateurId] = useState('');
   const [programme, setProgramme] = useState('');
   const [selectedStagiaireIds, setSelectedStagiaireIds] = useState<string[]>([]);
+  const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
+  const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   // Fetch formations
   const { data: formations, isLoading } = useQuery({
@@ -155,6 +158,8 @@ export default function Formations() {
       formateur_id: string | null;
       programme: string | null;
       stagiaireIds: string[];
+      pdfFile: File | null;
+      existingPdfUrl: string | null;
     }) => {
       let formationId: string;
 
@@ -227,6 +232,23 @@ export default function Formations() {
           if (inscError) throw inscError;
         }
       }
+
+      // Handle PDF upload
+      if (formData.pdfFile) {
+        const pdfUrl = await uploadProgrammePdf(formData.pdfFile, formationId);
+        const { error: pdfError } = await supabase
+          .from('formations')
+          .update({ programme_pdf_url: pdfUrl })
+          .eq('id', formationId);
+        if (pdfError) throw pdfError;
+      } else if (formData.existingPdfUrl === null && editingFormation?.programme_pdf_url) {
+        // PDF was removed
+        const { error: pdfError } = await supabase
+          .from('formations')
+          .update({ programme_pdf_url: null })
+          .eq('id', formationId);
+        if (pdfError) throw pdfError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['formations'] });
@@ -268,6 +290,8 @@ export default function Formations() {
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
       setProgramme(formation.programme || '');
+      setExistingPdfUrl(formation.programme_pdf_url || null);
+      setProgrammePdfFile(null);
       // Load current inscriptions
       const { data } = await supabase
         .from('inscriptions')
@@ -284,6 +308,8 @@ export default function Formations() {
       setFormateurId('');
       setProgramme('');
       setSelectedStagiaireIds([]);
+      setExistingPdfUrl(null);
+      setProgrammePdfFile(null);
     }
     setIsDialogOpen(true);
   };
@@ -293,9 +319,27 @@ export default function Formations() {
     setEditingFormation(null);
     setSelectedStagiaireIds([]);
     setProgramme('');
+    setProgrammePdfFile(null);
+    setExistingPdfUrl(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const uploadProgrammePdf = async (file: File, formationId: string): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${formationId}/programme.${fileExt}`;
+    
+    const { error } = await supabase.storage
+      .from('formation-programmes')
+      .upload(filePath, file, { upsert: true });
+    if (error) throw error;
+    
+    const { data: urlData } = supabase.storage
+      .from('formation-programmes')
+      .getPublicUrl(filePath);
+    
+    return urlData.publicUrl;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     saveMutation.mutate({
       titre,
@@ -306,6 +350,8 @@ export default function Formations() {
       formateur_id: formateurId || null,
       programme: programme || null,
       stagiaireIds: selectedStagiaireIds,
+      pdfFile: programmePdfFile,
+      existingPdfUrl: existingPdfUrl,
     });
   };
 
@@ -432,6 +478,62 @@ export default function Formations() {
                     </p>
                   </div>
                   <div className="space-y-2">
+                    <Label>Programme PDF (optionnel)</Label>
+                    {existingPdfUrl && !programmePdfFile ? (
+                      <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/50">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-sm flex-1 truncate">Programme PDF existant</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => window.open(existingPdfUrl, '_blank')}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setExistingPdfUrl(null)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : programmePdfFile ? (
+                      <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/50">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-sm flex-1 truncate">{programmePdfFile.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setProgrammePdfFile(null)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Input
+                          type="file"
+                          accept=".pdf"
+                          className="cursor-pointer"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setProgrammePdfFile(file);
+                          }}
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Uploadez le programme de formation en PDF pour une génération de documents encore plus précise.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Stagiaires inscrits</Label>
                     {stagiaires && (
                       <StagiaireMultiSelect
@@ -507,6 +609,12 @@ export default function Formations() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{formation.titre}</span>
+                      {formation.programme_pdf_url && (
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <FileText className="h-3 w-3" />
+                          PDF
+                        </Badge>
+                      )}
                       {formation.archived && (
                         <Badge variant="secondary" className="text-xs">
                           Archivée
