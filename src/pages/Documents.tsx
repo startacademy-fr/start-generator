@@ -267,6 +267,9 @@ export default function Documents() {
           competences: generatePositionnementReponses(competencies),
           objectifs_personnels: generateObjectifsPersonnels(),
           commentaires: generateCommentaires(),
+          objectifs_formation: generateObjectifsFormation(stagiaire, formation),
+          demande_specifique: generateDemandeSpecifique(stagiaire, formation),
+          prerequis: generatePrerequis(stagiaire),
         };
       case 'analyse_besoin':
         return {
@@ -435,6 +438,67 @@ export default function Documents() {
       '',
     ];
     return commentaires[Math.floor(Math.random() * commentaires.length)];
+  };
+
+  const generateObjectifsFormation = (stagiaire: Stagiaire, formation: Formation) => {
+    const fonction = stagiaire.fonction?.toLowerCase() || '';
+    const titre = formation.titre.toLowerCase();
+    
+    const objectifsParProfil = [
+      `Acquérir les compétences clés liées à ${formation.titre} pour les appliquer dans mon quotidien professionnel`,
+      `Monter en compétence sur les techniques abordées afin d'être plus performant(e) dans mes missions`,
+      `Comprendre et maîtriser les outils et méthodes présentés pour gagner en efficacité`,
+      `Développer de nouvelles pratiques professionnelles en lien avec ${formation.titre}`,
+      `Me perfectionner dans ce domaine pour apporter une réelle valeur ajoutée à mon entreprise`,
+      `Consolider mes connaissances et acquérir des compétences opérationnelles immédiatement applicables`,
+    ];
+    
+    if (titre.includes('immobilier') || titre.includes('prospection')) {
+      objectifsParProfil.push(
+        'Améliorer mes techniques de prospection et de prise de mandats',
+        'Développer ma capacité à capter de nouveaux clients et à fidéliser mon portefeuille',
+      );
+    }
+    if (titre.includes('ia') || titre.includes('agent augmenté')) {
+      objectifsParProfil.push(
+        'Comprendre comment intégrer l\'IA dans mon quotidien professionnel',
+        'Maîtriser les outils d\'intelligence artificielle pour gagner en productivité',
+      );
+    }
+    if (titre.includes('recrutement')) {
+      objectifsParProfil.push(
+        'Structurer ma démarche de recrutement pour attirer les meilleurs profils',
+        'Améliorer ma capacité à évaluer les candidats lors des entretiens',
+      );
+    }
+    
+    return objectifsParProfil[Math.floor(Math.random() * objectifsParProfil.length)];
+  };
+
+  const generateDemandeSpecifique = (stagiaire: Stagiaire, formation: Formation) => {
+    const demandes = [
+      'J\'aimerais des exemples concrets et des mises en situation pratiques',
+      'Je souhaite pouvoir échanger sur des cas réels rencontrés dans mon activité',
+      'J\'attends des outils et des méthodes directement applicables sur le terrain',
+      'Je voudrais approfondir les aspects pratiques plus que la théorie',
+      'Pas de demande particulière, j\'ai hâte de découvrir le programme',
+      'J\'aimerais avoir des supports récapitulatifs à conserver après la formation',
+      'Je souhaite pouvoir poser des questions sur mes problématiques spécifiques',
+      '',
+    ];
+    return demandes[Math.floor(Math.random() * demandes.length)];
+  };
+
+  const generatePrerequis = (stagiaire: Stagiaire) => {
+    const niveaux = [
+      'Aucune notion particulière, je pars de zéro sur ce sujet',
+      'Notion de base acquise par la pratique quotidienne',
+      'Quelques connaissances de base, principalement autodidacte',
+      'Notions de base, j\'ai déjà eu une première approche du sujet',
+      'Connaissances limitées, j\'ai besoin de structurer mes acquis',
+      'Bases acquises mais besoin d\'approfondir et de me perfectionner',
+    ];
+    return niveaux[Math.floor(Math.random() * niveaux.length)];
   };
 
   const generateObjectifs = () => [
