@@ -1,0 +1,1 @@
+ALTER TABLE public.formations_catalogue ADD COLUMN nombre_heures integer;

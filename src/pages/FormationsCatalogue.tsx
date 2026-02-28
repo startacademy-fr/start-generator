@@ -21,6 +21,7 @@ interface FormationCatalogue {
   id: string;
   reference: string;
   titre: string;
+  nombre_heures: number | null;
   programme: string | null;
   programme_pdf_url: string | null;
   created_at: string;
@@ -39,6 +40,7 @@ export default function FormationsCatalogue() {
 
   // Form state
   const [titre, setTitre] = useState('');
+  const [nombreHeures, setNombreHeures] = useState('');
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
@@ -98,14 +100,14 @@ export default function FormationsCatalogue() {
       if (editing) {
         const { error } = await supabase
           .from('formations_catalogue')
-          .update({ titre, programme: programme || null })
+          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, programme: programme || null })
           .eq('id', editing.id);
         if (error) throw error;
         id = editing.id;
       } else {
         const { data, error } = await supabase
           .from('formations_catalogue')
-          .insert({ titre, programme: programme || null, reference: generateReference() })
+          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, programme: programme || null, reference: generateReference() })
           .select('id')
           .single();
         if (error) throw error;
@@ -133,6 +135,7 @@ export default function FormationsCatalogue() {
         .from('formations_catalogue')
         .insert({
           titre: source.titre + ' (copie)',
+          nombre_heures: source.nombre_heures,
           programme: source.programme,
           programme_pdf_url: source.programme_pdf_url,
           reference: generateReference(),
@@ -163,11 +166,13 @@ export default function FormationsCatalogue() {
     if (formation) {
       setEditing(formation);
       setTitre(formation.titre);
+      setNombreHeures(formation.nombre_heures?.toString() || '');
       setProgramme(formation.programme || '');
       setExistingPdfUrl(formation.programme_pdf_url || null);
     } else {
       setEditing(null);
       setTitre('');
+      setNombreHeures('');
       setProgramme('');
       setExistingPdfUrl(null);
     }
@@ -210,6 +215,10 @@ export default function FormationsCatalogue() {
                   <div className="space-y-2">
                     <Label htmlFor="titre">Titre *</Label>
                     <Input id="titre" value={titre} onChange={(e) => setTitre(e.target.value)} placeholder="Ex: Formation Agent Immobilier" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nombre_heures">Durée en heures</Label>
+                    <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="programme">Programme de formation (optionnel)</Label>

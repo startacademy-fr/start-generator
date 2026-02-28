@@ -259,6 +259,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          nombre_heures: number | null
           programme: string | null
           programme_pdf_url: string | null
           reference: string
@@ -268,6 +269,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          nombre_heures?: number | null
           programme?: string | null
           programme_pdf_url?: string | null
           reference: string
@@ -277,6 +279,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          nombre_heures?: number | null
           programme?: string | null
           programme_pdf_url?: string | null
           reference?: string
