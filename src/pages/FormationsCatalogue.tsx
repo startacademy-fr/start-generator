@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye } from 'lucide-react';
+import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { ImportFormationsDialog } from '@/components/ImportFormationsDialog';
 
 interface FormationCatalogue {
   id: string;
@@ -37,6 +38,7 @@ export default function FormationsCatalogue() {
   const [editing, setEditing] = useState<FormationCatalogue | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<FormationCatalogue | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Form state
   const [titre, setTitre] = useState('');
@@ -198,13 +200,18 @@ export default function FormationsCatalogue() {
           <p className="text-muted-foreground mt-1">Catalogue des formations disponibles</p>
         </div>
         {canManage && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => openDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvelle formation
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importer
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => openDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvelle formation
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }}>
                 <DialogHeader>
@@ -261,6 +268,7 @@ export default function FormationsCatalogue() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 
@@ -340,6 +348,12 @@ export default function FormationsCatalogue() {
         description="Cette action est irréversible. Les sessions associées ne seront pas supprimées mais ne seront plus liées à cette formation."
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         isLoading={deleteMutation.isPending}
+      />
+
+      <ImportFormationsDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        existingReferences={formations?.map(f => f.reference) || []}
       />
     </div>
   );
