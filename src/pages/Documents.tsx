@@ -132,6 +132,9 @@ export default function Documents() {
   });
 
   // Generate documents mutation
+  // Cache for AI-generated QCM questions per formation (generated once, applied differently per stagiaire)
+  const qcmCacheRef = { current: {} as Record<string, any[]> };
+
   const generateMutation = useMutation({
     mutationFn: async ({ formationId, docTypes }: { formationId: string; docTypes: string[] }) => {
       const formationInscriptions = inscriptions?.filter(i => i.formation_id === formationId) || [];
@@ -143,6 +146,24 @@ export default function Documents() {
 
       setIsGenerating(true);
       setGeneratingProgress(0);
+
+      // Pre-generate QCM questions once for the whole formation if QCM is in docTypes
+      if (docTypes.includes('qcm') && !qcmCacheRef.current[formationId]) {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-qcm', {
+            body: {
+              formationTitre: formation.titre,
+              programme: formation.programme,
+              nombreQuestions: 13,
+            },
+          });
+          if (!error && data?.questions?.length > 0) {
+            qcmCacheRef.current[formationId] = data.questions;
+          }
+        } catch (e) {
+          console.error('Failed to pre-generate QCM:', e);
+        }
+      }
 
       const totalDocs = formationInscriptions.length * docTypes.length;
       let completedDocs = 0;
@@ -427,8 +448,47 @@ export default function Documents() {
     'Supports de cours complets',
   ];
 
-  // AI-powered QCM generation
+  // Apply random answers to cached QCM questions (unique per stagiaire)
+  const applyRandomAnswers = (questions: any[]): { questions: any[]; score: number } => {
+    // 0 to 1 error, randomly placed
+    const nbErrors = Math.random() > 0.4 ? 1 : 0; // ~60% chance of 1 error, 40% chance of 0
+    const errorIndex = nbErrors > 0 ? Math.floor(Math.random() * questions.length) : -1;
+
+    const filledQuestions = questions.map((q: any, idx: number) => {
+      const isError = idx === errorIndex;
+      let selectedAnswer = q.correct_answer;
+
+      if (isError) {
+        const wrongOptions = q.options.filter((o: any) => o.letter !== q.correct_answer);
+        if (wrongOptions.length > 0) {
+          selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)].letter;
+        }
+      }
+
+      return {
+        numero: idx + 1,
+        question: q.question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        selected_answer: selectedAnswer,
+        is_correct: selectedAnswer === q.correct_answer,
+      };
+    });
+
+    const correctCount = filledQuestions.filter((q: any) => q.is_correct).length;
+    const score = Math.round((correctCount / filledQuestions.length) * 100);
+
+    return { questions: filledQuestions, score };
+  };
+
+  // AI-powered QCM generation (uses cache if available)
   const generateQCMWithAI = async (formation: Formation): Promise<{ questions: any[]; score: number }> => {
+    // Use cached questions if available (same questions, different answers per stagiaire)
+    const cached = qcmCacheRef.current[formation.id];
+    if (cached && cached.length > 0) {
+      return applyRandomAnswers(cached);
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-qcm', {
         body: {
@@ -446,36 +506,9 @@ export default function Documents() {
       const questions = data.questions || [];
       if (questions.length === 0) return generateFallbackQCM();
 
-      // Apply >90% success rate: 0 or 1 random error
-      const nbErrors = Math.random() > 0.5 ? 1 : 0;
-      const errorIndex = nbErrors > 0 ? Math.floor(Math.random() * questions.length) : -1;
-
-      const filledQuestions = questions.map((q: any, idx: number) => {
-        const isError = idx === errorIndex;
-        let selectedAnswer = q.correct_answer;
-
-        if (isError) {
-          // Pick a wrong answer
-          const wrongOptions = q.options.filter((o: any) => o.letter !== q.correct_answer);
-          if (wrongOptions.length > 0) {
-            selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)].letter;
-          }
-        }
-
-        return {
-          numero: idx + 1,
-          question: q.question,
-          options: q.options,
-          correct_answer: q.correct_answer,
-          selected_answer: selectedAnswer,
-          is_correct: selectedAnswer === q.correct_answer,
-        };
-      });
-
-      const correctCount = filledQuestions.filter((q: any) => q.is_correct).length;
-      const score = Math.round((correctCount / filledQuestions.length) * 100);
-
-      return { questions: filledQuestions, score };
+      // Cache for other stagiaires
+      qcmCacheRef.current[formation.id] = questions;
+      return applyRandomAnswers(questions);
     } catch (error) {
       console.error('Failed to generate QCM:', error);
       return generateFallbackQCM();
@@ -488,30 +521,7 @@ export default function Documents() {
       { question: "La formation permet-elle une application pratique ?", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'A' },
       { question: "Quel élément est essentiel pour réussir ?", options: [{ letter: 'A', text: 'La chance' }, { letter: 'B', text: 'La pratique régulière' }, { letter: 'C', text: 'Le hasard' }], correct_answer: 'B' },
     ];
-
-    const nbErrors = Math.random() > 0.5 ? 1 : 0;
-    const errorIndex = nbErrors > 0 ? Math.floor(Math.random() * fallbackQuestions.length) : -1;
-
-    const filledQuestions = fallbackQuestions.map((q, idx) => {
-      const isError = idx === errorIndex;
-      let selectedAnswer = q.correct_answer;
-      if (isError) {
-        const wrongOptions = q.options.filter(o => o.letter !== q.correct_answer);
-        if (wrongOptions.length > 0) selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)].letter;
-      }
-      return {
-        numero: idx + 1,
-        question: q.question,
-        options: q.options,
-        correct_answer: q.correct_answer,
-        selected_answer: selectedAnswer,
-        is_correct: selectedAnswer === q.correct_answer,
-      };
-    });
-
-    const correctCount = filledQuestions.filter(q => q.is_correct).length;
-    const score = Math.round((correctCount / filledQuestions.length) * 100);
-    return { questions: filledQuestions, score };
+    return applyRandomAnswers(fallbackQuestions);
   };
 
   const generateSatisfactionChaud = () => {
