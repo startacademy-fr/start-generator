@@ -154,8 +154,8 @@ export default function Dashboard() {
           ? Math.round(qcmDocs.reduce((sum, d) => sum + (d.score || 0), 0) / qcmDocs.length)
           : null;
 
-        // Taux satisfaction (score moyen satisfaction_chaud N-1)
-        const satDocs = docs?.filter(d => d.type === 'satisfaction_chaud' && d.score != null && n1InscSet.has(d.inscription_id)) || [];
+        // Taux satisfaction (score moyen satisfaction_froid N-1)
+        const satDocs = docs?.filter(d => d.type === 'satisfaction_froid' && d.score != null && n1InscSet.has(d.inscription_id)) || [];
         const tauxSatisfaction = satDocs.length > 0
           ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
           : null;
