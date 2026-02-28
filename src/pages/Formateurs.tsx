@@ -90,43 +90,23 @@ export default function Formateurs() {
     },
   });
 
-  // Create formateur mutation (creates auth user + profile + role)
+  // Create formateur mutation (creates auth user + profile + role via edge function)
   const createMutation = useMutation({
-    mutationFn: async (formData: { prenom: string; nom: string; email: string }) => {
-      // Note: In a real scenario, we'd use an edge function to create users
-      // For now, we'll create a profile and role entry
-      // The actual user creation would require admin privileges
+    mutationFn: async (formData: { prenom: string; nom: string; email: string; telephone?: string }) => {
+      const { data, error } = await supabase.functions.invoke('invite-formateur', {
+        body: formData,
+      });
 
-      // Check if profile with this email exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, user_id')
-        .eq('email', formData.email)
-        .maybeSingle();
-
-      if (existingProfile) {
-        // Add formateur role to existing user
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: existingProfile.user_id,
-            role: 'formateur',
-          });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          throw roleError;
-        }
-        return { isExisting: true };
-      }
-
-      throw new Error('L\'utilisateur doit d\'abord créer un compte. Demandez-lui de s\'inscrire, puis ajoutez-lui le rôle formateur.');
+      if (error) throw new Error(error.message || 'Erreur lors de la création');
+      if (data?.error) throw new Error(data.error);
+      return data as { success: boolean; isExisting: boolean };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['formateurs-list'] });
       if (result.isExisting) {
         toast.success('Rôle formateur ajouté à l\'utilisateur existant');
       } else {
-        toast.success('Formateur créé');
+        toast.success('Formateur créé et invitation envoyée par email');
       }
       closeDialog();
     },
@@ -255,33 +235,29 @@ export default function Formateurs() {
                   <DialogDescription>
                     {editingFormateur 
                       ? 'Modifiez les informations du formateur'
-                      : 'Entrez l\'email d\'un utilisateur existant pour lui attribuer le rôle formateur'
+                      : 'Le formateur recevra un email d\'invitation pour créer son mot de passe'
                     }
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  {editingFormateur && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="prenom">Prénom</Label>
-                        <Input
-                          id="prenom"
-                          value={prenom}
-                          onChange={(e) => setPrenom(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="nom">Nom</Label>
-                        <Input
-                          id="nom"
-                          value={nom}
-                          onChange={(e) => setNom(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="prenom">Prénom</Label>
+                    <Input
+                      id="prenom"
+                      value={prenom}
+                      onChange={(e) => setPrenom(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom</Label>
+                    <Input
+                      id="nom"
+                      value={nom}
+                      onChange={(e) => setNom(e.target.value)}
+                      required
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -293,18 +269,16 @@ export default function Formateurs() {
                       required
                     />
                   </div>
-                  {editingFormateur && (
-                    <div className="space-y-2">
-                      <Label htmlFor="telephone">Téléphone</Label>
-                      <Input
-                        id="telephone"
-                        type="tel"
-                        value={telephone}
-                        onChange={(e) => setTelephone(e.target.value)}
-                        placeholder="06 00 00 00 00"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="telephone">Téléphone</Label>
+                    <Input
+                      id="telephone"
+                      type="tel"
+                      value={telephone}
+                      onChange={(e) => setTelephone(e.target.value)}
+                      placeholder="06 00 00 00 00"
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={closeDialog}>
