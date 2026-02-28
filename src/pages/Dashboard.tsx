@@ -21,6 +21,9 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+
+const PIE_COLORS = ['hsl(199, 89%, 32%)', 'hsl(174, 72%, 40%)', 'hsl(38, 92%, 50%)', 'hsl(142, 76%, 36%)', 'hsl(0, 72%, 51%)', 'hsl(215, 20%, 55%)', 'hsl(270, 60%, 50%)'];
 
 interface DashboardStats {
   totalFormations: number;
@@ -31,6 +34,7 @@ interface DashboardStats {
   formationsN1: number;
   totalHeures: number;
   heuresParFormateur: { nom: string; heures: number }[];
+  formationsParType: { nom: string; count: number }[];
   tauxReussiteQCM: number | null;
   tauxSatisfaction: number | null;
 }
@@ -55,6 +59,7 @@ export default function Dashboard() {
     formationsN1: 0,
     totalHeures: 0,
     heuresParFormateur: [],
+    formationsParType: [],
     tauxReussiteQCM: null,
     tauxSatisfaction: null,
   });
@@ -128,6 +133,16 @@ export default function Dashboard() {
         });
         const heuresParFormateur = Array.from(formateurMap.values()).sort((a, b) => b.heures - a.heures);
 
+        // Formations par type (group by titre, truncated)
+        const typeMap = new Map<string, number>();
+        formationsN1.forEach(f => {
+          const shortTitle = f.titre.length > 30 ? f.titre.substring(0, 30) + '…' : f.titre;
+          typeMap.set(shortTitle, (typeMap.get(shortTitle) || 0) + 1);
+        });
+        const formationsParType = Array.from(typeMap.entries())
+          .map(([nom, count]) => ({ nom, count }))
+          .sort((a, b) => b.count - a.count);
+
         // QCM scores & satisfaction from documents
         const { data: docs } = await supabase
           .from('documents_stagiaires')
@@ -177,6 +192,7 @@ export default function Dashboard() {
           formationsN1: formationsN1.length,
           totalHeures,
           heuresParFormateur,
+          formationsParType,
           tauxReussiteQCM,
           tauxSatisfaction,
         });
@@ -341,23 +357,80 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Heures par formateur */}
-      {stats.heuresParFormateur.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Heures par formateur ({n1Year})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {stats.heuresParFormateur.map((f) => (
-                <div key={f.nom} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{f.nom}</span>
-                  <Badge variant="secondary">{f.heures}h</Badge>
+      {/* Charts */}
+      {(stats.heuresParFormateur.length > 0 || stats.formationsParType.length > 0) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Pie chart - Heures par formateur */}
+          {stats.heuresParFormateur.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Heures par formateur ({n1Year})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.heuresParFormateur}
+                        dataKey="heures"
+                        nameKey="nom"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        innerRadius={45}
+                        paddingAngle={3}
+                        label={({ nom, heures }) => `${nom.split(' ')[0]} (${heures}h)`}
+                        labelLine={{ strokeWidth: 1 }}
+                      >
+                        {stats.heuresParFormateur.map((_, index) => (
+                          <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => [`${value}h`, 'Heures']}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Bar chart - Formations par type */}
+          {stats.formationsParType.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Formations par type ({n1Year})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={stats.formationsParType}
+                      layout="vertical"
+                      margin={{ left: 10, right: 20, top: 5, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" allowDecimals={false} />
+                      <YAxis
+                        type="category"
+                        dataKey="nom"
+                        width={180}
+                        tick={{ fontSize: 11 }}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => [`${value} session(s)`, 'Nombre']}
+                        contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                      />
+                      <Bar dataKey="count" fill="hsl(199, 89%, 32%)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Recent Formations & Quick Actions */}
