@@ -33,10 +33,11 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download } from 'lucide-react';
+import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download, Upload } from 'lucide-react';
 import type { Stagiaire, Civilite } from '@/types/database';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ImportStagiairesDialog } from '@/components/ImportStagiairesDialog';
 
 export default function Stagiaires() {
   const { isAdmin, isAssistante } = useAuth();
@@ -48,6 +49,7 @@ export default function Stagiaires() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Form state
   const [civilite, setCivilite] = useState<Civilite | ''>('');
@@ -347,6 +349,12 @@ export default function Stagiaires() {
             <Download className="mr-2 h-4 w-4" />
             Exporter
           </Button>
+          {canManage && (
+            <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importer
+            </Button>
+          )}
           {canManage && selectedIds.length > 0 && (
             <Button 
               variant="destructive" 
@@ -726,6 +734,12 @@ export default function Stagiaires() {
         itemCount={selectedIds.length}
         onConfirm={() => deleteMutation.mutate(selectedIds)}
         isLoading={deleteMutation.isPending}
+      />
+
+      <ImportStagiairesDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        existingStagiaires={stagiaires?.map(s => ({ id: s.id, email: s.email, prenom: s.prenom, nom: s.nom })) || []}
       />
     </div>
   );
