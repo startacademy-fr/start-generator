@@ -272,10 +272,10 @@ export default function Documents() {
           prerequis: generatePrerequis(stagiaire),
         };
       case 'analyse_besoin':
+        const analyseData = await generateAnalyseBesoinWithAI(stagiaire, formation);
         return {
           ...baseContent,
-          objectifs: generateObjectifs(),
-          attentes: generateAttentes(),
+          ...analyseData,
         };
       case 'qcm':
         const qcmData = await generateQCMWithAI(formation);
@@ -503,17 +503,54 @@ export default function Documents() {
     return niveaux[Math.floor(Math.random() * niveaux.length)];
   };
 
-  const generateObjectifs = () => [
-    'Maîtriser les fondamentaux',
-    'Appliquer les techniques apprises',
-    'Développer son autonomie',
-  ];
+  const generateAnalyseBesoinWithAI = async (stagiaire: Stagiaire, formation: Formation) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-analyse-besoin', {
+        body: {
+          formationTitre: formation.titre,
+          programme: formation.programme,
+          stagiaire: {
+            prenom: stagiaire.prenom,
+            nom: stagiaire.nom,
+            entreprise: stagiaire.entreprise,
+            fonction: stagiaire.fonction,
+            anciennete: stagiaire.anciennete,
+            diplomes: stagiaire.diplome_plus_eleve,
+            taches_quotidiennes: stagiaire.taches_quotidiennes,
+          },
+        },
+      });
 
-  const generateAttentes = () => [
-    'Formation pratique et concrète',
-    'Exemples concrets du terrain',
-    'Supports de cours complets',
-  ];
+      if (!error && data) {
+        return {
+          contexte_professionnel: data.contexte_professionnel,
+          objectifs_stagiaire: data.objectifs_stagiaire,
+          attentes: data.attentes,
+          competences_visees: data.competences_visees,
+          freins_identifies: data.freins_identifies,
+          motivation: data.motivation,
+          // Keep legacy fields for backward compatibility
+          objectifs: data.objectifs_stagiaire,
+        };
+      }
+    } catch (e) {
+      console.error('Failed to generate analyse besoin with AI:', e);
+    }
+
+    // Fallback
+    return {
+      objectifs: [
+        'Maîtriser les fondamentaux de la formation',
+        'Appliquer les techniques apprises dans mon quotidien',
+        'Développer mon autonomie sur ces sujets',
+      ],
+      attentes: [
+        'Formation pratique et concrète',
+        'Exemples concrets du terrain',
+        'Supports de cours complets',
+      ],
+    };
+  };
 
   // Apply random answers to cached QCM questions (unique per stagiaire)
   const applyRandomAnswers = (questions: any[]): { questions: any[]; score: number } => {
