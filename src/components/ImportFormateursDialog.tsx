@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Upload, FileSpreadsheet, CheckCircle2, XCircle, RefreshCw, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, XCircle, RefreshCw, UserPlus } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface ParsedFormateur {
@@ -19,7 +19,7 @@ interface ParsedFormateur {
   prenom: string;
   email: string;
   telephone: string | null;
-  status: 'update' | 'no_account' | 'error';
+  status: 'update' | 'new' | 'error';
   existingId?: string;
   errorMessage?: string;
 }
@@ -37,18 +37,11 @@ interface ImportFormateursDialogProps {
   existingProfiles: ExistingProfile[];
 }
 
-function mapCivilite(raw: string): string | null {
-  const v = raw?.trim().toLowerCase();
-  if (v === 'monsieur' || v === 'm.' || v === 'm') return 'M.';
-  if (v === 'madame' || v === 'mme' || v === 'mme.') return 'Mme';
-  return null;
-}
-
 export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }: ImportFormateursDialogProps) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<'upload' | 'preview' | 'result'>('upload');
   const [parsedData, setParsedData] = useState<ParsedFormateur[]>([]);
-  const [importResult, setImportResult] = useState({ updated: 0, skipped: 0, errors: 0 });
+  const [importResult, setImportResult] = useState({ created: 0, updated: 0, errors: 0 });
 
   const findExisting = (email: string) => {
     const nEmail = email.toLowerCase().trim();
@@ -87,7 +80,7 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
               return { nom, prenom, email, telephone, status: 'update' as const, existingId: existing.id };
             }
 
-            return { nom, prenom, email, telephone, status: 'no_account' as const };
+            return { nom, prenom, email, telephone, status: 'new' as const };
           });
 
         setParsedData(parsed);
@@ -101,14 +94,15 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const toUpdate = parsedData.filter(r => r.status === 'update');
-      let updated = 0, errors = 0;
+      let created = 0, updated = 0, errors = 0;
 
+      // Update existing profiles
+      const toUpdate = parsedData.filter(r => r.status === 'update');
       for (const row of toUpdate) {
         try {
           const { error } = await supabase
             .from('profiles')
-            .update({ prenom: row.prenom, nom: row.nom, telephone: row.telephone } as any)
+            .update({ prenom: row.prenom, nom: row.nom, telephone: row.telephone })
             .eq('id', row.existingId!);
           if (error) throw error;
           updated++;
@@ -117,13 +111,31 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
         }
       }
 
-      return { updated, skipped: parsedData.filter(r => r.status === 'no_account').length, errors };
+      // Create new formateurs via edge function (creates account + sends invitation)
+      const toCreate = parsedData.filter(r => r.status === 'new');
+      for (const row of toCreate) {
+        try {
+          const { data, error } = await supabase.functions.invoke('invite-formateur', {
+            body: { email: row.email, prenom: row.prenom, nom: row.nom, telephone: row.telephone },
+          });
+          if (error) throw new Error(error.message);
+          if (data?.error) throw new Error(data.error);
+          created++;
+        } catch {
+          errors++;
+        }
+      }
+
+      return { created, updated, errors };
     },
     onSuccess: (result) => {
       setImportResult(result);
       setStep('result');
       queryClient.invalidateQueries({ queryKey: ['formateurs-list'] });
-      toast.success(`Import terminé: ${result.updated} formateur(s) mis à jour`);
+      const parts = [];
+      if (result.created > 0) parts.push(`${result.created} créé(s)`);
+      if (result.updated > 0) parts.push(`${result.updated} mis à jour`);
+      toast.success(`Import terminé: ${parts.join(', ')}`);
     },
     onError: (error) => toast.error('Erreur: ' + error.message),
   });
@@ -131,7 +143,7 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
   const reset = () => {
     setStep('upload');
     setParsedData([]);
-    setImportResult({ updated: 0, skipped: 0, errors: 0 });
+    setImportResult({ created: 0, updated: 0, errors: 0 });
   };
 
   const handleClose = (open: boolean) => {
@@ -140,8 +152,9 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
   };
 
   const updCount = parsedData.filter(r => r.status === 'update').length;
-  const noAccCount = parsedData.filter(r => r.status === 'no_account').length;
+  const newCount = parsedData.filter(r => r.status === 'new').length;
   const errCount = parsedData.filter(r => r.status === 'error').length;
+  const actionableCount = updCount + newCount;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -152,7 +165,7 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
             Importer des formateurs
           </DialogTitle>
           <DialogDescription>
-            Importez depuis un fichier CSV ou Excel (format SmartOF). Seuls les formateurs avec un compte existant seront mis à jour.
+            Importez depuis un fichier CSV ou Excel (format SmartOF). Les nouveaux formateurs recevront une invitation par email.
           </DialogDescription>
         </DialogHeader>
 
@@ -174,8 +187,8 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
         {step === 'preview' && (
           <div className="space-y-4 py-4">
             <div className="flex gap-3 flex-wrap">
+              {newCount > 0 && <Badge className="gap-1 bg-green-600"><UserPlus className="h-3 w-3" /> {newCount} nouveau(x)</Badge>}
               {updCount > 0 && <Badge variant="default" className="gap-1"><RefreshCw className="h-3 w-3" /> {updCount} mises à jour</Badge>}
-              {noAccCount > 0 && <Badge variant="secondary" className="gap-1"><AlertCircle className="h-3 w-3" /> {noAccCount} sans compte</Badge>}
               {errCount > 0 && <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> {errCount} erreurs</Badge>}
             </div>
 
@@ -192,10 +205,10 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
                 </TableHeader>
                 <TableBody>
                   {parsedData.map((f, i) => (
-                    <TableRow key={i} className={f.status === 'error' ? 'bg-destructive/5' : f.status === 'no_account' ? 'bg-muted/50' : ''}>
+                    <TableRow key={i} className={f.status === 'error' ? 'bg-destructive/5' : f.status === 'new' ? 'bg-green-500/5' : ''}>
                       <TableCell>
                         {f.status === 'update' && <Badge variant="default" className="text-xs">Mise à jour</Badge>}
-                        {f.status === 'no_account' && <Badge variant="secondary" className="text-xs">Sans compte</Badge>}
+                        {f.status === 'new' && <Badge className="text-xs bg-green-600">Nouveau</Badge>}
                         {f.status === 'error' && <Badge variant="destructive" className="text-xs">{f.errorMessage}</Badge>}
                       </TableCell>
                       <TableCell className="font-medium">{f.nom}</TableCell>
@@ -208,16 +221,16 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
               </Table>
             </div>
 
-            {noAccCount > 0 && (
+            {newCount > 0 && (
               <p className="text-xs text-muted-foreground">
-                ⚠️ Les formateurs « sans compte » n'ont pas de profil utilisateur. Ils devront d'abord créer un compte.
+                ✉️ Les {newCount} nouveau(x) formateur(s) recevront un email d'invitation pour créer leur mot de passe.
               </p>
             )}
 
             <DialogFooter>
               <Button variant="outline" onClick={reset}>Retour</Button>
-              <Button onClick={() => importMutation.mutate()} disabled={updCount === 0 || importMutation.isPending}>
-                {importMutation.isPending ? 'Import en cours...' : `Mettre à jour ${updCount} formateur(s)`}
+              <Button onClick={() => importMutation.mutate()} disabled={actionableCount === 0 || importMutation.isPending}>
+                {importMutation.isPending ? 'Import en cours...' : `Importer ${actionableCount} formateur(s)`}
               </Button>
             </DialogFooter>
           </div>
@@ -227,8 +240,8 @@ export function ImportFormateursDialog({ open, onOpenChange, existingProfiles }:
           <div className="space-y-4 py-4 text-center">
             <CheckCircle2 className="h-12 w-12 mx-auto text-primary" />
             <div className="space-y-1">
-              <p className="text-lg font-medium">{importResult.updated} formateur(s) mis à jour</p>
-              {importResult.skipped > 0 && <p className="text-sm text-muted-foreground">{importResult.skipped} sans compte (ignorés)</p>}
+              {importResult.created > 0 && <p className="text-lg font-medium">{importResult.created} formateur(s) créé(s) et invité(s)</p>}
+              {importResult.updated > 0 && <p className="text-lg font-medium">{importResult.updated} formateur(s) mis à jour</p>}
               {importResult.errors > 0 && <p className="text-sm text-destructive">{importResult.errors} erreur(s)</p>}
             </div>
             <DialogFooter className="justify-center">
