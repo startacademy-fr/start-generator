@@ -51,7 +51,7 @@ export default function StagiairePortal() {
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(true);
 
-  // Validate token
+  // Validate token via edge function
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
@@ -60,35 +60,36 @@ export default function StagiairePortal() {
         return;
       }
 
+      // Basic format validation
+      if (token.length > 500) {
+        setTokenError('Lien invalide');
+        setIsValidating(false);
+        return;
+      }
+
       try {
-        // For demo purposes, we'll decode a simple base64 token
-        // In production, you'd hash the token and compare with stored hash
-        const decoded = atob(token);
-        const [inscriptionId] = decoded.split(':');
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-token`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ action: 'validate', token }),
+          }
+        );
 
-        if (!inscriptionId) {
-          throw new Error('Token invalide');
-        }
+        const data = await response.json();
 
-        // Fetch inscription details
-        const { data: inscription, error } = await supabase
-          .from('inscriptions')
-          .select(`
-            id,
-            stagiaire:stagiaires(prenom, nom, email),
-            formation:formations(titre, lieu, date_debut, date_fin, nombre_heures)
-          `)
-          .eq('id', inscriptionId)
-          .single();
-
-        if (error || !inscription) {
-          throw new Error('Inscription non trouvée');
+        if (!response.ok || !data.valid) {
+          throw new Error(data.error || 'Token invalide');
         }
 
         setTokenData({
-          inscription_id: inscription.id,
-          stagiaire: inscription.stagiaire as any,
-          formation: inscription.formation as any,
+          inscription_id: data.inscription.id,
+          stagiaire: data.inscription.stagiaire as any,
+          formation: data.inscription.formation as any,
         });
       } catch (error) {
         setTokenError('Lien invalide ou expiré');
@@ -318,7 +319,6 @@ function DocumentCard({
   inscriptionId: string;
 }) {
   const handleComplete = () => {
-    // Navigate to document form with document type
     window.location.href = `/stagiaire/document?inscription=${inscriptionId}&type=${docType.id}`;
   };
 

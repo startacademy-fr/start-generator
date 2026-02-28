@@ -120,21 +120,18 @@ export default function AccessTokens() {
         const existingToken = tokens?.find(t => t.inscription_id === inscription.id && !t.revoked);
         
         if (!existingToken) {
-          // Generate a simple token (in production, use crypto.randomBytes)
-          const tokenValue = btoa(`${inscription.id}:${Date.now()}:${Math.random().toString(36)}`);
-          
-          // Store hashed token (simplified for demo)
-          const { error } = await supabase
-            .from('access_tokens')
-            .insert({
+          // Use edge function for secure token generation with hashing
+          const { data, error } = await supabase.functions.invoke('manage-token', {
+            body: {
+              action: 'generate',
               inscription_id: inscription.id,
-              token_hash: tokenValue, // In production: hash this
               expires_at: expiresAt,
-            });
+            },
+          });
 
           if (error) throw error;
 
-          const link = `${window.location.origin}/portail?token=${tokenValue}`;
+          const link = `${window.location.origin}/portail?token=${encodeURIComponent(data.token)}`;
           links.push({
             stagiaire: `${inscription.stagiaire.prenom} ${inscription.stagiaire.nom}`,
             link,
@@ -389,16 +386,10 @@ export default function AccessTokens() {
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={() => copyToClipboard(`${window.location.origin}/portail?token=${token.token_hash}`)}
+                              title="Le lien n'est disponible qu'au moment de la génération"
+                              disabled
                             >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => window.open(`${window.location.origin}/portail?token=${token.token_hash}`, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
+                              <Copy className="h-4 w-4 opacity-40" />
                             </Button>
                             {canManage && (
                               <Button 
