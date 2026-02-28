@@ -12,7 +12,7 @@ import FormationsCatalogue from "./pages/FormationsCatalogue";
 import Sessions from "./pages/Sessions";
 import Formateurs from "./pages/Formateurs";
 import Stagiaires from "./pages/Stagiaires";
-import Import from "./pages/Import";
+
 import Documents from "./pages/Documents";
 import AccessTokens from "./pages/AccessTokens";
 import StagiairePortal from "./pages/StagiairePortal";
@@ -37,7 +37,7 @@ const App = () => (
               <Route path="/sessions" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Sessions /></RoleGuard>} />
               <Route path="/formateurs" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Formateurs /></RoleGuard>} />
               <Route path="/stagiaires" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Stagiaires /></RoleGuard>} />
-              <Route path="/import" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Import /></RoleGuard>} />
+              
               <Route path="/documents" element={<Documents />} />
               <Route path="/access-tokens" element={<RoleGuard allowedRoles={['admin', 'assistante']}><AccessTokens /></RoleGuard>} />
               <Route path="/settings" element={<Dashboard />} />
