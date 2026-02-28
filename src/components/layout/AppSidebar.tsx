@@ -10,7 +10,9 @@ import {
   ChevronLeft,
   Menu,
   Link2,
-  UserCog
+  UserCog,
+  BookOpen,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,7 +22,8 @@ import logo from '@/assets/logo.png';
 
 const navigation = [
   { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Formations', href: '/formations', icon: GraduationCap },
+  { name: 'Formations', href: '/formations', icon: BookOpen },
+  { name: 'Sessions', href: '/sessions', icon: CalendarDays },
   { name: 'Formateurs', href: '/formateurs', icon: UserCog },
   { name: 'Stagiaires', href: '/stagiaires', icon: Users },
   { name: 'Import', href: '/import', icon: Upload },

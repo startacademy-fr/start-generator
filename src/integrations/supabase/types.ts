@@ -199,6 +199,7 @@ export type Database = {
           date_debut: string
           date_fin: string | null
           formateur_id: string | null
+          formation_catalogue_id: string | null
           id: string
           lieu: string
           nombre_heures: number
@@ -213,6 +214,7 @@ export type Database = {
           date_debut: string
           date_fin?: string | null
           formateur_id?: string | null
+          formation_catalogue_id?: string | null
           id?: string
           lieu: string
           nombre_heures: number
@@ -227,6 +229,7 @@ export type Database = {
           date_debut?: string
           date_fin?: string | null
           formateur_id?: string | null
+          formation_catalogue_id?: string | null
           id?: string
           lieu?: string
           nombre_heures?: number
@@ -243,7 +246,44 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "formations_formation_catalogue_id_fkey"
+            columns: ["formation_catalogue_id"]
+            isOneToOne: false
+            referencedRelation: "formations_catalogue"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      formations_catalogue: {
+        Row: {
+          created_at: string
+          id: string
+          programme: string | null
+          programme_pdf_url: string | null
+          reference: string
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          programme?: string | null
+          programme_pdf_url?: string | null
+          reference: string
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          programme?: string | null
+          programme_pdf_url?: string | null
+          reference?: string
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       inscriptions: {
         Row: {

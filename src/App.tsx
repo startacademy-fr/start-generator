@@ -7,7 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import Formations from "./pages/Formations";
+import FormationsCatalogue from "./pages/FormationsCatalogue";
+import Sessions from "./pages/Sessions";
 import Formateurs from "./pages/Formateurs";
 import Stagiaires from "./pages/Stagiaires";
 import Import from "./pages/Import";
@@ -31,7 +32,8 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/formations" element={<Formations />} />
+              <Route path="/formations" element={<FormationsCatalogue />} />
+              <Route path="/sessions" element={<Sessions />} />
               <Route path="/formateurs" element={<Formateurs />} />
               <Route path="/stagiaires" element={<Stagiaires />} />
               <Route path="/import" element={<Import />} />
