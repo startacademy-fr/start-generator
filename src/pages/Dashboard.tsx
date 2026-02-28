@@ -12,7 +12,11 @@ import {
   ArrowRight,
   Calendar,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Award,
+  ThumbsUp,
+  UserCheck,
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -23,6 +27,12 @@ interface DashboardStats {
   totalStagiaires: number;
   dossiersComplets: number;
   dossiersIncomplets: number;
+  stagiairesN1: number;
+  formationsN1: number;
+  totalHeures: number;
+  heuresParFormateur: { nom: string; heures: number }[];
+  tauxReussiteQCM: number | null;
+  tauxSatisfaction: number | null;
 }
 
 interface RecentFormation {
@@ -41,6 +51,12 @@ export default function Dashboard() {
     totalStagiaires: 0,
     dossiersComplets: 0,
     dossiersIncomplets: 0,
+    stagiairesN1: 0,
+    formationsN1: 0,
+    totalHeures: 0,
+    heuresParFormateur: [],
+    tauxReussiteQCM: null,
+    tauxSatisfaction: null,
   });
   const [recentFormations, setRecentFormations] = useState<RecentFormation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +64,11 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        // Fetch formations count
+        const currentYear = new Date().getFullYear();
+        const n1Start = `${currentYear - 1}-01-01`;
+        const n1End = `${currentYear - 1}-12-31`;
+
+        // Fetch formations count (active)
         const { count: formationsCount } = await supabase
           .from('formations')
           .select('*', { count: 'exact', head: true })
@@ -59,38 +79,110 @@ export default function Dashboard() {
           .from('stagiaires')
           .select('*', { count: 'exact', head: true });
 
-        // Fetch recent formations with inscription count
-        const { data: formations } = await supabase
+        // Fetch all formations for N-1 stats
+        const { data: allFormations } = await supabase
           .from('formations')
-          .select(`
-            id,
-            titre,
-            date_debut,
-            date_fin,
-            nombre_heures,
-            inscriptions(count)
-          `)
-          .eq('archived', false)
-          .order('date_debut', { ascending: false })
-          .limit(5);
+          .select('id, titre, date_debut, date_fin, nombre_heures, formateur_id')
+          .gte('date_debut', n1Start)
+          .lte('date_debut', n1End);
 
-        // Fetch documents stats
+        const formationsN1 = allFormations || [];
+        const formationIdsN1 = formationsN1.map(f => f.id);
+
+        // Stagiaires formés en N-1 (distinct)
+        let stagiairesN1 = 0;
+        if (formationIdsN1.length > 0) {
+          const { data: inscN1 } = await supabase
+            .from('inscriptions')
+            .select('stagiaire_id')
+            .in('formation_id', formationIdsN1);
+          const uniqueStagiaires = new Set(inscN1?.map(i => i.stagiaire_id) || []);
+          stagiairesN1 = uniqueStagiaires.size;
+        }
+
+        // Total heures de formation (toutes)
+        const { data: allFormationsHeures } = await supabase
+          .from('formations')
+          .select('nombre_heures');
+        const totalHeures = allFormationsHeures?.reduce((sum, f) => sum + (f.nombre_heures || 0), 0) || 0;
+
+        // Heures par formateur
+        const { data: formateurs } = await supabase
+          .from('profiles')
+          .select('id, prenom, nom');
+
+        const formateurMap = new Map<string, { nom: string; heures: number }>();
+        formationsN1.forEach(f => {
+          if (f.formateur_id) {
+            const existing = formateurMap.get(f.formateur_id);
+            if (existing) {
+              existing.heures += f.nombre_heures || 0;
+            } else {
+              const prof = formateurs?.find(p => p.id === f.formateur_id);
+              formateurMap.set(f.formateur_id, {
+                nom: prof ? `${prof.prenom} ${prof.nom}` : 'Inconnu',
+                heures: f.nombre_heures || 0,
+              });
+            }
+          }
+        });
+        const heuresParFormateur = Array.from(formateurMap.values()).sort((a, b) => b.heures - a.heures);
+
+        // QCM scores & satisfaction from documents
         const { data: docs } = await supabase
           .from('documents_stagiaires')
-          .select('statut');
+          .select('type, score, statut, inscription_id');
 
         const complets = docs?.filter(d => d.statut === 'complete' || d.statut === 'genere_auto').length || 0;
         const incomplets = docs?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0;
+
+        // Get inscription IDs for N-1 formations to filter docs
+        let inscriptionIdsN1: string[] = [];
+        if (formationIdsN1.length > 0) {
+          const { data: inscsN1 } = await supabase
+            .from('inscriptions')
+            .select('id')
+            .in('formation_id', formationIdsN1);
+          inscriptionIdsN1 = inscsN1?.map(i => i.id) || [];
+        }
+
+        const n1InscSet = new Set(inscriptionIdsN1);
+
+        // Taux de réussite QCM (score moyen des QCM N-1)
+        const qcmDocs = docs?.filter(d => d.type === 'qcm' && d.score != null && n1InscSet.has(d.inscription_id)) || [];
+        const tauxReussiteQCM = qcmDocs.length > 0
+          ? Math.round(qcmDocs.reduce((sum, d) => sum + (d.score || 0), 0) / qcmDocs.length)
+          : null;
+
+        // Taux satisfaction (score moyen satisfaction_chaud N-1)
+        const satDocs = docs?.filter(d => d.type === 'satisfaction_chaud' && d.score != null && n1InscSet.has(d.inscription_id)) || [];
+        const tauxSatisfaction = satDocs.length > 0
+          ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
+          : null;
+
+        // Recent formations
+        const { data: recentData } = await supabase
+          .from('formations')
+          .select(`id, titre, date_debut, date_fin, nombre_heures, inscriptions(count)`)
+          .eq('archived', false)
+          .order('date_debut', { ascending: false })
+          .limit(5);
 
         setStats({
           totalFormations: formationsCount || 0,
           totalStagiaires: stagiairesCount || 0,
           dossiersComplets: complets,
           dossiersIncomplets: incomplets,
+          stagiairesN1,
+          formationsN1: formationsN1.length,
+          totalHeures,
+          heuresParFormateur,
+          tauxReussiteQCM,
+          tauxSatisfaction,
         });
 
         setRecentFormations(
-          formations?.map(f => ({
+          recentData?.map(f => ({
             id: f.id,
             titre: f.titre,
             date_debut: f.date_debut,
@@ -109,11 +201,14 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const currentYear = new Date().getFullYear();
+  const n1Year = currentYear - 1;
+
   const statCards = [
     {
-      title: "Formations",
+      title: "Sessions actives",
       value: stats.totalFormations,
-      description: "formations actives",
+      description: "sessions de formation",
       icon: GraduationCap,
       color: "text-primary",
       bgColor: "bg-primary/10",
@@ -148,6 +243,44 @@ export default function Dashboard() {
     },
   ];
 
+  const n1Cards = [
+    {
+      title: `Stagiaires formés (${n1Year})`,
+      value: stats.stagiairesN1,
+      icon: UserCheck,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: `Formations (${n1Year})`,
+      value: stats.formationsN1,
+      icon: BookOpen,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+    {
+      title: "Total heures de formation",
+      value: `${stats.totalHeures}h`,
+      icon: Clock,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: `Taux réussite QCM (${n1Year})`,
+      value: stats.tauxReussiteQCM != null ? `${stats.tauxReussiteQCM}%` : '—',
+      icon: Award,
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+    {
+      title: `Satisfaction moyenne (${n1Year})`,
+      value: stats.tauxSatisfaction != null ? `${stats.tauxSatisfaction}%` : '—',
+      icon: ThumbsUp,
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+    },
+  ];
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
@@ -156,7 +289,7 @@ export default function Dashboard() {
           Bonjour, {profile?.prenom} 👋
         </h1>
         <p className="text-muted-foreground mt-1">
-          Voici un aperçu de votre activité Qualiopi
+          Voici un aperçu de votre activité de formation
         </p>
       </div>
 
@@ -184,6 +317,49 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* N-1 Stats */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-4">
+          Indicateurs clés ({n1Year})
+        </h2>
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {n1Cards.map((stat) => (
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground leading-tight">
+                  {stat.title}
+                </CardTitle>
+                <div className={`p-1.5 rounded-lg ${stat.bgColor}`}>
+                  <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Heures par formateur */}
+      {stats.heuresParFormateur.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Heures par formateur ({n1Year})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats.heuresParFormateur.map((f) => (
+                <div key={f.nom} className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{f.nom}</span>
+                  <Badge variant="secondary">{f.heures}h</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Recent Formations & Quick Actions */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Formations */}
@@ -191,9 +367,9 @@ export default function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Formations récentes</CardTitle>
+                <CardTitle>Sessions récentes</CardTitle>
                 <CardDescription>
-                  Les 5 dernières formations créées
+                  Les 5 dernières sessions de formation
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" asChild>
@@ -214,17 +390,16 @@ export default function Dashboard() {
             ) : recentFormations.length === 0 ? (
               <div className="text-center py-8">
                 <GraduationCap className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">Aucune formation créée</p>
+                <p className="text-muted-foreground">Aucune session créée</p>
                 <Button className="mt-4" asChild>
-                  <Link to="/formations/new">Créer une formation</Link>
+                  <Link to="/formations">Créer une session</Link>
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 {recentFormations.map((formation) => (
-                  <Link
+                  <div
                     key={formation.id}
-                    to={`/formations/${formation.id}`}
                     className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                   >
                     <div className="space-y-1">
@@ -243,7 +418,7 @@ export default function Dashboard() {
                     <Badge variant="secondary">
                       {formation.inscriptions_count} stagiaire{formation.inscriptions_count !== 1 ? 's' : ''}
                     </Badge>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
@@ -260,13 +435,13 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <Button className="w-full justify-start" asChild>
-              <Link to="/formations/new">
+              <Link to="/formations">
                 <GraduationCap className="mr-2 h-4 w-4" />
-                Nouvelle formation
+                Nouvelle session
               </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start" asChild>
-              <Link to="/stagiaires/new">
+              <Link to="/stagiaires">
                 <Users className="mr-2 h-4 w-4" />
                 Ajouter un stagiaire
               </Link>
