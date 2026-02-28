@@ -166,8 +166,8 @@ export default function Documents() {
                 contenu: content,
                 statut: 'genere_auto',
                 genere_automatiquement: true,
-                score: docType === 'qcm' ? Math.floor(Math.random() * 20) + 80 : // 80-100%
-                       docType.includes('satisfaction') ? Math.floor(Math.random() * 10) + 90 : // 90-100%
+                score: docType === 'qcm' ? (content as any).score ?? Math.floor(Math.random() * 10) + 90 :
+                       docType.includes('satisfaction') ? Math.floor(Math.random() * 10) + 90 :
                        null,
                 date_soumission: generateSubmissionDate(docType, formation),
               });
@@ -253,9 +253,11 @@ export default function Documents() {
           attentes: generateAttentes(),
         };
       case 'qcm':
+        const qcmData = await generateQCMWithAI(formation);
         return {
           ...baseContent,
-          questions: generateQCMReponses(),
+          questions: qcmData.questions,
+          score: qcmData.score,
         };
       case 'satisfaction_chaud':
         return {
@@ -425,16 +427,91 @@ export default function Documents() {
     'Supports de cours complets',
   ];
 
-  const generateQCMReponses = () => {
-    const questions = [];
-    for (let i = 1; i <= 10; i++) {
-      questions.push({
-        numero: i,
-        reponse: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)],
-        correct: Math.random() > 0.15, // 85% correct average
+  // AI-powered QCM generation
+  const generateQCMWithAI = async (formation: Formation): Promise<{ questions: any[]; score: number }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-qcm', {
+        body: {
+          formationTitre: formation.titre,
+          programme: formation.programme,
+          nombreQuestions: 13,
+        },
       });
+
+      if (error) {
+        console.error('AI QCM generation error:', error);
+        return generateFallbackQCM();
+      }
+
+      const questions = data.questions || [];
+      if (questions.length === 0) return generateFallbackQCM();
+
+      // Apply >90% success rate: 0 or 1 random error
+      const nbErrors = Math.random() > 0.5 ? 1 : 0;
+      const errorIndex = nbErrors > 0 ? Math.floor(Math.random() * questions.length) : -1;
+
+      const filledQuestions = questions.map((q: any, idx: number) => {
+        const isError = idx === errorIndex;
+        let selectedAnswer = q.correct_answer;
+
+        if (isError) {
+          // Pick a wrong answer
+          const wrongOptions = q.options.filter((o: any) => o.letter !== q.correct_answer);
+          if (wrongOptions.length > 0) {
+            selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)].letter;
+          }
+        }
+
+        return {
+          numero: idx + 1,
+          question: q.question,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          selected_answer: selectedAnswer,
+          is_correct: selectedAnswer === q.correct_answer,
+        };
+      });
+
+      const correctCount = filledQuestions.filter((q: any) => q.is_correct).length;
+      const score = Math.round((correctCount / filledQuestions.length) * 100);
+
+      return { questions: filledQuestions, score };
+    } catch (error) {
+      console.error('Failed to generate QCM:', error);
+      return generateFallbackQCM();
     }
-    return questions;
+  };
+
+  const generateFallbackQCM = (): { questions: any[]; score: number } => {
+    const fallbackQuestions = [
+      { question: "Quel est l'objectif principal de cette formation ?", options: [{ letter: 'A', text: 'Acquérir de nouvelles compétences' }, { letter: 'B', text: 'Se divertir' }, { letter: 'C', text: 'Obtenir un diplôme' }], correct_answer: 'A' },
+      { question: "La formation permet-elle une application pratique ?", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'A' },
+      { question: "Quel élément est essentiel pour réussir ?", options: [{ letter: 'A', text: 'La chance' }, { letter: 'B', text: 'La pratique régulière' }, { letter: 'C', text: 'Le hasard' }], correct_answer: 'B' },
+    ];
+
+    const nbErrors = Math.random() > 0.5 ? 1 : 0;
+    const errorIndex = nbErrors > 0 ? Math.floor(Math.random() * fallbackQuestions.length) : -1;
+
+    const filledQuestions = fallbackQuestions.map((q, idx) => {
+      const isError = idx === errorIndex;
+      let selectedAnswer = q.correct_answer;
+      if (isError) {
+        const wrongOptions = q.options.filter(o => o.letter !== q.correct_answer);
+        if (wrongOptions.length > 0) selectedAnswer = wrongOptions[Math.floor(Math.random() * wrongOptions.length)].letter;
+      }
+      return {
+        numero: idx + 1,
+        question: q.question,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        selected_answer: selectedAnswer,
+        is_correct: selectedAnswer === q.correct_answer,
+      };
+    });
+
+    const correctCount = filledQuestions.filter(q => q.is_correct).length;
+    const score = Math.round((correctCount / filledQuestions.length) * 100);
+    return { questions: filledQuestions, score };
   };
 
   const generateSatisfactionChaud = () => {
