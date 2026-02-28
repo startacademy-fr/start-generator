@@ -427,44 +427,72 @@ function renderPositionnementLandscape(
 
 function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
   const contentWidth = pageWidth - 2 * margin;
+  const pageHeight = doc.internal.pageSize.getHeight();
   const PRIMARY_BLUE: [number, number, number] = [68, 114, 196];
-  
-  // Objectifs de formation section
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...PRIMARY_BLUE);
-  doc.text('Objectifs de formation', margin, yPos);
-  
-  yPos += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...TEXT_COLOR);
-  doc.setFontSize(10);
-  
-  if (contenu?.objectifs && Array.isArray(contenu.objectifs)) {
-    contenu.objectifs.forEach((obj: string) => {
-      const lines = doc.splitTextToSize(`• ${obj}`, contentWidth - 10);
+  const footerSpace = 25;
+
+  const checkPageBreak = (needed: number) => {
+    if (yPos + needed > pageHeight - footerSpace) {
+      doc.addPage();
+      yPos = 25;
+    }
+  };
+
+  const renderSection = (title: string, items: string[] | undefined, bullet = '•') => {
+    if (!items || !Array.isArray(items) || items.length === 0) return;
+    checkPageBreak(30);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text(title, margin, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(10);
+    items.forEach((item: string) => {
+      const lines = doc.splitTextToSize(`${bullet} ${item}`, contentWidth - 10);
+      checkPageBreak(lines.length * 5 + 4);
       doc.text(lines, margin + 5, yPos);
-      yPos += lines.length * 5 + 2;
+      yPos += lines.length * 5 + 3;
     });
-  }
-  
-  yPos += 8;
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...PRIMARY_BLUE);
-  doc.text('Attentes exprimées', margin, yPos);
-  
-  yPos += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...TEXT_COLOR);
-  
-  if (contenu?.attentes && Array.isArray(contenu.attentes)) {
-    contenu.attentes.forEach((att: string) => {
-      const lines = doc.splitTextToSize(`• ${att}`, contentWidth - 10);
-      doc.text(lines, margin + 5, yPos);
-      yPos += lines.length * 5 + 2;
-    });
-  }
-  
+    yPos += 4;
+  };
+
+  const renderParagraph = (title: string, text: string | undefined) => {
+    if (!text) return;
+    checkPageBreak(30);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...PRIMARY_BLUE);
+    doc.text(title, margin, yPos);
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(text, contentWidth - 5);
+    checkPageBreak(lines.length * 5 + 4);
+    doc.text(lines, margin + 3, yPos);
+    yPos += lines.length * 5 + 6;
+  };
+
+  // Contexte professionnel
+  renderParagraph('Contexte professionnel', contenu?.contexte_professionnel);
+
+  // Objectifs du stagiaire
+  renderSection('Objectifs personnels du stagiaire', contenu?.objectifs_stagiaire || contenu?.objectifs);
+
+  // Attentes
+  renderSection('Attentes vis-à-vis de la formation', contenu?.attentes);
+
+  // Compétences visées
+  renderSection('Compétences visées', contenu?.competences_visees);
+
+  // Freins identifiés
+  renderSection('Freins ou difficultés identifiés', contenu?.freins_identifies, '⚠');
+
+  // Motivation
+  renderParagraph('Motivation', contenu?.motivation);
+
   return yPos;
 }
 
