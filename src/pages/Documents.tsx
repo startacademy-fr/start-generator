@@ -821,6 +821,36 @@ export default function Documents() {
     axes_amelioration: 'Approfondir les aspects théoriques',
   });
 
+  // Preview QCM with sample data
+  const handlePreviewQCM = () => {
+    const sampleQuestions = [
+      { numero: 1, question: "Combien de techniques d'IA connaissez-vous ?", options: [{ letter: 'A', text: '1 à 2' }, { letter: 'B', text: '3 à 5' }, { letter: 'C', text: 'Plus de 5' }, { letter: 'D', text: 'Aucune' }], correct_answer: 'C', selected_answer: 'C', is_correct: true },
+      { numero: 2, question: "Quel est l'objectif principal de la formation ?", options: [{ letter: 'A', text: 'Vendre plus' }, { letter: 'B', text: "Comprendre et utiliser l'IA" }, { letter: 'C', text: 'Automatiser totalement' }, { letter: 'D', text: "Remplacer l'humain" }], correct_answer: 'B', selected_answer: 'B', is_correct: true },
+      { numero: 3, question: "Quelle est la première étape de la méthode avancée ?", options: [{ letter: 'A', text: 'Analyser le besoin' }, { letter: 'B', text: 'Tester des outils' }, { letter: 'C', text: 'Automatiser' }, { letter: 'D', text: 'Optimiser' }], correct_answer: 'A', selected_answer: 'A', is_correct: true },
+      { numero: 4, question: "Vrai ou faux : L'IA peut rédiger des mails automatiquement.", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'A', selected_answer: 'A', is_correct: true },
+      { numero: 5, question: "Quel est le but de l'atelier Prompt Parfait ?", options: [{ letter: 'A', text: 'Créer des images' }, { letter: 'B', text: 'Rédiger des prompts efficaces' }, { letter: 'C', text: 'Coder une IA' }, { letter: 'D', text: 'Automatiser un CRM' }], correct_answer: 'B', selected_answer: 'B', is_correct: true },
+      { numero: 6, question: "Quel est un des éléments à évaluer lors de la conception de prompt ?", options: [{ letter: 'A', text: 'La clarté' }, { letter: 'B', text: 'La longueur' }, { letter: 'C', text: 'La couleur' }, { letter: 'D', text: 'Le design' }], correct_answer: 'A', selected_answer: 'A', is_correct: true },
+      { numero: 7, question: "Vrai ou faux : L'IA ne peut pas analyser les performances.", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'B', selected_answer: 'B', is_correct: true },
+      { numero: 8, question: "Quel est l'objectif de la rédaction optimisée ?", options: [{ letter: 'A', text: 'Faire du volume' }, { letter: 'B', text: 'Gagner du temps' }, { letter: 'C', text: "Améliorer l'impact commercial" }, { letter: 'D', text: 'Copier-coller' }], correct_answer: 'C', selected_answer: 'C', is_correct: true },
+      { numero: 9, question: "Vrai ou faux : L'IA peut améliorer les photos immobilières.", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'A', selected_answer: 'A', is_correct: true },
+      { numero: 10, question: "Vrai ou faux : L'IA ne peut pas générer de bilans.", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'B', selected_answer: 'A', is_correct: false },
+      { numero: 11, question: "Quel est le rôle de l'IA dans le suivi vendeur ?", options: [{ letter: 'A', text: 'Envoyer des pubs' }, { letter: 'B', text: 'Analyser et personnaliser le suivi' }, { letter: 'C', text: "Remplacer l'agent immobilier" }, { letter: 'D', text: 'Archiver les dossiers' }], correct_answer: 'B', selected_answer: 'B', is_correct: true },
+      { numero: 12, question: "Quel est un des bénéfices de l'IA pour les clients ?", options: [{ letter: 'A', text: 'Plus de complexité' }, { letter: 'B', text: 'Réponses plus rapides et personnalisées' }, { letter: 'C', text: 'Moins de contact humain' }, { letter: 'D', text: 'Moins de données' }], correct_answer: 'B', selected_answer: 'B', is_correct: true },
+      { numero: 13, question: "Vrai ou faux : L'IA ne peut pas aider à la prospection.", options: [{ letter: 'A', text: 'Vrai' }, { letter: 'B', text: 'Faux' }], correct_answer: 'B', selected_answer: 'B', is_correct: true },
+    ];
+
+    const sampleData = {
+      type: 'qcm',
+      stagiaire: { prenom: 'Jean', nom: 'Dupont', email: 'jean.dupont@example.com', entreprise: 'Immobilier Plus', fonction: 'Agent commercial' },
+      formation: { titre: "Agent Augmenté par l'IA - Immobilier", lieu: 'Vence', date_debut: '2026-02-24', date_fin: '2026-02-28', nombre_heures: 35 },
+      contenu: { questions: sampleQuestions, score: 92 },
+      score: 92,
+    };
+
+    downloadPDF(sampleData);
+    toast.success('PDF de prévisualisation QCM téléchargé');
+  };
+
   // Get document stats for a formation
   const getFormationStats = (formationId: string) => {
     const formationInscriptions = inscriptions?.filter(i => i.formation_id === formationId) || [];
@@ -901,10 +931,16 @@ export default function Documents() {
             </Button>
           )}
           {canManage && (
-            <Button onClick={() => setIsGenerateDialogOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Générer des documents
-            </Button>
+            <>
+              <Button variant="outline" onClick={handlePreviewQCM}>
+                <Eye className="mr-2 h-4 w-4" />
+                Prévisualiser QCM
+              </Button>
+              <Button onClick={() => setIsGenerateDialogOpen(true)}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Générer des documents
+              </Button>
+            </>
           )}
         </div>
       </div>
