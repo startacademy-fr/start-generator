@@ -16,7 +16,10 @@ import {
   Award,
   ThumbsUp,
   UserCheck,
-  BookOpen
+  BookOpen,
+  LogOut,
+  MessageSquare,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -37,6 +40,9 @@ interface DashboardStats {
   formationsParType: { nom: string; count: number }[];
   tauxReussiteQCM: number | null;
   tauxSatisfaction: number | null;
+  tauxAbandon: number | null;
+  reclamationsN1: number;
+  tauxCompletionDossiers: number | null;
 }
 
 interface RecentFormation {
@@ -62,6 +68,9 @@ export default function Dashboard() {
     formationsParType: [],
     tauxReussiteQCM: null,
     tauxSatisfaction: null,
+    tauxAbandon: null,
+    reclamationsN1: 0,
+    tauxCompletionDossiers: null,
   });
   const [recentFormations, setRecentFormations] = useState<RecentFormation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,6 +184,40 @@ export default function Dashboard() {
           ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
           : null;
 
+        // Taux d'abandon N-1 (inscriptions avec statut 'abandon')
+        let tauxAbandon: number | null = null;
+        if (formationIdsN1.length > 0) {
+          const { data: allInscsN1 } = await supabase
+            .from('inscriptions')
+            .select('statut')
+            .in('formation_id', formationIdsN1);
+          const totalInscs = allInscsN1?.length || 0;
+          const abandons = allInscsN1?.filter(i => i.statut === 'abandon').length || 0;
+          tauxAbandon = totalInscs > 0 ? Math.round((abandons / totalInscs) * 100) : null;
+        }
+
+        // Réclamations N-1
+        const { count: reclamationsCount } = await supabase
+          .from('reclamations')
+          .select('*', { count: 'exact', head: true })
+          .gte('date_reclamation', n1Start)
+          .lte('date_reclamation', n1End);
+
+        // Taux de complétion des dossiers (% inscriptions ayant tous les 7 types de docs)
+        const { data: allInscs } = await supabase
+          .from('inscriptions')
+          .select('id');
+        const totalInscriptions = allInscs?.length || 0;
+        let tauxCompletionDossiers: number | null = null;
+        if (totalInscriptions > 0 && docs) {
+          const docCountByInsc = new Map<string, number>();
+          docs.forEach(d => {
+            docCountByInsc.set(d.inscription_id, (docCountByInsc.get(d.inscription_id) || 0) + 1);
+          });
+          const completDossiers = Array.from(docCountByInsc.values()).filter(c => c >= 7).length;
+          tauxCompletionDossiers = Math.round((completDossiers / totalInscriptions) * 100);
+        }
+
         // Recent formations
         const { data: recentData } = await supabase
           .from('formations')
@@ -195,6 +238,9 @@ export default function Dashboard() {
           formationsParType,
           tauxReussiteQCM,
           tauxSatisfaction,
+          tauxAbandon,
+          reclamationsN1: reclamationsCount || 0,
+          tauxCompletionDossiers,
         });
 
         setRecentFormations(
@@ -295,6 +341,27 @@ export default function Dashboard() {
       color: "text-warning",
       bgColor: "bg-warning/10",
     },
+    {
+      title: `Taux d'abandon (${n1Year})`,
+      value: stats.tauxAbandon != null ? `${stats.tauxAbandon}%` : '0%',
+      icon: LogOut,
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+    },
+    {
+      title: `Réclamations (${n1Year})`,
+      value: stats.reclamationsN1,
+      icon: MessageSquare,
+      color: "text-muted-foreground",
+      bgColor: "bg-muted",
+    },
+    {
+      title: "Complétion dossiers",
+      value: stats.tauxCompletionDossiers != null ? `${stats.tauxCompletionDossiers}%` : '—',
+      icon: CheckCircle2,
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
   ];
 
   return (
@@ -338,7 +405,7 @@ export default function Dashboard() {
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Indicateurs clés ({n1Year})
         </h2>
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {n1Cards.map((stat) => (
             <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
