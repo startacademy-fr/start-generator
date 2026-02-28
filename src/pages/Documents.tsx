@@ -185,7 +185,7 @@ export default function Documents() {
               .insert({
                 inscription_id: inscription.id,
                 type: docType,
-                contenu: content,
+                contenu: content as any,
                 statut: 'genere_auto',
                 genere_automatiquement: true,
                 score: docType === 'qcm' ? (content as any).score ?? Math.floor(Math.random() * 10) + 90 :
@@ -295,14 +295,16 @@ export default function Documents() {
           ...generateSatisfactionFroid(),
         };
       case 'deroule_pedagogique':
+        const sequences = await generateSequences(formation);
         return {
           ...baseContent,
-          sequences: generateSequences(formation),
+          sequences,
         };
       case 'grille_observation':
+        const grilleData = await generateGrilleObservation(stagiaire, formation);
         return {
           ...baseContent,
-          ...generateGrilleObservation(stagiaire, formation),
+          ...grilleData,
         };
       default:
         return baseContent;
@@ -774,51 +776,54 @@ export default function Documents() {
     return commentaires[Math.floor(Math.random() * commentaires.length)];
   };
 
-  const generateSequences = (formation: Formation) => {
-    // Calculate number of days based on hours (7h per day)
+  const generateSequences = async (formation: Formation) => {
     const nombreJours = Math.max(1, Math.ceil(formation.nombre_heures / 7));
-    const jours: any[] = [];
-    
-    // Template sequences for each day - diversified content
-    const dayTemplates = [
-      { theme: 'Prospection et segmentation', objectifPrincipal: 'Analyser et segmenter un secteur de prospection', contenuPrincipal: 'Concepts de segmentation, cartographie, analyse démographique, études de cas', objectifSecondaire: 'Identifier et exploiter les sources de génération de leads', contenuSecondaire: 'Outils en ligne (portails, réseaux sociaux), techniques de pige, prospection directe', objectifTertiaire: 'Créer, gérer et entretenir une base de données de prospects', contenuTertiaire: 'Utilisation des CRM, qualification des leads, stratégies de fidélisation' },
-      { theme: 'Les leviers de l\'estimation', objectifPrincipal: 'Générer du business avec les dossiers d\'estimation', contenuPrincipal: 'Identifier les opportunités, conversion en mandats exclusifs, automatisation du suivi', objectifSecondaire: 'Apprendre à utiliser les outils adaptés', contenuSecondaire: 'Présentation des logiciels d\'estimation, exploitation des bases de données, analyse comparative', objectifTertiaire: 'Valoriser son expertise sur les réseaux sociaux', contenuTertiaire: 'Création de contenus pertinents, publication et engagement avec les prospects' },
-      { theme: 'Face à face vendeur', objectifPrincipal: 'Maîtriser le rendez-vous R1 avec un vendeur', contenuPrincipal: 'Techniques d\'accroche, simulation de la première visite, découverte des motivations', objectifSecondaire: 'Présenter et défendre une estimation', contenuSecondaire: 'Argumentation et gestion des objections, techniques de persuasion', objectifTertiaire: 'Signer des mandats et traiter les objections', contenuTertiaire: 'Techniques de closing, levée des freins psychologiques, gestion des hésitations' },
-      { theme: 'Suivi vendeur', objectifPrincipal: 'Donner du feedback et renforcer la relation client', contenuPrincipal: 'Techniques de feedback constructif, suivi des actions, gestion des recommandations', objectifSecondaire: 'Présenter et respecter les engagements vis-à-vis du client', contenuSecondaire: 'Stratégies de suivi des engagements, communication transparente, gestion des attentes', objectifTertiaire: 'Gestion des situations imprévues et fidélisation', contenuTertiaire: 'Anticiper et gérer les problèmes, transformer une insatisfaction en opportunité' },
-      { theme: 'Campagne de newsletters', objectifPrincipal: 'Conception et aspects légaux d\'une newsletter', contenuPrincipal: 'Rédaction de contenu efficace, intégration de médias, introduction au RGPD', objectifSecondaire: 'Optimisation et suivi des performances', contenuSecondaire: 'Techniques pour maximiser l\'ouverture des emails, analyse des KPIs, ajustement des campagnes', objectifTertiaire: 'Automatisation et amélioration continue', contenuTertiaire: 'Intégration aux CRM, mise en place de séquences automatiques, gestion des relances' },
-      { theme: 'Acquisition et traitement de Leads Acheteurs', objectifPrincipal: 'Vendre un rendez-vous découverte au téléphone', contenuPrincipal: 'Préparation de script d\'appel, gestion des objections, qualification des leads', objectifSecondaire: 'Identifier et qualifier les clients acheteurs', contenuSecondaire: 'Définition des critères de qualification, analyse des sources de leads, segmentation', objectifTertiaire: 'Réaliser une découverte client efficace', contenuTertiaire: 'Techniques d\'écoute active, questionnement stratégique, gestion des attentes' },
-      { theme: 'Suivi Acheteurs', objectifPrincipal: 'Obtenir le meilleur de chaque lead acheteur', contenuPrincipal: 'Collecter des feedbacks précis sur les biens visités, analyser les retours, optimiser la relation', objectifSecondaire: 'Renforcer la relation pour obtenir des recommandations', contenuSecondaire: 'Techniques pour renforcer la confiance, communication personnalisée, fidélisation', objectifTertiaire: 'Proposer des services annexes pour valoriser l\'accompagnement', contenuTertiaire: 'Présentation des services complémentaires (financement, déménagement, rénovation)' },
-      { theme: 'Face à Face Acheteurs', objectifPrincipal: 'Mettre en pratique la découverte du projet acheteur', contenuPrincipal: 'Simulation de vente d\'un rendez-vous découverte, analyse des besoins de l\'acheteur', objectifSecondaire: 'Pratiquer les visites immobilières en situation réelle', contenuSecondaire: 'Techniques de présentation d\'un bien, analyse des réactions des acheteurs', objectifTertiaire: 'Simuler des négociations immobilières réalistes', contenuTertiaire: 'Techniques de négociation, gestion des objections, conclusion d\'une vente' },
-      { theme: 'L\'Art de la Négociation', objectifPrincipal: 'Apprendre l\'utilisation des questions ouvertes', contenuPrincipal: 'Comprendre leur rôle dans la négociation, formuler des questions qui encouragent les réponses détaillées', objectifSecondaire: 'Détecter les signaux d\'achat et s\'y adapter', contenuSecondaire: 'Identifier les signaux verbaux et non verbaux, adapter sa stratégie', objectifTertiaire: 'Trouver les leviers pour conclure une négociation', contenuTertiaire: 'Identifier les facteurs clés qui influencent la décision, techniques de closing' },
-      { theme: 'Générer de la Recommandation', objectifPrincipal: 'Utiliser sa base de données pour augmenter sa notoriété', contenuPrincipal: 'Segmenter et cibler ses contacts, élaborer des campagnes de communication adaptées', objectifSecondaire: 'Utiliser les réseaux sociaux pour gagner en recommandation', contenuSecondaire: 'Développer une stratégie de contenu engageant, encourager les interactions et témoignages', objectifTertiaire: 'Identifier des sources complémentaires pour développer la recommandation', contenuTertiaire: 'Stratégie de partenariat, participation à des événements, incitations à la recommandation' },
-    ];
-    
-    for (let i = 0; i < nombreJours; i++) {
-      const template = dayTemplates[i % dayTemplates.length];
-      const isLastDay = i === nombreJours - 1;
-      
-      const sequences = [
-        { duree: '30 min', objectifs: 'Accueil des stagiaires et introduction', contenu: 'Présentation des stagiaires et du formateur, tour de table, feuille d\'émargement, présentation des objectifs', outils: 'Diaporama Canva, paperboard, livret de formation', exercice: 'Se présenter en moins de 2 minutes', evaluation: 'Questionnaire de positionnement' },
-        { duree: '2h30', objectifs: template.objectifPrincipal, contenu: template.contenuPrincipal, outils: 'Diaporama Canva, paperboard, études de cas', exercice: 'Mise en pratique sur données réelles', evaluation: 'Débriefing et QCM en fin de formation' },
-        { duree: '90 min', objectifs: 'Pause déjeuner', contenu: '', outils: '', exercice: '', evaluation: '' },
-        { duree: '1h10', objectifs: template.objectifSecondaire, contenu: template.contenuSecondaire, outils: 'Diaporama Canva, démonstration d\'outils', exercice: 'Simulation en binôme', evaluation: 'Vérification par le formateur et retour d\'expérience' },
-        { duree: '10 min', objectifs: 'Pause', contenu: '', outils: '', exercice: '', evaluation: '' },
-        { duree: '1h10', objectifs: template.objectifTertiaire, contenu: template.contenuTertiaire, outils: 'Jeux de rôle, diaporama Canva', exercice: 'Mise en situation pratique', evaluation: 'Débriefing et correction collective' },
-        { duree: '20 min', objectifs: isLastDay ? 'Évaluation des acquis et clôture de la formation' : 'Évaluation des acquis et bilan de la journée', contenu: isLastDay ? 'Synthèse, bilan et remise des certificats' : 'Synthèse et retour sur la journée', outils: 'Tour de table', exercice: '', evaluation: 'QCM et fiche d\'évaluation satisfaction' },
-      ];
-      
-      jours.push({
-        numero: i + 1,
-        titre: `Jour ${i + 1}${template.theme ? ' : ' + template.theme : ''}`,
-        sequences,
-      });
-    }
-    
-    // Formateur info
     const dateDebut = new Date(formation.date_debut);
     const dateFin = formation.date_fin ? new Date(formation.date_fin) : dateDebut;
-    
-    // Generate formateur satisfaction responses
+
+    let jours: any[] = [];
+
+    // Try AI-powered generation based on actual programme content
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-deroule', {
+        body: {
+          formationTitre: formation.titre,
+          programme: formation.programme,
+          nombreHeures: formation.nombre_heures,
+        },
+      });
+
+      if (!error && data?.jours?.length > 0) {
+        jours = data.jours.map((jour: any, i: number) => ({
+          numero: i + 1,
+          titre: `Jour ${i + 1} : ${jour.theme}`,
+          sequences: jour.sequences,
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to generate deroule with AI:', e);
+    }
+
+    // Fallback si l'IA échoue
+    if (jours.length === 0) {
+      for (let i = 0; i < nombreJours; i++) {
+        const isLastDay = i === nombreJours - 1;
+        jours.push({
+          numero: i + 1,
+          titre: `Jour ${i + 1}`,
+          sequences: [
+            { duree: '30 min', objectifs: 'Accueil des stagiaires et introduction', contenu: 'Présentation, tour de table, feuille d\'émargement', outils: 'Diaporama, paperboard', exercice: 'Se présenter', evaluation: 'Questionnaire de positionnement' },
+            { duree: '2h30', objectifs: 'Module principal du matin', contenu: 'Contenu théorique et pratique', outils: 'Diaporama, études de cas', exercice: 'Mise en pratique', evaluation: 'Débriefing' },
+            { duree: '90 min', objectifs: 'Pause déjeuner', contenu: '', outils: '', exercice: '', evaluation: '' },
+            { duree: '1h10', objectifs: 'Module après-midi 1', contenu: 'Approfondissement', outils: 'Diaporama, démonstration', exercice: 'Simulation en binôme', evaluation: 'Retour d\'expérience' },
+            { duree: '10 min', objectifs: 'Pause', contenu: '', outils: '', exercice: '', evaluation: '' },
+            { duree: '1h10', objectifs: 'Module après-midi 2', contenu: 'Mise en situation', outils: 'Jeux de rôle', exercice: 'Mise en situation pratique', evaluation: 'Correction collective' },
+            { duree: '20 min', objectifs: isLastDay ? 'Évaluation des acquis et clôture' : 'Bilan de la journée', contenu: isLastDay ? 'Synthèse et remise des certificats' : 'Synthèse', outils: 'Tour de table', exercice: '', evaluation: 'QCM et satisfaction' },
+          ],
+        });
+      }
+    }
+
     const satisfactionGroupe = [
       { numero: 1, question: "L'homogénéité du groupe était-elle satisfaisante ?", score: 4 + Math.floor(Math.random() * 2) },
       { numero: 2, question: "Le niveau de base du groupe était-il suffisant par rapport au contenu du stage ?", score: 4 + Math.floor(Math.random() * 2) },
@@ -826,30 +831,30 @@ export default function Documents() {
       { numero: 4, question: "Les stagiaires ont-ils bien participé aux échanges ?", score: 4 + Math.floor(Math.random() * 2) },
       { numero: 5, question: "Jugez-vous que les stagiaires ont globalement assimilé les techniques enseignées ?", score: 4 + Math.floor(Math.random() * 2) },
     ];
-    
+
     const satisfactionOrga = [
       { numero: 6, question: "La salle de travail était-elle adaptée au stage ?", score: 4 + Math.floor(Math.random() * 2) },
       { numero: 7, question: "Les stagiaires étaient-ils bien informés sur le stage ?", score: 5 },
     ];
-    
+
     const remarquesGroupe = [
-      "J'ai particulièrement apprécié l'implication et la dynamique du groupe tout au long de la formation. Les échanges étaient riches, les participants n'ont pas hésité à poser des questions pertinentes et à partager leurs expériences, ce qui a favorisé un apprentissage collaboratif.",
-      "Groupe très motivé et participatif. Les stagiaires ont fait preuve d'une grande curiosité et d'un engagement constant durant toutes les sessions.",
-      "Excellente dynamique de groupe avec des échanges constructifs. Les participants ont su créer une atmosphère propice à l'apprentissage.",
+      "J'ai particulièrement apprécié l'implication et la dynamique du groupe tout au long de la formation.",
+      "Groupe très motivé et participatif.",
+      "Excellente dynamique de groupe avec des échanges constructifs.",
     ];
-    
+
     const bilans = [
-      "Cette formation a été un succès grâce à l'implication des participants et à une approche interactive adaptée. Les objectifs pédagogiques ont été atteints et les participants repartent avec des outils concrets pour optimiser leur prospection immobilière.",
-      "Formation très réussie avec une excellente participation. Les stagiaires ont démontré une réelle progression et maîtrisent désormais les techniques enseignées.",
-      "Les objectifs de formation ont été pleinement atteints. L'approche pratique a permis aux stagiaires d'acquérir des compétences directement applicables sur le terrain.",
+      "Les objectifs pédagogiques ont été atteints. Les participants repartent avec des outils concrets.",
+      "Formation très réussie avec une excellente participation.",
+      "L'approche pratique a permis aux stagiaires d'acquérir des compétences directement applicables.",
     ];
-    
+
     const adaptations = [
-      "Étude de cas réelle en fonction d'un cas concret de l'un des participants à la place d'un exercice prévu. Travail en sous-groupes pour renforcer la cohésion d'équipe. Ajout de moments d'échanges une fois par journée de formation à la demande des stagiaires.",
-      "Adaptation du rythme selon les besoins du groupe. Ajout d'exercices pratiques supplémentaires sur demande des participants. Création de binômes de travail pour favoriser l'entraide.",
-      "Modification de l'ordre de certains modules pour mieux répondre aux attentes exprimées. Sessions de questions-réponses prolongées pour approfondir certains sujets.",
+      "Étude de cas réelle en fonction d'un cas concret de l'un des participants. Travail en sous-groupes pour renforcer la cohésion.",
+      "Adaptation du rythme selon les besoins du groupe. Ajout d'exercices pratiques supplémentaires.",
+      "Modification de l'ordre de certains modules pour mieux répondre aux attentes exprimées.",
     ];
-    
+
     return {
       jours,
       formateur_info: {
@@ -867,190 +872,61 @@ export default function Documents() {
     };
   };
 
-  const generateGrilleObservation = (stagiaire: Stagiaire, formation: Formation) => {
+  const generateGrilleObservation = async (stagiaire: Stagiaire, formation: Formation) => {
     const niveaux = ['A', 'B'];
-    const titre = formation.titre.toLowerCase();
-    const programme = (formation.programme || '').toLowerCase();
     
-    // Generate competencies adapted to the formation topic
-    const getCompetencesForFormation = (): string[] => {
-      if (titre.includes('immobilier') || titre.includes('agent') || programme.includes('immobilier')) {
-        if (titre.includes('prospection') || programme.includes('prospection')) {
-          return [
-            'Prospection porte à porte',
-            'Prospection téléphonique',
-            'Veille concurrentielle',
-            'Base de données et CRM',
-            'Réseaux sociaux professionnels',
-            'Sphère d\'influence',
-            'Relation clients',
-          ];
-        }
-        if (titre.includes('estimation') || programme.includes('estimation')) {
-          return [
-            'Analyse comparative de marché',
-            'Évaluation de biens immobiliers',
-            'Argumentation de l\'estimation',
-            'Gestion des mandats',
-            'Relation vendeur',
-            'Utilisation des outils d\'estimation',
-            'Négociation du prix',
-          ];
-        }
-        return [
-          'Prospection et prise de contact',
-          'Estimation et valorisation de biens',
-          'Négociation commerciale',
-          'Relation client et suivi',
-          'Réseaux sociaux et visibilité',
-          'Rédaction d\'annonces',
-          'Veille juridique et réglementaire',
-        ];
-      }
-      
-      if (titre.includes('ia') || titre.includes('intelligence artificielle') || titre.includes('augmenté') || programme.includes('intelligence artificielle')) {
-        return [
-          'Compréhension des concepts IA',
-          'Rédaction de prompts efficaces',
-          'Utilisation des outils IA métier',
-          'Analyse critique des résultats IA',
-          'Automatisation de tâches récurrentes',
-          'Création de contenus assistée par IA',
-          'Intégration IA dans le workflow',
-        ];
-      }
-      
-      if (titre.includes('management') || titre.includes('manager') || programme.includes('management')) {
-        return [
-          'Leadership et posture managériale',
-          'Délégation et responsabilisation',
-          'Animation de réunions',
-          'Gestion des conflits',
-          'Entretiens professionnels',
-          'Fixation d\'objectifs',
-          'Feedback constructif',
-        ];
-      }
-      
-      if (titre.includes('vente') || titre.includes('commercial') || programme.includes('vente')) {
-        return [
-          'Prise de contact et accroche',
-          'Découverte des besoins client',
-          'Argumentaire de vente',
-          'Traitement des objections',
-          'Closing et conclusion',
-          'Fidélisation client',
-          'Utilisation du CRM',
-        ];
-      }
-      
-      if (titre.includes('recrutement') || programme.includes('recrutement')) {
-        return [
-          'Définition du profil recherché',
-          'Rédaction d\'offres d\'emploi',
-          'Sourcing et chasse de candidats',
-          'Conduite d\'entretien',
-          'Évaluation des compétences',
-          'Prise de références',
-          'Intégration des nouveaux collaborateurs',
-        ];
-      }
-      
-      if (titre.includes('communication') || programme.includes('communication')) {
-        return [
-          'Communication verbale',
-          'Communication non verbale',
-          'Écoute active',
-          'Prise de parole en public',
-          'Rédaction professionnelle',
-          'Gestion des situations difficiles',
-          'Travail en équipe',
-        ];
-      }
-      
-      // Generic fallback
-      return [
-        'Maîtrise des fondamentaux',
-        'Application des méthodes',
-        'Analyse de situations',
-        'Mise en pratique',
-        'Communication professionnelle',
-        'Autonomie dans les tâches',
-        'Esprit d\'initiative',
-      ];
-    };
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-grille', {
+        body: {
+          formationTitre: formation.titre,
+          programme: formation.programme,
+          programmePdfUrl: formation.programme_pdf_url,
+          stagiairePrenom: stagiaire.prenom,
+          stagiaireNom: stagiaire.nom,
+        },
+      });
 
-    const competenceNames = getCompetencesForFormation();
-    const competences = competenceNames.map(nom => ({
-      nom,
-      niveau: niveaux[Math.floor(Math.random() * 2)],
-      observation: '',
-    }));
-    
-    // Adapted comments based on formation
-    const getCommentaires = (): string[] => {
-      if (titre.includes('immobilier') || programme.includes('immobilier')) {
-        return [
-          `${stagiaire.prenom} établit un bon premier contact, mais son discours manque de structure pour captiver l'interlocuteur dès les premières secondes.`,
-          `${stagiaire.prenom} est à l'aise dans la relation client et sait créer un climat de confiance rapidement.`,
-          `${stagiaire.prenom} présente bien les biens et sait mettre en avant les points forts pour convaincre.`,
-          `${stagiaire.prenom} capte bien l'intérêt des prospects et adapte son discours au profil de l'interlocuteur.`,
-          `${stagiaire.prenom} a une bonne énergie et une posture professionnelle dans ses interactions terrain.`,
-        ];
-      }
-      if (titre.includes('ia') || titre.includes('augmenté')) {
-        return [
-          `${stagiaire.prenom} fait preuve d'une bonne curiosité et s'adapte rapidement aux nouveaux outils numériques.`,
-          `${stagiaire.prenom} comprend bien les enjeux de l'IA et identifie des cas d'usage pertinents pour son métier.`,
-          `${stagiaire.prenom} maîtrise les bases de la rédaction de prompts et obtient des résultats exploitables.`,
-          `${stagiaire.prenom} est proactif(ve) dans l'expérimentation des outils IA proposés durant la formation.`,
-        ];
-      }
-      return [
-        `${stagiaire.prenom} fait preuve d'une bonne implication et participe activement aux exercices.`,
-        `${stagiaire.prenom} comprend bien les concepts et les applique correctement en situation pratique.`,
-        `${stagiaire.prenom} est à l'écoute et pose des questions pertinentes pour approfondir sa compréhension.`,
-        `${stagiaire.prenom} montre une progression régulière tout au long de la formation.`,
-        `${stagiaire.prenom} a une bonne capacité d'adaptation et s'intègre bien dans le groupe.`,
-      ];
-    };
-    
-    const getAxes = (): string[] => {
-      if (titre.includes('immobilier') || programme.includes('immobilier')) {
-        return [
-          'Travailler un pitch d\'accroche percutant pour capter immédiatement l\'attention et susciter l\'intérêt.',
-          'Développer des techniques de reformulation et de contournement des objections pour maintenir le dialogue.',
-          'Adopter une approche plus interrogative et centrée sur le besoin du prospect avant de proposer un service.',
-          'Rendre son discours plus fluide et naturel, en s\'adaptant au ton et à la personnalité du prospect.',
-          'Mieux structurer la conclusion de l\'échange en proposant directement un rendez-vous avec une date précise.',
-        ];
-      }
-      if (titre.includes('ia') || titre.includes('augmenté')) {
-        return [
-          'Approfondir la rédaction de prompts complexes pour obtenir des résultats plus précis.',
-          'Développer un esprit critique face aux résultats générés par l\'IA.',
-          'Explorer davantage les possibilités d\'automatisation dans son quotidien professionnel.',
-          'Prendre l\'habitude de vérifier et adapter systématiquement les contenus produits par l\'IA.',
-        ];
-      }
-      return [
-        'Approfondir les aspects théoriques pour mieux structurer sa pratique.',
-        'Développer davantage de réflexes dans l\'application des méthodes apprises.',
-        'Renforcer la prise d\'initiative et l\'autonomie dans les situations complexes.',
-        'Travailler la synthèse et la communication des résultats obtenus.',
-        'Poursuivre l\'entraînement pratique pour consolider les acquis.',
-      ];
-    };
+      if (!error && data?.competences) {
+        const competences = data.competences.map((nom: string) => ({
+          nom,
+          niveau: niveaux[Math.floor(Math.random() * 2)],
+          observation: '',
+        }));
 
-    const commentaires = getCommentaires();
-    const axes = getAxes();
-    
+        return {
+          competences,
+          moyenne: niveaux[Math.floor(Math.random() * 2)],
+          observations_globales: {
+            commentaire: data.commentaire || '',
+            axe_amelioration: data.axe_amelioration || '',
+          },
+        };
+      }
+    } catch (e) {
+      console.error('Failed to generate grille with AI:', e);
+    }
+
+    // Fallback générique
+    const fallbackCompetences = [
+      'Maîtrise des fondamentaux',
+      'Application des méthodes',
+      'Analyse de situations',
+      'Mise en pratique',
+      'Communication professionnelle',
+      'Autonomie dans les tâches',
+      'Esprit d\'initiative',
+    ];
+
     return {
-      competences,
+      competences: fallbackCompetences.map(nom => ({
+        nom,
+        niveau: niveaux[Math.floor(Math.random() * 2)],
+        observation: '',
+      })),
       moyenne: niveaux[Math.floor(Math.random() * 2)],
       observations_globales: {
-        commentaire: commentaires[Math.floor(Math.random() * commentaires.length)],
-        axe_amelioration: axes[Math.floor(Math.random() * axes.length)],
+        commentaire: `${stagiaire.prenom} fait preuve d'une bonne implication et participe activement aux exercices.`,
+        axe_amelioration: 'Approfondir les aspects théoriques pour mieux structurer sa pratique.',
       },
     };
   };
