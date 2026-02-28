@@ -254,7 +254,66 @@ function renderPositionnementLandscape(
   doc.setTextColor(...TEXT_COLOR);
   doc.text('(à remplir par le stagiaire en début de formation et en fin de formation)', pageWidth / 2, yPos, { align: 'center' });
   
-  yPos += 10;
+  yPos += 12;
+
+  // === Section 1: Objectifs et attentes ===
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('1) Vos Objectifs et vos attentes vis-à-vis de la formation :', margin, yPos);
+  yPos += 7;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Décrivez vos objectifs de formation :', margin + 3, yPos);
+  yPos += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  if (contenu?.objectifs_formation) {
+    const objLines = doc.splitTextToSize(contenu.objectifs_formation, contentWidth - 10);
+    doc.text(objLines, margin + 5, yPos);
+    yPos += objLines.length * 4 + 3;
+  }
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Avez-vous une demande spécifique concernant la formation à venir, une envie, ou un thème qui vous tient à cœur ?', margin + 3, yPos);
+  yPos += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  if (contenu?.demande_specifique) {
+    const demLines = doc.splitTextToSize(contenu.demande_specifique, contentWidth - 10);
+    doc.text(demLines, margin + 5, yPos);
+    yPos += demLines.length * 4 + 3;
+  } else {
+    doc.text('—', margin + 5, yPos);
+    yPos += 6;
+  }
+
+  yPos += 5;
+
+  // === Section 2: Prérequis ===
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...PRIMARY_BLUE);
+  doc.text('2) Vos prérequis en termes de compétence :', margin, yPos);
+  yPos += 7;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('De quelles connaissances liées à la thématique de formation disposez-vous ?', margin + 3, yPos);
+  yPos += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  if (contenu?.prerequis) {
+    const preLines = doc.splitTextToSize(contenu.prerequis, contentWidth - 10);
+    doc.text(preLines, margin + 5, yPos);
+    yPos += preLines.length * 4 + 3;
+  }
+
+  yPos += 8;
 
   // Competencies table with before/after checkboxes
   const competencies = contenu?.competences || [];
@@ -337,15 +396,14 @@ function renderPositionnementLandscape(
   
   yPos += 8;
   
-  // Check if signature section fits on current page (needs ~30mm)
-  const signatureSpaceNeeded = 35;
-  if (yPos + signatureSpaceNeeded > pageHeight - footerSpace) {
-    doc.addPage('landscape');
-    yPos = 25;
-  }
-  
-  // Comments section (compact)
+  // Comments section (compact) - no signature needed
   if (contenu?.commentaires || contenu?.objectifs_personnels) {
+    // Check space
+    if (yPos + 20 > pageHeight - footerSpace) {
+      doc.addPage('landscape');
+      yPos = 25;
+    }
+    
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PRIMARY_BLUE);
@@ -359,56 +417,12 @@ function renderPositionnementLandscape(
     const commentText = [contenu.objectifs_personnels, contenu.commentaires].filter(Boolean).join(' - ');
     if (commentText) {
       const comLines = doc.splitTextToSize(commentText, contentWidth);
-      doc.text(comLines.slice(0, 2), margin, yPos); // Max 2 lines
+      doc.text(comLines.slice(0, 2), margin, yPos);
       yPos += Math.min(comLines.length, 2) * 4 + 3;
     }
   }
-  
-  yPos += 5;
-  
-  // Signature section - properly positioned within margins
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...TEXT_COLOR);
-  
-  // Calculate proper widths to fit within page
-  const availableWidth = contentWidth;
-  const sigBoxWidth = 70;
-  const dateBoxWidth = 40;
-  const sectionWidth = sigBoxWidth + dateBoxWidth + 10;
-  const gapBetweenSections = (availableWidth - sectionWidth * 2) / 3;
-  
-  const leftSectionX = margin + gapBetweenSections;
-  const rightSectionX = leftSectionX + sectionWidth + gapBetweenSections;
-  
-  doc.text('Signature (début de formation) :', leftSectionX, yPos);
-  doc.text('Signature (fin de formation) :', rightSectionX, yPos);
-  
-  yPos += 4;
-  doc.setDrawColor(...BORDER_COLOR);
-  doc.setLineWidth(0.5);
-  
-  // Left signature box and date
-  doc.rect(leftSectionX, yPos, sigBoxWidth, 12);
-  doc.rect(leftSectionX + sigBoxWidth + 5, yPos, dateBoxWidth, 12);
-  
-  // Right signature box and date  
-  doc.rect(rightSectionX, yPos, sigBoxWidth, 12);
-  doc.rect(rightSectionX + sigBoxWidth + 5, yPos, dateBoxWidth, 12);
-  
-  // Labels and dates
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  
-  const startDate = format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr });
-  const endDate = formation.date_fin 
-    ? format(new Date(formation.date_fin), 'dd/MM/yyyy', { locale: fr })
-    : startDate;
-  
-  doc.text(`Date : ${startDate}`, leftSectionX + sigBoxWidth + 8, yPos + 7);
-  doc.text(`Date : ${endDate}`, rightSectionX + sigBoxWidth + 8, yPos + 7);
 
-  return yPos + 15;
+  return yPos + 5;
 }
 
 function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth: number, contenu: any): number {
