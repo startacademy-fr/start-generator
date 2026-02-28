@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone, Upload, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Profile } from '@/types/database';
@@ -90,7 +90,46 @@ export default function Formateurs() {
     },
   });
 
-  // Create formateur mutation (creates auth user + profile + role via edge function)
+  // Fetch admin roles for formateurs
+  const { data: adminUserIds } = useQuery({
+    queryKey: ['formateurs-admin-roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+      if (error) throw error;
+      return data.map((r) => r.user_id);
+    },
+  });
+
+  // Toggle admin role mutation
+  const toggleAdminMutation = useMutation({
+    mutationFn: async ({ userId, isCurrentlyAdmin }: { userId: string; isCurrentlyAdmin: boolean }) => {
+      if (isCurrentlyAdmin) {
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', 'admin');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: 'admin' });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['formateurs-admin-roles'] });
+      toast.success('Rôle admin mis à jour');
+    },
+    onError: (error) => {
+      toast.error('Erreur: ' + error.message);
+    },
+  });
+
+
   const createMutation = useMutation({
     mutationFn: async (formData: { prenom: string; nom: string; email: string; telephone?: string }) => {
       const { data, error } = await supabase.functions.invoke('invite-formateur', {
@@ -364,6 +403,19 @@ export default function Formateurs() {
                   {canManage && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {(() => {
+                          const isFormateurAdmin = adminUserIds?.includes(formateur.user_id);
+                          return (
+                            <Button
+                              variant={isFormateurAdmin ? "default" : "outline"}
+                              size="icon"
+                              title={isFormateurAdmin ? 'Retirer le rôle admin' : 'Promouvoir admin'}
+                              onClick={() => toggleAdminMutation.mutate({ userId: formateur.user_id, isCurrentlyAdmin: !!isFormateurAdmin })}
+                            >
+                              <ShieldCheck className="h-4 w-4" />
+                            </Button>
+                          );
+                        })()}
                         <Button
                           variant="ghost"
                           size="icon"

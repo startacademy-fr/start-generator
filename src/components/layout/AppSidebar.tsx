@@ -20,21 +20,27 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import logo from '@/assets/logo.png';
 
-const navigation = [
-  { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Formations', href: '/formations', icon: BookOpen },
-  { name: 'Sessions', href: '/sessions', icon: CalendarDays },
-  { name: 'Formateurs', href: '/formateurs', icon: UserCog },
-  { name: 'Stagiaires', href: '/stagiaires', icon: Users },
-  { name: 'Import', href: '/import', icon: Upload },
-  { name: 'Documents', href: '/documents', icon: FileText },
-  { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2 },
+const allNavigation = [
+  { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'assistante', 'formateur'] },
+  { name: 'Formations', href: '/formations', icon: BookOpen, roles: ['admin', 'assistante'] },
+  { name: 'Sessions', href: '/sessions', icon: CalendarDays, roles: ['admin', 'assistante'] },
+  { name: 'Formateurs', href: '/formateurs', icon: UserCog, roles: ['admin', 'assistante'] },
+  { name: 'Stagiaires', href: '/stagiaires', icon: Users, roles: ['admin', 'assistante'] },
+  { name: 'Import', href: '/import', icon: Upload, roles: ['admin', 'assistante'] },
+  { name: 'Documents', href: '/documents', icon: FileText, roles: ['admin', 'assistante', 'formateur'] },
+  { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
+  { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['admin', 'assistante'] },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const { profile, roles, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Filter navigation based on user roles
+  const navigation = allNavigation.filter((item) =>
+    item.roles.some((role) => roles.includes(role as any))
+  );
 
   const getRoleLabel = () => {
     if (roles.includes('admin')) return 'Administrateur';
