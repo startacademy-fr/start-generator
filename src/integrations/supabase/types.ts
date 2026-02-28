@@ -401,6 +401,53 @@ export type Database = {
         }
         Relationships: []
       }
+      reclamations: {
+        Row: {
+          created_at: string
+          date_reclamation: string
+          date_resolution: string | null
+          description: string | null
+          formation_id: string | null
+          id: string
+          objet: string
+          resolution: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_reclamation?: string
+          date_resolution?: string | null
+          description?: string | null
+          formation_id?: string | null
+          id?: string
+          objet: string
+          resolution?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_reclamation?: string
+          date_resolution?: string | null
+          description?: string | null
+          formation_id?: string | null
+          id?: string
+          objet?: string
+          resolution?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamations_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "formations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stagiaires: {
         Row: {
           adresse: string | null
