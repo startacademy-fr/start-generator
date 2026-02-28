@@ -1,1 +1,7 @@
 project_id = "vgyxuuryaslqevkpvkjk"
+
+[functions.generate-competencies]
+verify_jwt = false
+
+[functions.manage-token]
+verify_jwt = false
