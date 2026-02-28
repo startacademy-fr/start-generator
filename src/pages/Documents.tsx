@@ -450,12 +450,18 @@ export default function Documents() {
 
   // Apply random answers to cached QCM questions (unique per stagiaire)
   const applyRandomAnswers = (questions: any[]): { questions: any[]; score: number } => {
-    // 0 to 1 error, randomly placed
-    const nbErrors = Math.random() > 0.4 ? 1 : 0; // ~60% chance of 1 error, 40% chance of 0
-    const errorIndex = nbErrors > 0 ? Math.floor(Math.random() * questions.length) : -1;
+    // 0 to 3 errors for variety (score range ~77%-100% on 13 questions)
+    const rand = Math.random();
+    const nbErrors = rand < 0.2 ? 0 : rand < 0.5 ? 1 : rand < 0.8 ? 2 : 3;
+    
+    // Pick unique random indices for errors
+    const errorIndices = new Set<number>();
+    while (errorIndices.size < nbErrors) {
+      errorIndices.add(Math.floor(Math.random() * questions.length));
+    }
 
     const filledQuestions = questions.map((q: any, idx: number) => {
-      const isError = idx === errorIndex;
+      const isError = errorIndices.has(idx);
       let selectedAnswer = q.correct_answer;
 
       if (isError) {
