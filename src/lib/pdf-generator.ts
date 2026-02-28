@@ -455,35 +455,110 @@ function renderAnalyseBesoin(doc: jsPDF, yPos: number, margin: number, pageWidth
 }
 
 function renderQCM(doc: jsPDF, yPos: number, margin: number, contenu: any, score?: number | null): number {
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Résultats du QCM', margin, yPos);
-  
-  yPos += 10;
-  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const contentWidth = pageWidth - 2 * margin;
+  const PRIMARY_BLUE: [number, number, number] = [14, 116, 144];
+  const GREEN: [number, number, number] = [22, 163, 74];
+  const RED: [number, number, number] = [220, 38, 38];
+  const BORDER_COLOR: [number, number, number] = [200, 200, 200];
+  const footerSpace = 25;
+
   // Score box
-  if (score !== null && score !== undefined) {
-    const scoreColor: [number, number, number] = score >= 80 ? [22, 163, 74] : [220, 38, 38]; // green or red
+  const displayScore = score ?? contenu?.score;
+  if (displayScore !== null && displayScore !== undefined) {
+    const scoreColor: [number, number, number] = displayScore >= 90 ? GREEN : displayScore >= 70 ? [234, 179, 8] : RED;
     doc.setFillColor(...scoreColor);
-    doc.roundedRect(margin, yPos - 5, 60, 20, 3, 3, 'F');
+    doc.roundedRect(margin, yPos - 5, 70, 22, 3, 3, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
-    doc.text(`Score: ${score}%`, margin + 10, yPos + 7);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Score : ${displayScore}%`, margin + 8, yPos + 8);
+
+    const correctCount = contenu?.questions?.filter((q: any) => q.is_correct).length || 0;
+    const totalCount = contenu?.questions?.length || 0;
+    if (totalCount > 0) {
+      doc.setFontSize(9);
+      doc.text(`${correctCount}/${totalCount} bonnes réponses`, margin + 8, yPos + 15);
+    }
+
     doc.setTextColor(...TEXT_COLOR);
-    yPos += 20;
+    yPos += 25;
   }
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  
-  if (contenu?.questions) {
-    contenu.questions.forEach((q: any) => {
-      const icon = q.correct ? '✓' : '✗';
-      doc.text(`${icon} Question ${q.numero}: Réponse ${q.reponse}`, margin, yPos);
-      yPos += 6;
+
+  // Questions
+  if (contenu?.questions && Array.isArray(contenu.questions)) {
+    contenu.questions.forEach((q: any, idx: number) => {
+      // Estimate height needed for this question
+      const questionLines = doc.splitTextToSize(`${q.numero || idx + 1}. ${q.question}`, contentWidth - 10);
+      const optionsCount = q.options?.length || 0;
+      const estimatedHeight = questionLines.length * 5 + optionsCount * 6 + 12;
+
+      // Page break if needed
+      if (yPos + estimatedHeight > pageHeight - footerSpace) {
+        doc.addPage();
+        yPos = 25;
+      }
+
+      // Question number and text
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...PRIMARY_BLUE);
+      doc.text(questionLines, margin + 2, yPos);
+      yPos += questionLines.length * 5 + 3;
+
+      // Options
+      if (q.options && Array.isArray(q.options)) {
+        q.options.forEach((opt: any) => {
+          const isSelected = opt.letter === q.selected_answer;
+          const isCorrect = opt.letter === q.correct_answer;
+
+          doc.setFontSize(9);
+          doc.setFont('helvetica', isSelected ? 'bold' : 'normal');
+
+          // Checkbox
+          const checkX = margin + 5;
+          const checkY = yPos - 3;
+          doc.setDrawColor(...BORDER_COLOR);
+          doc.setLineWidth(0.3);
+          doc.rect(checkX, checkY, 4, 4);
+
+          if (isSelected) {
+            if (q.is_correct || isCorrect) {
+              doc.setFillColor(...GREEN);
+            } else {
+              doc.setFillColor(...RED);
+            }
+            doc.rect(checkX + 0.5, checkY + 0.5, 3, 3, 'F');
+          }
+
+          // Option text
+          if (isSelected && !q.is_correct && !isCorrect) {
+            doc.setTextColor(...RED);
+          } else if (isSelected && (q.is_correct || isCorrect)) {
+            doc.setTextColor(...GREEN);
+          } else {
+            doc.setTextColor(...TEXT_COLOR);
+          }
+
+          doc.text(`${opt.letter}) ${opt.text}`, margin + 12, yPos);
+          yPos += 6;
+        });
+      } else {
+        // Legacy format fallback
+        const isOk = q.correct || q.is_correct;
+        const icon = isOk ? '✓' : '✗';
+        const color: [number, number, number] = isOk ? [22, 163, 74] : [220, 38, 38];
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...color);
+        doc.text(`${icon} Réponse : ${q.reponse || q.selected_answer}`, margin + 5, yPos);
+        yPos += 6;
+      }
+
+      yPos += 5;
     });
   }
-  
+
   return yPos;
 }
 
