@@ -43,6 +43,7 @@ export interface Formation {
   date_fin: string | null;
   archived: boolean;
   programme: string | null;
+  programme_pdf_url: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields

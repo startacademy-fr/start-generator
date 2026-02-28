@@ -203,6 +203,7 @@ export type Database = {
           lieu: string
           nombre_heures: number
           programme: string | null
+          programme_pdf_url: string | null
           titre: string
           updated_at: string
         }
@@ -216,6 +217,7 @@ export type Database = {
           lieu: string
           nombre_heures: number
           programme?: string | null
+          programme_pdf_url?: string | null
           titre: string
           updated_at?: string
         }
@@ -229,6 +231,7 @@ export type Database = {
           lieu?: string
           nombre_heures?: number
           programme?: string | null
+          programme_pdf_url?: string | null
           titre?: string
           updated_at?: string
         }
