@@ -34,10 +34,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Profile } from '@/types/database';
+import { ImportFormateursDialog } from '@/components/ImportFormateursDialog';
 
 export default function Formateurs() {
   const { isAdmin } = useAuth();
@@ -48,6 +49,7 @@ export default function Formateurs() {
   const [editingFormateur, setEditingFormateur] = useState<Profile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Profile | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Form state
   const [prenom, setPrenom] = useState('');
@@ -232,13 +234,18 @@ export default function Formateurs() {
           </p>
         </div>
         {canManage && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => openDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un formateur
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importer
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => openDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un formateur
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[450px]">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
@@ -310,6 +317,7 @@ export default function Formateurs() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 
@@ -433,6 +441,12 @@ export default function Formateurs() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportFormateursDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        existingProfiles={formateurs?.map(f => ({ id: f.id, email: f.email, prenom: f.prenom, nom: f.nom })) || []}
+      />
     </div>
   );
 }
