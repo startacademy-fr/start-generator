@@ -33,10 +33,21 @@ export interface UserRole {
   created_at: string;
 }
 
+export interface FormationCatalogue {
+  id: string;
+  reference: string;
+  titre: string;
+  programme: string | null;
+  programme_pdf_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Formation {
   id: string;
   titre: string;
   formateur_id: string | null;
+  formation_catalogue_id: string | null;
   lieu: string;
   nombre_heures: number;
   date_debut: string;
@@ -48,6 +59,7 @@ export interface Formation {
   updated_at: string;
   // Joined fields
   formateur?: Profile;
+  formation_catalogue?: FormationCatalogue;
 }
 
 export type Civilite = 'M.' | 'Mme';
