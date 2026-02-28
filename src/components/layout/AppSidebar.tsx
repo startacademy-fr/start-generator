@@ -3,7 +3,6 @@ import {
   LayoutDashboard, 
   GraduationCap, 
   Users, 
-  Upload, 
   FileText, 
   Settings,
   LogOut,
@@ -26,7 +25,7 @@ const allNavigation = [
   { name: 'Sessions', href: '/sessions', icon: CalendarDays, roles: ['admin', 'assistante'] },
   { name: 'Formateurs', href: '/formateurs', icon: UserCog, roles: ['admin', 'assistante'] },
   { name: 'Stagiaires', href: '/stagiaires', icon: Users, roles: ['admin', 'assistante'] },
-  { name: 'Import', href: '/import', icon: Upload, roles: ['admin', 'assistante'] },
+  
   { name: 'Documents', href: '/documents', icon: FileText, roles: ['admin', 'assistante', 'formateur'] },
   { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
   { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['admin', 'assistante'] },
