@@ -1423,10 +1423,10 @@ export default function Documents() {
             <>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Formation</label>
+                  <label className="text-sm font-medium">Session de formation</label>
                   <Select value={generateFormation} onValueChange={setGenerateFormation}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une formation" />
+                      <SelectValue placeholder="Sélectionner une session" />
                     </SelectTrigger>
                     <SelectContent>
                       {formations?.map(f => (
