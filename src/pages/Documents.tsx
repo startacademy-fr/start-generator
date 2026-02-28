@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { findMatchingQCMTemplate } from '@/lib/qcm-templates';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -487,13 +488,23 @@ export default function Documents() {
     return { questions: filledQuestions, score };
   };
 
-  // AI-powered QCM generation (uses cache if available)
+  // QCM generation: template match first, then AI fallback
   const generateQCMWithAI = async (formation: Formation): Promise<{ questions: any[]; score: number }> => {
     // Use cached questions if available (same questions, different answers per stagiaire)
     const cached = qcmCacheRef.current[formation.id];
     if (cached && cached.length > 0) {
       return applyRandomAnswers(cached);
     }
+
+    // Try to find a matching template first
+    const template = findMatchingQCMTemplate(formation.titre, formation.programme);
+    if (template) {
+      console.log(`QCM template matched: ${template.label}`);
+      qcmCacheRef.current[formation.id] = template.questions;
+      return applyRandomAnswers(template.questions);
+    }
+
+    // No template match → AI generation
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-qcm', {
