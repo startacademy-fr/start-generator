@@ -11,7 +11,8 @@ import {
   Link2,
   UserCog,
   BookOpen,
-  CalendarDays
+  CalendarDays,
+  ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,7 @@ const allNavigation = [
   { name: 'Stagiaires', href: '/stagiaires', icon: Users, roles: ['admin', 'assistante'] },
   
   { name: 'Documents', href: '/documents', icon: FileText, roles: ['admin', 'assistante', 'formateur'] },
+  { name: 'Suivi Audit', href: '/audit', icon: ClipboardCheck, roles: ['admin', 'assistante'] },
   { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
   { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['admin', 'assistante'] },
 ];

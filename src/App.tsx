@@ -14,6 +14,7 @@ import Formateurs from "./pages/Formateurs";
 import Stagiaires from "./pages/Stagiaires";
 
 import Documents from "./pages/Documents";
+import AuditDashboard from "./pages/AuditDashboard";
 import AccessTokens from "./pages/AccessTokens";
 import StagiairePortal from "./pages/StagiairePortal";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/stagiaires" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Stagiaires /></RoleGuard>} />
               
               <Route path="/documents" element={<Documents />} />
+              <Route path="/audit" element={<RoleGuard allowedRoles={['admin', 'assistante']}><AuditDashboard /></RoleGuard>} />
               <Route path="/access-tokens" element={<RoleGuard allowedRoles={['admin', 'assistante']}><AccessTokens /></RoleGuard>} />
               <Route path="/settings" element={<Dashboard />} />
             </Route>
