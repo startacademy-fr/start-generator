@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, FormationCatalogue, Profile, Stagiaire } from '@/types/database';
@@ -31,6 +31,10 @@ export default function Sessions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [filterFormateurId, setFilterFormateurId] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [sortField, setSortField] = useState<'date' | 'titre'>('date');
+  const [sortAsc, setSortAsc] = useState(false);
   const [addStagiaireFormation, setAddStagiaireFormation] = useState<Formation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Formation | null>(null);
 
@@ -289,11 +293,41 @@ export default function Sessions() {
     return catalogue.find(c => c.id === catalogueId)?.titre || null;
   };
 
+  const toggleSort = (field: 'date' | 'titre') => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
+  const SortIcon = ({ field }: { field: 'date' | 'titre' }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
+    return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  };
+
+  // Assign chronological numbers based on date_debut ascending
+  const allSortedByDate = [...(formations || [])].sort(
+    (a, b) => new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime()
+  );
+  const sessionNumberMap = new Map<string, number>();
+  allSortedByDate.forEach((f, i) => sessionNumberMap.set(f.id, i + 1));
+
   const filteredFormations = formations?.filter((f) => {
     const matchesSearch = f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.lieu.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFormateur = !filterFormateurId || f.formateur_id === filterFormateurId;
-    return matchesSearch && matchesFormateur;
+    const matchesDateFrom = !filterDateFrom || f.date_debut >= filterDateFrom;
+    const matchesDateTo = !filterDateTo || f.date_debut <= filterDateTo;
+    return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo;
+  })?.sort((a, b) => {
+    if (sortField === 'date') {
+      const cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
+      return sortAsc ? cmp : -cmp;
+    }
+    const cmp = a.titre.localeCompare(b.titre, 'fr');
+    return sortAsc ? cmp : -cmp;
   });
 
   return (
@@ -388,7 +422,7 @@ export default function Sessions() {
         )}
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Rechercher une session..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
@@ -403,6 +437,11 @@ export default function Sessions() {
             <option key={f.id} value={f.id}>{f.prenom} {f.nom}</option>
           ))}
         </select>
+        <div className="flex items-center gap-2">
+          <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-[150px]" placeholder="Du" />
+          <span className="text-muted-foreground text-sm">→</span>
+          <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[150px]" placeholder="Au" />
+        </div>
         <Button variant={showArchived ? 'secondary' : 'outline'} onClick={() => setShowArchived(!showArchived)} size="sm">
           <Archive className="mr-2 h-4 w-4" />
           {showArchived ? 'Masquer archivées' : 'Voir archivées'}
@@ -420,12 +459,17 @@ export default function Sessions() {
             <p>Aucune session trouvée</p>
           </div>
         ) : (
-          <Table>
+           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Formation</TableHead>
+                <TableHead className="w-[60px]">N°</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('titre')}>
+                  <div className="flex items-center">Formation <SortIcon field="titre" /></div>
+                </TableHead>
                 <TableHead>Lieu</TableHead>
-                <TableHead>Dates</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('date')}>
+                  <div className="flex items-center">Dates <SortIcon field="date" /></div>
+                </TableHead>
                 <TableHead>Heures</TableHead>
                 <TableHead>Formateur</TableHead>
                 <TableHead>Stagiaires</TableHead>
@@ -435,6 +479,9 @@ export default function Sessions() {
             <TableBody>
               {filteredFormations?.map((formation) => (
                 <TableRow key={formation.id}>
+                  <TableCell className="font-mono text-muted-foreground text-sm">
+                    {sessionNumberMap.get(formation.id) || '—'}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{formation.titre}</span>
