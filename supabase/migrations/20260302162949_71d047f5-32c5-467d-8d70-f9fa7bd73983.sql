@@ -1,0 +1,1 @@
+ALTER TABLE public.stagiaires ADD COLUMN est_salarie boolean DEFAULT false;
