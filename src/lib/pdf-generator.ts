@@ -80,15 +80,16 @@ export async function generatePDF(data: DocumentData): Promise<jsPDF> {
   const logoBase64 = await loadLogo();
 
   // Header with colored background and centered logo
+  const headerHeight = 35;
   doc.setFillColor(...HEADER_BG_COLOR);
-  doc.rect(0, 0, pageWidth, 25, 'F');
+  doc.rect(0, 0, pageWidth, headerHeight, 'F');
   
   if (logoBase64) {
-    // Center logo in header (approximate logo aspect ratio ~4:1)
-    const logoHeight = 15;
-    const logoWidth = logoHeight * 4;
+    // Use original proportions: 240x115px → ratio 2.087:1
+    const logoHeight = 25;
+    const logoWidth = logoHeight * (240 / 115);
     const logoX = (pageWidth - logoWidth) / 2;
-    const logoY = (25 - logoHeight) / 2;
+    const logoY = (headerHeight - logoHeight) / 2;
     doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
   }
 
