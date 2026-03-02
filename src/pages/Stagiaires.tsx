@@ -53,6 +53,7 @@ export default function Stagiaires() {
   const [sortField, setSortField] = useState<'nom' | 'entreprise' | 'formations'>('nom');
   const [sortAsc, setSortAsc] = useState(true);
   const [filterIncomplete, setFilterIncomplete] = useState(false);
+  const [filterNoFormation, setFilterNoFormation] = useState(false);
 
   // Form state
   const [civilite, setCivilite] = useState<Civilite | ''>('');
@@ -274,6 +275,7 @@ export default function Stagiaires() {
 
   const filteredStagiaires = stagiaires?.filter((s) => {
     if (filterIncomplete && !isProfileIncomplete(s)) return false;
+    if (filterNoFormation && (inscriptionsCounts?.[s.id] || 0) > 0) return false;
     return s.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -641,6 +643,14 @@ export default function Stagiaires() {
           />
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <span className="text-sm text-muted-foreground">Fiches incomplètes uniquement</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <Checkbox
+            checked={filterNoFormation}
+            onCheckedChange={(checked) => setFilterNoFormation(!!checked)}
+          />
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Sans formation</span>
         </label>
       </div>
 
