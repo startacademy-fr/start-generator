@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload } from 'lucide-react';
+import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportFormationsDialog } from '@/components/ImportFormationsDialog';
 
@@ -39,6 +39,8 @@ export default function FormationsCatalogue() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<FormationCatalogue | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [sortField, setSortField] = useState<'titre' | 'sessions' | 'reference'>('titre');
+  const [sortAsc, setSortAsc] = useState(true);
 
   // Form state
   const [titre, setTitre] = useState('');
@@ -187,10 +189,30 @@ export default function FormationsCatalogue() {
     setEditing(null);
   };
 
+  const toggleSort = (field: 'titre' | 'sessions' | 'reference') => {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(true); }
+  };
+
+  const SortIcon = ({ field }: { field: 'titre' | 'sessions' | 'reference' }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
+    return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  };
+
   const filtered = formations?.filter((f) =>
     f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.reference.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  )?.sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'titre') {
+      cmp = a.titre.localeCompare(b.titre, 'fr');
+    } else if (sortField === 'reference') {
+      cmp = a.reference.localeCompare(b.reference, 'fr');
+    } else if (sortField === 'sessions') {
+      cmp = (sessionCounts?.[a.id] || 0) - (sessionCounts?.[b.id] || 0);
+    }
+    return sortAsc ? cmp : -cmp;
+  });
 
   return (
     <div className="space-y-6">
@@ -291,10 +313,16 @@ export default function FormationsCatalogue() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Référence</TableHead>
-                <TableHead>Formation</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('reference')}>
+                  <div className="flex items-center">Référence <SortIcon field="reference" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('titre')}>
+                  <div className="flex items-center">Formation <SortIcon field="titre" /></div>
+                </TableHead>
                 <TableHead>Programme</TableHead>
-                <TableHead>Sessions</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('sessions')}>
+                  <div className="flex items-center">Sessions <SortIcon field="sessions" /></div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
