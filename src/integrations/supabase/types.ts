@@ -459,6 +459,7 @@ export type Database = {
           diplome_plus_eleve: string | null
           email: string
           entreprise: string | null
+          est_salarie: boolean | null
           fonction: string | null
           id: string
           nom: string
@@ -481,6 +482,7 @@ export type Database = {
           diplome_plus_eleve?: string | null
           email: string
           entreprise?: string | null
+          est_salarie?: boolean | null
           fonction?: string | null
           id?: string
           nom: string
@@ -503,6 +505,7 @@ export type Database = {
           diplome_plus_eleve?: string | null
           email?: string
           entreprise?: string | null
+          est_salarie?: boolean | null
           fonction?: string | null
           id?: string
           nom?: string

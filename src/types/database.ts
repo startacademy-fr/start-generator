@@ -84,6 +84,7 @@ export interface Stagiaire {
   date_naissance: string | null;
   nom_jeune_fille: string | null;
   numero_securite_sociale: string | null;
+  est_salarie: boolean;
   created_at: string;
   updated_at: string;
 }

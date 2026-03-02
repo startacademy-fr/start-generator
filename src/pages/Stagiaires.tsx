@@ -69,6 +69,7 @@ export default function Stagiaires() {
   const [dateNaissance, setDateNaissance] = useState('');
   const [nomJeuneFille, setNomJeuneFille] = useState('');
   const [numeroSecuriteSociale, setNumeroSecuriteSociale] = useState('');
+  const [estSalarie, setEstSalarie] = useState(false);
 
   // Fetch stagiaires
   const { data: stagiaires, isLoading } = useQuery({
@@ -120,6 +121,7 @@ export default function Stagiaires() {
       date_naissance: string | null;
       nom_jeune_fille: string | null;
       numero_securite_sociale: string | null;
+      est_salarie: boolean;
     }) => {
       if (editingStagiaire) {
         const { error } = await supabase
@@ -185,6 +187,7 @@ export default function Stagiaires() {
       setDateNaissance(stagiaire.date_naissance || '');
       setNomJeuneFille(stagiaire.nom_jeune_fille || '');
       setNumeroSecuriteSociale(stagiaire.numero_securite_sociale || '');
+      setEstSalarie(stagiaire.est_salarie || false);
     } else {
       setEditingStagiaire(null);
       setCivilite('');
@@ -204,6 +207,7 @@ export default function Stagiaires() {
       setDateNaissance('');
       setNomJeuneFille('');
       setNumeroSecuriteSociale('');
+      setEstSalarie(false);
     }
     setIsDialogOpen(true);
   };
@@ -233,6 +237,7 @@ export default function Stagiaires() {
       date_naissance: dateNaissance || null,
       nom_jeune_fille: civilite === 'Mme' ? (nomJeuneFille || null) : null,
       numero_securite_sociale: numeroSecuriteSociale || null,
+      est_salarie: estSalarie,
     });
   };
 
@@ -534,15 +539,27 @@ export default function Stagiaires() {
                         rows={2}
                       />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="situation_handicap"
-                        checked={situationHandicap}
-                        onCheckedChange={(checked) => setSituationHandicap(checked as boolean)}
-                      />
-                      <Label htmlFor="situation_handicap" className="text-sm font-normal">
-                        Situation de handicap
-                      </Label>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="est_salarie"
+                          checked={estSalarie}
+                          onCheckedChange={(checked) => setEstSalarie(checked as boolean)}
+                        />
+                        <Label htmlFor="est_salarie" className="text-sm font-normal">
+                          Salarié(e)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="situation_handicap"
+                          checked={situationHandicap}
+                          onCheckedChange={(checked) => setSituationHandicap(checked as boolean)}
+                        />
+                        <Label htmlFor="situation_handicap" className="text-sm font-normal">
+                          Situation de handicap
+                        </Label>
+                      </div>
                     </div>
                     {situationHandicap && (
                       <div className="space-y-2">
