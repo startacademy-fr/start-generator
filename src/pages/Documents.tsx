@@ -51,6 +51,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, Stagiaire, DocumentStagiaire } from '@/types/database';
 import { downloadPDF } from '@/lib/pdf-generator';
+import { TemplatesViergesSection } from '@/components/TemplatesViergesSection';
 
 const DOCUMENT_TYPES = [
   { id: 'questionnaire_positionnement', label: 'Questionnaire de positionnement', icon: '📋' },
@@ -1133,6 +1134,9 @@ export default function Documents() {
           );
         })}
       </div>
+
+      {/* Templates vierges */}
+      <TemplatesViergesSection canManage={canManage} />
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
