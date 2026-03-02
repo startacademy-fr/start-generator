@@ -58,6 +58,7 @@ export default function Formateurs() {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
+  const [nda, setNda] = useState('');
 
   // Fetch formateurs (all profiles that are used as formateurs in formations)
   const { data: formateurs, isLoading } = useQuery({
@@ -158,7 +159,7 @@ export default function Formateurs() {
 
   // Update formateur mutation
   const updateMutation = useMutation({
-    mutationFn: async (formData: { id: string; prenom: string; nom: string; email: string; telephone?: string }) => {
+    mutationFn: async (formData: { id: string; prenom: string; nom: string; email: string; telephone?: string; nda?: string }) => {
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -166,6 +167,7 @@ export default function Formateurs() {
           nom: formData.nom,
           email: formData.email,
           telephone: formData.telephone || null,
+          nda: formData.nda || null,
         } as any)
         .eq('id', formData.id);
       if (error) throw error;
@@ -208,12 +210,14 @@ export default function Formateurs() {
       setNom(formateur.nom);
       setEmail(formateur.email);
       setTelephone((formateur as any).telephone || '');
+      setNda((formateur as any).nda || '');
     } else {
       setEditingFormateur(null);
       setPrenom('');
       setNom('');
       setEmail('');
       setTelephone('');
+      setNda('');
     }
     setIsDialogOpen(true);
   };
@@ -232,6 +236,7 @@ export default function Formateurs() {
         nom,
         email,
         telephone,
+        nda,
       });
     } else {
       createMutation.mutate({ prenom, nom, email });
@@ -340,6 +345,15 @@ export default function Formateurs() {
                       placeholder="06 00 00 00 00"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nda">NDA (N° de déclaration d'activité)</Label>
+                    <Input
+                      id="nda"
+                      value={nda}
+                      onChange={(e) => setNda(e.target.value)}
+                      placeholder="Ex: 93060XXXXX"
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={closeDialog}>
@@ -413,6 +427,12 @@ export default function Formateurs() {
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Phone className="h-3.5 w-3.5" />
                           {(formateur as any).telephone}
+                        </div>
+                      )}
+                      {(formateur as any).nda && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <span className="text-xs font-medium">NDA:</span>
+                          {(formateur as any).nda}
                         </div>
                       )}
                     </div>
