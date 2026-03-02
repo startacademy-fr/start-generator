@@ -40,13 +40,20 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('formations')
-        .select('id, titre, date_debut, date_fin, nombre_heures, lieu, formations_catalogue(reference)')
+        .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
         .eq('archived', false)
         .order('date_debut', { ascending: false });
       if (error) throw error;
       return data;
     },
   });
+
+  // Build session number map (same logic as Sessions page)
+  const sessionNumberMap = new Map<string, number>();
+  if (formations) {
+    const sorted = [...formations].sort((a, b) => new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime());
+    sorted.forEach((f, i) => sessionNumberMap.set(f.id, i + 1));
+  }
 
   const { data: inscriptions } = useQuery({
     queryKey: ['audit-inscriptions'],
@@ -302,12 +309,10 @@ export default function AuditDashboard() {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <CardTitle className="text-base">
+                    <span className="font-mono text-muted-foreground mr-2">
+                      N°{sessionNumberMap.get(formation.id) || '—'}
+                    </span>
                     {formation.titre}
-                    {(formation as any).formations_catalogue?.reference && (
-                      <span className="ml-2 text-sm font-normal text-muted-foreground">
-                        — N° {(formation as any).formations_catalogue.reference}
-                      </span>
-                    )}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr })} • {formation.lieu} • {formation.nombre_heures}h
