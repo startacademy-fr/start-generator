@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ const REQUIRED_DOC_TYPES = [
 ];
 
 export default function AuditDashboard() {
+  const navigate = useNavigate();
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -319,6 +321,16 @@ export default function AuditDashboard() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
+                  {formComplete < auditRows.length && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/documents?autoGenerate=${formation.id}`)}
+                    >
+                      <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                      Générer docs manquants
+                    </Button>
+                  )}
                   <Badge variant={formComplete === auditRows.length ? 'default' : 'secondary'}>
                     {formComplete}/{auditRows.length} complets
                   </Badge>
