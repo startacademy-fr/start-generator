@@ -13,13 +13,14 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, FormationCatalogue, Profile, Stagiaire } from '@/types/database';
 import { AddStagiaireToFormationDialog } from '@/components/AddStagiaireToFormationDialog';
 import { StagiaireMultiSelect } from '@/components/StagiaireMultiSelect';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { ImportInscriptionsDialog } from '@/components/ImportInscriptionsDialog';
 
 export default function Sessions() {
   const { isAdmin, isAssistante } = useAuth();
@@ -37,6 +38,7 @@ export default function Sessions() {
   const [sortAsc, setSortAsc] = useState(false);
   const [addStagiaireFormation, setAddStagiaireFormation] = useState<Formation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Formation | null>(null);
+  const [isImportInscriptionsOpen, setIsImportInscriptionsOpen] = useState(false);
 
   // Form state
   const [catalogueId, setCatalogueId] = useState('');
@@ -339,6 +341,10 @@ export default function Sessions() {
         </div>
         {canManage && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Button variant="outline" onClick={() => setIsImportInscriptionsOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importer inscriptions
+            </Button>
             <DialogTrigger asChild>
               <Button onClick={() => openDialog()}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -563,6 +569,10 @@ export default function Sessions() {
         description="Cette action supprimera la session et toutes les inscriptions associées. Cette action est irréversible."
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         isLoading={deleteMutation.isPending}
+      />
+      <ImportInscriptionsDialog
+        open={isImportInscriptionsOpen}
+        onOpenChange={setIsImportInscriptionsOpen}
       />
     </div>
   );
