@@ -30,6 +30,7 @@ export default function Sessions() {
   const [editingFormation, setEditingFormation] = useState<Formation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [filterFormateurId, setFilterFormateurId] = useState('');
   const [addStagiaireFormation, setAddStagiaireFormation] = useState<Formation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Formation | null>(null);
 
@@ -288,10 +289,12 @@ export default function Sessions() {
     return catalogue.find(c => c.id === catalogueId)?.titre || null;
   };
 
-  const filteredFormations = formations?.filter((f) =>
-    f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    f.lieu.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFormations = formations?.filter((f) => {
+    const matchesSearch = f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.lieu.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFormateur = !filterFormateurId || f.formateur_id === filterFormateurId;
+    return matchesSearch && matchesFormateur;
+  });
 
   return (
     <div className="space-y-6">
@@ -390,6 +393,16 @@ export default function Sessions() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Rechercher une session..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
         </div>
+        <select
+          value={filterFormateurId}
+          onChange={(e) => setFilterFormateurId(e.target.value)}
+          className="flex h-10 w-full sm:w-auto sm:min-w-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <option value="">Tous les formateurs</option>
+          {formateurs?.map((f) => (
+            <option key={f.id} value={f.id}>{f.prenom} {f.nom}</option>
+          ))}
+        </select>
         <Button variant={showArchived ? 'secondary' : 'outline'} onClick={() => setShowArchived(!showArchived)} size="sm">
           <Archive className="mr-2 h-4 w-4" />
           {showArchived ? 'Masquer archivées' : 'Voir archivées'}
