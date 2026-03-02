@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { findMatchingQCMTemplate } from '@/lib/qcm-templates';
@@ -76,6 +77,7 @@ export default function Documents() {
   const { isAdmin, isAssistante } = useAuth();
   const queryClient = useQueryClient();
   const canManage = isAdmin() || isAssistante();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormation, setSelectedFormation] = useState<string>('all');
@@ -87,6 +89,17 @@ export default function Documents() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Handle autoGenerate param from Audit page
+  useEffect(() => {
+    const autoGenerate = searchParams.get('autoGenerate');
+    if (autoGenerate) {
+      setGenerateFormation(autoGenerate);
+      setSelectedDocTypes(DOCUMENT_TYPES.map(d => d.id));
+      setIsGenerateDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch formations
   const { data: formations } = useQuery({
