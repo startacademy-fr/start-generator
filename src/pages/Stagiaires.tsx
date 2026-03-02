@@ -265,6 +265,13 @@ export default function Stagiaires() {
   const stagiaireNumberMap = new Map<string, number>();
   allSortedAlpha.forEach((s, i) => stagiaireNumberMap.set(s.id, i + 1));
 
+  // Check if a stagiaire has incomplete required profile fields
+  const isProfileIncomplete = (stagiaire: Stagiaire): boolean => {
+    return !stagiaire.date_naissance || 
+           !stagiaire.anciennete || 
+           !stagiaire.diplome_plus_eleve;
+  };
+
   const filteredStagiaires = stagiaires?.filter((s) => {
     if (filterIncomplete && !isProfileIncomplete(s)) return false;
     return s.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -295,13 +302,6 @@ export default function Stagiaires() {
     } else {
       setSelectedIds(filteredStagiaires?.map(s => s.id) || []);
     }
-  };
-
-  // Check if a stagiaire has incomplete required profile fields
-  const isProfileIncomplete = (stagiaire: Stagiaire): boolean => {
-    return !stagiaire.date_naissance || 
-           !stagiaire.anciennete || 
-           !stagiaire.diplome_plus_eleve;
   };
 
   // Get list of missing fields for tooltip
