@@ -11,6 +11,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -30,6 +32,7 @@ const REQUIRED_DOC_TYPES = [
 
 export default function AuditDashboard() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: formations } = useQuery({
@@ -37,7 +40,7 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('formations')
-        .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
+        .select('id, titre, date_debut, date_fin, nombre_heures, lieu, formations_catalogue(reference)')
         .eq('archived', false)
         .order('date_debut', { ascending: false });
       if (error) throw error;
@@ -94,9 +97,18 @@ export default function AuditDashboard() {
     });
   };
 
-  const filteredFormations = selectedFormationId === 'all' 
-    ? formations 
-    : formations?.filter(f => f.id === selectedFormationId);
+  const filteredFormations = (() => {
+    let list = selectedFormationId === 'all' 
+      ? formations 
+      : formations?.filter(f => f.id === selectedFormationId);
+    if (onlyIncomplete) {
+      list = list?.filter(f => {
+        const auditRows = getFormationAudit(f.id);
+        return auditRows.length > 0 && auditRows.some(r => !r.isComplete);
+      });
+    }
+    return list;
+  })();
 
   // Global stats
   const allAudits = formations?.flatMap(f => getFormationAudit(f.id)) || [];
@@ -247,21 +259,33 @@ export default function AuditDashboard() {
         </Card>
       </div>
 
-      {/* Formation filter */}
-      <div className="max-w-md">
-        <Select value={selectedFormationId} onValueChange={setSelectedFormationId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Toutes les formations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes les formations</SelectItem>
-            {formations?.map(f => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="max-w-md flex-1">
+          <Select value={selectedFormationId} onValueChange={setSelectedFormationId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Toutes les formations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les formations</SelectItem>
+              {formations?.map(f => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            id="only-incomplete" 
+            checked={onlyIncomplete} 
+            onCheckedChange={(checked) => setOnlyIncomplete(checked === true)} 
+          />
+          <Label htmlFor="only-incomplete" className="text-sm cursor-pointer">
+            Docs incomplets uniquement
+          </Label>
+        </div>
       </div>
 
       {/* Formation audit tables */}
@@ -277,7 +301,14 @@ export default function AuditDashboard() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <CardTitle className="text-base">{formation.titre}</CardTitle>
+                  <CardTitle className="text-base">
+                    {formation.titre}
+                    {(formation as any).formations_catalogue?.reference && (
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">
+                        — N° {(formation as any).formations_catalogue.reference}
+                      </span>
+                    )}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {format(new Date(formation.date_debut), 'dd/MM/yyyy', { locale: fr })} • {formation.lieu} • {formation.nombre_heures}h
                   </p>
