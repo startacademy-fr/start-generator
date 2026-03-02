@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN nda text NULL;
