@@ -34,6 +34,7 @@ interface DashboardStats {
   dossiersComplets: number;
   dossiersIncomplets: number;
   stagiairesN1: number;
+  inscriptionsN1: number;
   formationsN1: number;
   totalHeures: number;
   heuresParFormateur: { nom: string; heures: number }[];
@@ -62,6 +63,7 @@ export default function Dashboard() {
     dossiersComplets: 0,
     dossiersIncomplets: 0,
     stagiairesN1: 0,
+    inscriptionsN1: 0,
     formationsN1: 0,
     totalHeures: 0,
     heuresParFormateur: [],
@@ -105,11 +107,13 @@ export default function Dashboard() {
 
         // Stagiaires formés en N-1 (distinct)
         let stagiairesN1 = 0;
+        let inscriptionsN1Total = 0;
         if (formationIdsN1.length > 0) {
           const { data: inscN1 } = await supabase
             .from('inscriptions')
             .select('stagiaire_id')
             .in('formation_id', formationIdsN1);
+          inscriptionsN1Total = inscN1?.length || 0;
           const uniqueStagiaires = new Set(inscN1?.map(i => i.stagiaire_id) || []);
           stagiairesN1 = uniqueStagiaires.size;
         }
@@ -232,6 +236,7 @@ export default function Dashboard() {
           dossiersComplets: complets,
           dossiersIncomplets: incomplets,
           stagiairesN1,
+          inscriptionsN1: inscriptionsN1Total,
           formationsN1: formationsN1.length,
           totalHeures,
           heuresParFormateur,
@@ -312,6 +317,13 @@ export default function Dashboard() {
       icon: UserCheck,
       color: "text-primary",
       bgColor: "bg-primary/10",
+    },
+    {
+      title: `Total inscriptions (${n1Year})`,
+      value: stats.inscriptionsN1,
+      icon: Users,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
     },
     {
       title: `Formations (${n1Year})`,
