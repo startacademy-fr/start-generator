@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download, Upload } from 'lucide-react';
+import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Stagiaire, Civilite } from '@/types/database';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -50,6 +50,8 @@ export default function Stagiaires() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [sortField, setSortField] = useState<'nom' | 'entreprise' | 'formations'>('nom');
+  const [sortAsc, setSortAsc] = useState(true);
 
   // Form state
   const [civilite, setCivilite] = useState<Civilite | ''>('');
@@ -241,12 +243,43 @@ export default function Stagiaires() {
     });
   };
 
+  const toggleSort = (field: 'nom' | 'entreprise' | 'formations') => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
+  const SortIcon = ({ field }: { field: 'nom' | 'entreprise' | 'formations' }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
+    return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  };
+
+  // Alphabetical numbering based on nom+prenom
+  const allSortedAlpha = [...(stagiaires || [])].sort((a, b) =>
+    `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr')
+  );
+  const stagiaireNumberMap = new Map<string, number>();
+  allSortedAlpha.forEach((s, i) => stagiaireNumberMap.set(s.id, i + 1));
+
   const filteredStagiaires = stagiaires?.filter((s) =>
     s.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.entreprise && s.entreprise.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  )?.sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'nom') {
+      cmp = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr');
+    } else if (sortField === 'entreprise') {
+      cmp = (a.entreprise || '').localeCompare(b.entreprise || '', 'fr');
+    } else if (sortField === 'formations') {
+      cmp = (inscriptionsCounts?.[a.id] || 0) - (inscriptionsCounts?.[b.id] || 0);
+    }
+    return sortAsc ? cmp : -cmp;
+  });
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -623,10 +656,17 @@ export default function Stagiaires() {
                     />
                   </TableHead>
                 )}
-                <TableHead>Stagiaire</TableHead>
+                <TableHead className="w-[60px]">N°</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('nom')}>
+                  <div className="flex items-center">Stagiaire <SortIcon field="nom" /></div>
+                </TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Entreprise</TableHead>
-                <TableHead>Formations</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('entreprise')}>
+                  <div className="flex items-center">Entreprise <SortIcon field="entreprise" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('formations')}>
+                  <div className="flex items-center">Formations <SortIcon field="formations" /></div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -641,6 +681,9 @@ export default function Stagiaires() {
                       />
                     </TableCell>
                   )}
+                  <TableCell className="font-mono text-muted-foreground text-sm">
+                    {stagiaireNumberMap.get(stagiaire.id) || '—'}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div>
