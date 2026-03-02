@@ -40,11 +40,34 @@ const DOCUMENT_LABELS: Record<string, string> = {
   fiche_emargement: "Fiche d'émargement",
 };
 
-const PRIMARY_COLOR: [number, number, number] = [14, 116, 144]; // teal-600
+const PRIMARY_COLOR: [number, number, number] = [0, 82, 122]; // #00527A
+const HEADER_BG_COLOR: [number, number, number] = [0, 82, 122]; // #00527A
 const TEXT_COLOR: [number, number, number] = [30, 41, 59]; // slate-800
 const MUTED_COLOR: [number, number, number] = [100, 116, 139]; // slate-500
 
-export function generatePDF(data: DocumentData): jsPDF {
+// Cache for logo image
+let cachedLogoBase64: string | null = null;
+
+async function loadLogo(): Promise<string | null> {
+  if (cachedLogoBase64) return cachedLogoBase64;
+  try {
+    const response = await fetch('/images/logo-white.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedLogoBase64 = reader.result as string;
+        resolve(cachedLogoBase64);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function generatePDF(data: DocumentData): Promise<jsPDF> {
   // Use landscape orientation for positioning questionnaire
   const isPositionnement = data.type === 'questionnaire_positionnement' || data.type === 'positionnement';
   const doc = isPositionnement ? new jsPDF({ orientation: 'landscape' }) : new jsPDF();
@@ -53,18 +76,21 @@ export function generatePDF(data: DocumentData): jsPDF {
   const margin = 20;
   let yPos = 30;
 
-  // Header with logo placeholder
-  doc.setFillColor(...PRIMARY_COLOR);
+  // Load logo
+  const logoBase64 = await loadLogo();
+
+  // Header with colored background and centered logo
+  doc.setFillColor(...HEADER_BG_COLOR);
   doc.rect(0, 0, pageWidth, 25, 'F');
   
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('START ACADEMY', margin, 16);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Organisme de formation', pageWidth - margin, 16, { align: 'right' });
+  if (logoBase64) {
+    // Center logo in header (approximate logo aspect ratio ~4:1)
+    const logoHeight = 15;
+    const logoWidth = logoHeight * 4;
+    const logoX = (pageWidth - logoWidth) / 2;
+    const logoY = (25 - logoHeight) / 2;
+    doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
+  }
 
   // Document title
   yPos = 45;
@@ -1748,8 +1774,8 @@ function addFooter(doc: jsPDF, pageWidth: number, pageHeight: number) {
   );
 }
 
-export function downloadPDF(data: DocumentData, filename?: string) {
-  const doc = generatePDF(data);
+export async function downloadPDF(data: DocumentData, filename?: string) {
+  const doc = await generatePDF(data);
   const name = filename || `${data.type}_${data.stagiaire.nom}_${data.stagiaire.prenom}.pdf`;
 
   // jsPDF.save() can be unreliable inside iframes; use a Blob + anchor download instead.
@@ -1767,7 +1793,7 @@ export function downloadPDF(data: DocumentData, filename?: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function getPDFBlob(data: DocumentData): Blob {
-  const doc = generatePDF(data);
+export async function getPDFBlob(data: DocumentData): Promise<Blob> {
+  const doc = await generatePDF(data);
   return doc.output('blob');
 }
