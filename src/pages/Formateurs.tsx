@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone, Upload, ShieldCheck } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone, Upload, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Profile } from '@/types/database';
@@ -50,6 +50,8 @@ export default function Formateurs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Profile | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [sortField, setSortField] = useState<'nom' | 'formations' | 'date'>('nom');
+  const [sortAsc, setSortAsc] = useState(true);
 
   // Form state
   const [prenom, setPrenom] = useState('');
@@ -236,11 +238,31 @@ export default function Formateurs() {
     }
   };
 
+  const toggleSort = (field: 'nom' | 'formations' | 'date') => {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(true); }
+  };
+
+  const SortIcon = ({ field }: { field: 'nom' | 'formations' | 'date' }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
+    return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  };
+
   const filteredFormateurs = formateurs?.filter((f) =>
     f.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  )?.sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'nom') {
+      cmp = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr');
+    } else if (sortField === 'formations') {
+      cmp = (formationsCounts?.[a.id] || 0) - (formationsCounts?.[b.id] || 0);
+    } else if (sortField === 'date') {
+      cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    return sortAsc ? cmp : -cmp;
+  });
 
   return (
     <div className="space-y-6">
@@ -360,10 +382,16 @@ export default function Formateurs() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Formateur</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('nom')}>
+                  <div className="flex items-center">Formateur <SortIcon field="nom" /></div>
+                </TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Formations</TableHead>
-                <TableHead>Ajouté le</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('formations')}>
+                  <div className="flex items-center">Formations <SortIcon field="formations" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('date')}>
+                  <div className="flex items-center">Ajouté le <SortIcon field="date" /></div>
+                </TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
