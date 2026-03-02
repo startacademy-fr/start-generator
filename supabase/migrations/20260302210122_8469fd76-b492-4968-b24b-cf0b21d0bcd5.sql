@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN type_formateur text NULL DEFAULT 'interne';

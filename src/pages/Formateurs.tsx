@@ -1,4 +1,11 @@
 import { useState } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,6 +66,7 @@ export default function Formateurs() {
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [nda, setNda] = useState('');
+  const [typeFormateur, setTypeFormateur] = useState<'interne' | 'externe'>('interne');
 
   // Fetch formateurs (all profiles that are used as formateurs in formations)
   const { data: formateurs, isLoading } = useQuery({
@@ -159,7 +167,7 @@ export default function Formateurs() {
 
   // Update formateur mutation
   const updateMutation = useMutation({
-    mutationFn: async (formData: { id: string; prenom: string; nom: string; email: string; telephone?: string; nda?: string }) => {
+    mutationFn: async (formData: { id: string; prenom: string; nom: string; email: string; telephone?: string; nda?: string; type_formateur?: string }) => {
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -168,6 +176,7 @@ export default function Formateurs() {
           email: formData.email,
           telephone: formData.telephone || null,
           nda: formData.nda || null,
+          type_formateur: formData.type_formateur || 'interne',
         } as any)
         .eq('id', formData.id);
       if (error) throw error;
@@ -211,6 +220,7 @@ export default function Formateurs() {
       setEmail(formateur.email);
       setTelephone((formateur as any).telephone || '');
       setNda((formateur as any).nda || '');
+      setTypeFormateur((formateur as any).type_formateur || 'interne');
     } else {
       setEditingFormateur(null);
       setPrenom('');
@@ -218,6 +228,7 @@ export default function Formateurs() {
       setEmail('');
       setTelephone('');
       setNda('');
+      setTypeFormateur('interne');
     }
     setIsDialogOpen(true);
   };
@@ -237,6 +248,7 @@ export default function Formateurs() {
         email,
         telephone,
         nda,
+        type_formateur: typeFormateur,
       });
     } else {
       createMutation.mutate({ prenom, nom, email });
@@ -354,6 +366,18 @@ export default function Formateurs() {
                       placeholder="Ex: 93060XXXXX"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type_formateur">Type de formateur</Label>
+                    <Select value={typeFormateur} onValueChange={(v) => setTypeFormateur(v as 'interne' | 'externe')}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="interne">Interne</SelectItem>
+                        <SelectItem value="externe">Externe</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={closeDialog}>
@@ -413,8 +437,11 @@ export default function Formateurs() {
               {filteredFormateurs?.map((formateur) => (
                 <TableRow key={formateur.id}>
                   <TableCell>
-                    <div className="font-medium">
-                      {formateur.prenom} {formateur.nom}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{formateur.prenom} {formateur.nom}</span>
+                      <Badge variant={(formateur as any).type_formateur === 'externe' ? 'secondary' : 'default'} className="text-[10px] px-1.5 py-0">
+                        {(formateur as any).type_formateur === 'externe' ? 'Externe' : 'Interne'}
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
