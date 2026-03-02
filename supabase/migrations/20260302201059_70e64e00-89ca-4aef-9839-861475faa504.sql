@@ -1,0 +1,1 @@
+ALTER TABLE public.stagiaires DROP CONSTRAINT IF EXISTS stagiaires_email_key;
