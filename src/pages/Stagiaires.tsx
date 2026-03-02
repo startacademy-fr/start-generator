@@ -52,6 +52,7 @@ export default function Stagiaires() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [sortField, setSortField] = useState<'nom' | 'entreprise' | 'formations'>('nom');
   const [sortAsc, setSortAsc] = useState(true);
+  const [filterIncomplete, setFilterIncomplete] = useState(false);
 
   // Form state
   const [civilite, setCivilite] = useState<Civilite | ''>('');
@@ -264,12 +265,13 @@ export default function Stagiaires() {
   const stagiaireNumberMap = new Map<string, number>();
   allSortedAlpha.forEach((s, i) => stagiaireNumberMap.set(s.id, i + 1));
 
-  const filteredStagiaires = stagiaires?.filter((s) =>
-    s.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.entreprise && s.entreprise.toLowerCase().includes(searchQuery.toLowerCase()))
-  )?.sort((a, b) => {
+  const filteredStagiaires = stagiaires?.filter((s) => {
+    if (filterIncomplete && !isProfileIncomplete(s)) return false;
+    return s.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.entreprise && s.entreprise.toLowerCase().includes(searchQuery.toLowerCase()));
+  })?.sort((a, b) => {
     let cmp = 0;
     if (sortField === 'nom') {
       cmp = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr');
@@ -622,15 +624,24 @@ export default function Stagiaires() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher un stagiaire..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher un stagiaire..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <Checkbox
+            checked={filterIncomplete}
+            onCheckedChange={(checked) => setFilterIncomplete(!!checked)}
+          />
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span className="text-sm text-muted-foreground">Fiches incomplètes uniquement</span>
+        </label>
       </div>
 
       {/* Table */}
