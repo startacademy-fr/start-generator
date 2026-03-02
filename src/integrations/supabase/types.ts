@@ -526,6 +526,36 @@ export type Database = {
         }
         Relationships: []
       }
+      templates_vierges: {
+        Row: {
+          created_at: string
+          id: string
+          nom_fichier: string
+          storage_path: string
+          taille: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom_fichier: string
+          storage_path: string
+          taille?: number | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom_fichier?: string
+          storage_path?: string
+          taille?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
