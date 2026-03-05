@@ -461,6 +461,16 @@ export default function Stagiaires() {
                           Salarié(e)
                         </Label>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="situation_handicap"
+                          checked={situationHandicap}
+                          onCheckedChange={(checked) => setSituationHandicap(checked as boolean)}
+                        />
+                        <Label htmlFor="situation_handicap" className="text-sm font-normal">
+                          Situation de handicap
+                        </Label>
+                      </div>
                     </div>
                     {civilite === 'Mme' && (
                       <div className="space-y-2">
@@ -560,18 +570,6 @@ export default function Stagiaires() {
                         onChange={(e) => setAdresse(e.target.value)}
                         rows={2}
                       />
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="situation_handicap"
-                          checked={situationHandicap}
-                          onCheckedChange={(checked) => setSituationHandicap(checked as boolean)}
-                        />
-                        <Label htmlFor="situation_handicap" className="text-sm font-normal">
-                          Situation de handicap
-                        </Label>
-                      </div>
                     </div>
                     {situationHandicap && (
                       <div className="space-y-2">
