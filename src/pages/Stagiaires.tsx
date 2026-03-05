@@ -263,7 +263,7 @@ export default function Stagiaires() {
 
   // Check if a stagiaire has incomplete required profile fields
   const isProfileIncomplete = (stagiaire: Stagiaire): boolean => {
-    return (!stagiaire.date_naissance && !stagiaire.est_salarie) || 
+    return (!stagiaire.date_naissance && !stagiaire.est_salarie && !stagiaire.chef_entreprise) || 
            !stagiaire.anciennete || 
            !stagiaire.diplome_plus_eleve;
   };
@@ -304,7 +304,7 @@ export default function Stagiaires() {
   // Get list of missing fields for tooltip
   const getMissingFields = (stagiaire: Stagiaire): string[] => {
     const missing: string[] = [];
-    if (!stagiaire.date_naissance && !stagiaire.est_salarie) missing.push('Date de naissance');
+    if (!stagiaire.date_naissance && !stagiaire.est_salarie && !stagiaire.chef_entreprise) missing.push('Date de naissance');
     if (!stagiaire.anciennete) missing.push('Ancienneté');
     if (!stagiaire.diplome_plus_eleve) missing.push('Diplôme le plus élevé');
     return missing;
