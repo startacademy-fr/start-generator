@@ -470,12 +470,10 @@ export type Database = {
           id: string
           nom: string
           nom_jeune_fille: string | null
-          numero_securite_sociale: string | null
           prenom: string
           siret: string | null
           situation_handicap: boolean | null
           taches_quotidiennes: string | null
-          telephone: string | null
           updated_at: string
         }
         Insert: {
@@ -493,12 +491,10 @@ export type Database = {
           id?: string
           nom: string
           nom_jeune_fille?: string | null
-          numero_securite_sociale?: string | null
           prenom: string
           siret?: string | null
           situation_handicap?: boolean | null
           taches_quotidiennes?: string | null
-          telephone?: string | null
           updated_at?: string
         }
         Update: {
@@ -516,12 +512,10 @@ export type Database = {
           id?: string
           nom?: string
           nom_jeune_fille?: string | null
-          numero_securite_sociale?: string | null
           prenom?: string
           siret?: string | null
           situation_handicap?: boolean | null
           taches_quotidiennes?: string | null
-          telephone?: string | null
           updated_at?: string
         }
         Relationships: []

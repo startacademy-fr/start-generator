@@ -19,12 +19,10 @@ interface ParsedStagiaire {
   nom: string;
   prenom: string;
   email: string;
-  telephone: string | null;
   date_naissance: string | null;
   nom_jeune_fille: string | null;
   fonction: string | null;
   adresse: string | null;
-  numero_securite_sociale: string | null;
   diplome_plus_eleve: string | null;
   anciennete: string | null;
   status: 'new' | 'update' | 'error';
@@ -108,8 +106,8 @@ export function ImportStagiairesDialog({ open, onOpenChange, existingStagiaires 
             if (!nom || !prenom || !email) {
               return {
                 civilite: null, nom, prenom, email,
-                telephone: null, date_naissance: null, nom_jeune_fille: null,
-                fonction: null, adresse: null, numero_securite_sociale: null,
+                date_naissance: null, nom_jeune_fille: null,
+                fonction: null, adresse: null,
                 diplome_plus_eleve: null, anciennete: null,
                 status: 'error' as const,
                 errorMessage: 'Nom, prénom ou email manquant',
@@ -128,12 +126,10 @@ export function ImportStagiairesDialog({ open, onOpenChange, existingStagiaires 
               nom,
               prenom,
               email,
-              telephone: String(row['Numéro de téléphone'] || row['Téléphone'] || '').trim() || null,
               date_naissance: parseDateFR(String(row['Date de naissance'] || '')),
               nom_jeune_fille: String(row['Nom de naissance'] || '').trim() || null,
               fonction: String(row['Fonction'] || '').trim() || null,
               adresse: adresseStr,
-              numero_securite_sociale: String(row['N° de sécurité sociale'] || '').trim() || null,
               diplome_plus_eleve: String(row['Niveau d\'étude'] || row['Niveau d\'étude'] || '').trim() || null,
               anciennete: String(row['Dirigeant d\'entreprise depuis'] || '').trim() || null,
               status: existingId ? 'update' as const : 'new' as const,
@@ -162,11 +158,9 @@ export function ImportStagiairesDialog({ open, onOpenChange, existingStagiaires 
             nom: row.nom,
             prenom: row.prenom,
             email: row.email,
-            telephone: row.telephone,
             date_naissance: row.date_naissance,
             fonction: row.fonction,
             adresse: row.adresse,
-            numero_securite_sociale: row.numero_securite_sociale,
             diplome_plus_eleve: row.diplome_plus_eleve,
             anciennete: row.anciennete,
           };
@@ -279,7 +273,7 @@ export function ImportStagiairesDialog({ open, onOpenChange, existingStagiaires 
                       <TableCell className="font-medium">{s.nom}</TableCell>
                       <TableCell>{s.prenom}</TableCell>
                       <TableCell className="text-sm">{s.email}</TableCell>
-                      <TableCell className="text-sm">{s.telephone || '—'}</TableCell>
+                      <TableCell className="text-sm">{s.date_naissance || '—'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
