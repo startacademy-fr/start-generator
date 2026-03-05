@@ -540,11 +540,20 @@ export default function Stagiaires() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fonction">Fonction</Label>
-                        <Input
-                          id="fonction"
-                          value={fonction}
-                          onChange={(e) => setFonction(e.target.value)}
-                        />
+                        <Select value={fonction} onValueChange={setFonction}>
+                          <SelectTrigger id="fonction">
+                            <SelectValue placeholder="Sélectionner une fonction" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Agent immobilier">Agent immobilier</SelectItem>
+                            <SelectItem value="Courtier en assurances">Courtier en assurances</SelectItem>
+                            <SelectItem value="Courtier en crédits">Courtier en crédits</SelectItem>
+                            <SelectItem value="Commercial">Commercial</SelectItem>
+                            <SelectItem value="Assistante commerciale">Assistante commerciale</SelectItem>
+                            <SelectItem value="Assistante de direction">Assistante de direction</SelectItem>
+                            <SelectItem value="Comptable">Comptable</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="anciennete">Ancienneté *</Label>
