@@ -336,7 +336,14 @@ export default function Sessions() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Sessions de formation</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-display font-bold text-foreground">Sessions de formation</h1>
+            {formations && (
+              <Badge variant="secondary" className="text-sm font-mono">
+                {formations.length}
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1">Gérez vos sessions de formation</p>
         </div>
         {canManage && (
