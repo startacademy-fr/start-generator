@@ -258,7 +258,7 @@ export default function Stagiaires() {
 
   // Check if a stagiaire has incomplete required profile fields
   const isProfileIncomplete = (stagiaire: Stagiaire): boolean => {
-    return !stagiaire.date_naissance || 
+    return (!stagiaire.date_naissance && !stagiaire.est_salarie) || 
            !stagiaire.anciennete || 
            !stagiaire.diplome_plus_eleve;
   };
