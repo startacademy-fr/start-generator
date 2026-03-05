@@ -470,7 +470,7 @@ export default function Stagiaires() {
                         <Checkbox
                           id="est_salarie"
                           checked={estSalarie}
-                          onCheckedChange={(checked) => setEstSalarie(checked as boolean)}
+                          onCheckedChange={(checked) => { setEstSalarie(checked as boolean); if (checked) setChefEntreprise(false); }}
                         />
                         <Label htmlFor="est_salarie" className="text-sm font-normal">
                           Salarié(e)
@@ -480,7 +480,7 @@ export default function Stagiaires() {
                         <Checkbox
                           id="chef_entreprise"
                           checked={chefEntreprise}
-                          onCheckedChange={(checked) => setChefEntreprise(checked as boolean)}
+                          onCheckedChange={(checked) => { setChefEntreprise(checked as boolean); if (checked) setEstSalarie(false); }}
                         />
                         <Label htmlFor="chef_entreprise" className="text-sm font-normal">
                           Chef d'entreprise
