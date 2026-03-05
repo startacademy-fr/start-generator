@@ -71,7 +71,6 @@ export interface Stagiaire {
   prenom: string;
   nom: string;
   civilite: Civilite | null;
-  telephone: string | null;
   entreprise: string | null;
   fonction: string | null;
   siret: string | null;
@@ -83,7 +82,6 @@ export interface Stagiaire {
   taches_quotidiennes: string | null;
   date_naissance: string | null;
   nom_jeune_fille: string | null;
-  numero_securite_sociale: string | null;
   est_salarie: boolean;
   created_at: string;
   updated_at: string;

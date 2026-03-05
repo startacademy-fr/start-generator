@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Search, Users, Mail, Phone, Building2, Accessibility, Trash2, AlertTriangle, Download, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Search, Users, Mail, Building2, Accessibility, Trash2, AlertTriangle, Download, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { Stagiaire, Civilite } from '@/types/database';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -60,7 +60,6 @@ export default function Stagiaires() {
   const [prenom, setPrenom] = useState('');
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
-  const [telephone, setTelephone] = useState('');
   const [entreprise, setEntreprise] = useState('');
   const [siret, setSiret] = useState('');
   const [fonction, setFonction] = useState('');
@@ -72,7 +71,6 @@ export default function Stagiaires() {
   const [tachesQuotidiennes, setTachesQuotidiennes] = useState('');
   const [dateNaissance, setDateNaissance] = useState('');
   const [nomJeuneFille, setNomJeuneFille] = useState('');
-  const [numeroSecuriteSociale, setNumeroSecuriteSociale] = useState('');
   const [estSalarie, setEstSalarie] = useState(false);
 
   // Fetch stagiaires
@@ -112,7 +110,6 @@ export default function Stagiaires() {
       prenom: string;
       nom: string;
       email: string;
-      telephone: string | null;
       entreprise: string | null;
       siret: string | null;
       fonction: string | null;
@@ -124,7 +121,6 @@ export default function Stagiaires() {
       taches_quotidiennes: string | null;
       date_naissance: string | null;
       nom_jeune_fille: string | null;
-      numero_securite_sociale: string | null;
       est_salarie: boolean;
     }) => {
       if (editingStagiaire) {
@@ -178,7 +174,6 @@ export default function Stagiaires() {
       setPrenom(stagiaire.prenom);
       setNom(stagiaire.nom);
       setEmail(stagiaire.email);
-      setTelephone(stagiaire.telephone || '');
       setEntreprise(stagiaire.entreprise || '');
       setSiret(stagiaire.siret || '');
       setFonction(stagiaire.fonction || '');
@@ -190,7 +185,6 @@ export default function Stagiaires() {
       setTachesQuotidiennes(stagiaire.taches_quotidiennes || '');
       setDateNaissance(stagiaire.date_naissance || '');
       setNomJeuneFille(stagiaire.nom_jeune_fille || '');
-      setNumeroSecuriteSociale(stagiaire.numero_securite_sociale || '');
       setEstSalarie(stagiaire.est_salarie || false);
     } else {
       setEditingStagiaire(null);
@@ -198,7 +192,6 @@ export default function Stagiaires() {
       setPrenom('');
       setNom('');
       setEmail('');
-      setTelephone('');
       setEntreprise('');
       setSiret('');
       setFonction('');
@@ -210,7 +203,6 @@ export default function Stagiaires() {
       setTachesQuotidiennes('');
       setDateNaissance('');
       setNomJeuneFille('');
-      setNumeroSecuriteSociale('');
       setEstSalarie(false);
     }
     setIsDialogOpen(true);
@@ -228,7 +220,6 @@ export default function Stagiaires() {
       prenom,
       nom,
       email,
-      telephone: telephone || null,
       entreprise: entreprise || null,
       siret: siret || null,
       fonction: fonction || null,
@@ -240,7 +231,6 @@ export default function Stagiaires() {
       taches_quotidiennes: tachesQuotidiennes || null,
       date_naissance: dateNaissance || null,
       nom_jeune_fille: civilite === 'Mme' ? (nomJeuneFille || null) : null,
-      numero_securite_sociale: numeroSecuriteSociale || null,
       est_salarie: estSalarie,
     });
   };
@@ -328,8 +318,6 @@ export default function Stagiaires() {
       'Nom de jeune fille',
       'Date de naissance',
       'Email',
-      'Téléphone',
-      'N° Sécurité sociale',
       'Entreprise',
       'SIRET',
       'Fonction',
@@ -350,8 +338,6 @@ export default function Stagiaires() {
         s.nom_jeune_fille || '',
         s.date_naissance || '',
         s.email,
-        s.telephone || '',
-        s.numero_securite_sociale || '',
         s.entreprise || '',
         s.siret || '',
         s.fonction || '',
@@ -488,26 +474,6 @@ export default function Stagiaires() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                       />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="telephone">Téléphone</Label>
-                        <Input
-                          id="telephone"
-                          type="tel"
-                          value={telephone}
-                          onChange={(e) => setTelephone(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="numero_securite_sociale">N° Sécurité sociale</Label>
-                        <Input
-                          id="numero_securite_sociale"
-                          value={numeroSecuriteSociale}
-                          onChange={(e) => setNumeroSecuriteSociale(e.target.value)}
-                          placeholder="Ex: 1 85 12 75 108 123 45"
-                        />
-                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -740,17 +706,9 @@ export default function Stagiaires() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        {stagiaire.email}
-                      </div>
-                      {stagiaire.telephone && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5" />
-                          {stagiaire.telephone}
-                        </div>
-                      )}
+                    <div className="flex items-center gap-1 text-sm">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                      {stagiaire.email}
                     </div>
                   </TableCell>
                   <TableCell>
