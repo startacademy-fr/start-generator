@@ -367,7 +367,14 @@ export default function Stagiaires() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Stagiaires</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-display font-bold text-foreground">Stagiaires</h1>
+            {stagiaires && (
+              <Badge variant="secondary" className="text-sm font-mono">
+                {stagiaires.length}
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1">
             Gérez les stagiaires inscrits aux formations
           </p>
