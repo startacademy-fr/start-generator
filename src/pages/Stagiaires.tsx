@@ -509,13 +509,13 @@ export default function Stagiaires() {
                     )}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="date_naissance">Date de naissance {!estSalarie ? '*' : ''}</Label>
+                        <Label htmlFor="date_naissance">Date de naissance {!estSalarie && !chefEntreprise ? '*' : ''}</Label>
                         <Input
                           id="date_naissance"
                           type="date"
                           value={dateNaissance}
                           onChange={(e) => setDateNaissance(e.target.value)}
-                          required={!estSalarie}
+                          required={!estSalarie && !chefEntreprise}
                         />
                       </div>
                       <div className="space-y-2">
