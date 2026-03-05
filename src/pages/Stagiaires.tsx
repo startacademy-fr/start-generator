@@ -299,7 +299,7 @@ export default function Stagiaires() {
   // Get list of missing fields for tooltip
   const getMissingFields = (stagiaire: Stagiaire): string[] => {
     const missing: string[] = [];
-    if (!stagiaire.date_naissance) missing.push('Date de naissance');
+    if (!stagiaire.date_naissance && !stagiaire.est_salarie) missing.push('Date de naissance');
     if (!stagiaire.anciennete) missing.push('Ancienneté');
     if (!stagiaire.diplome_plus_eleve) missing.push('Diplôme le plus élevé');
     return missing;
@@ -450,37 +450,49 @@ export default function Stagiaires() {
                         />
                       </div>
                     </div>
+                    <div className="flex items-center gap-6 py-1">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="est_salarie"
+                          checked={estSalarie}
+                          onCheckedChange={(checked) => setEstSalarie(checked as boolean)}
+                        />
+                        <Label htmlFor="est_salarie" className="text-sm font-normal">
+                          Salarié(e)
+                        </Label>
+                      </div>
+                    </div>
+                    {civilite === 'Mme' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="nom_jeune_fille">Nom de jeune fille</Label>
+                        <Input
+                          id="nom_jeune_fille"
+                          value={nomJeuneFille}
+                          onChange={(e) => setNomJeuneFille(e.target.value)}
+                        />
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
-                      {civilite === 'Mme' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="nom_jeune_fille">Nom de jeune fille</Label>
-                          <Input
-                            id="nom_jeune_fille"
-                            value={nomJeuneFille}
-                            onChange={(e) => setNomJeuneFille(e.target.value)}
-                          />
-                        </div>
-                      )}
-                      <div className={`space-y-2 ${civilite !== 'Mme' ? 'col-span-2' : ''}`}>
-                        <Label htmlFor="date_naissance">Date de naissance *</Label>
+                      <div className="space-y-2">
+                        <Label htmlFor="date_naissance">Date de naissance {!estSalarie ? '*' : ''}</Label>
                         <Input
                           id="date_naissance"
                           type="date"
                           value={dateNaissance}
                           onChange={(e) => setDateNaissance(e.target.value)}
+                          required={!estSalarie}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                           required
                         />
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -550,16 +562,6 @@ export default function Stagiaires() {
                       />
                     </div>
                     <div className="flex items-center gap-6">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="est_salarie"
-                          checked={estSalarie}
-                          onCheckedChange={(checked) => setEstSalarie(checked as boolean)}
-                        />
-                        <Label htmlFor="est_salarie" className="text-sm font-normal">
-                          Salarié(e)
-                        </Label>
-                      </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="situation_handicap"
