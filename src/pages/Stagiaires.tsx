@@ -63,6 +63,8 @@ export default function Stagiaires() {
   const [entreprise, setEntreprise] = useState('');
   const [siret, setSiret] = useState('');
   const [fonction, setFonction] = useState('');
+  const [fonctionAutre, setFonctionAutre] = useState('');
+  const FONCTIONS_LIST = ['Agent immobilier', 'Courtier en assurances', 'Courtier en crédits', 'Commercial', 'Assistante commerciale', 'Assistante de direction', 'Comptable', 'Artisan'];
   const [adresse, setAdresse] = useState('');
   const [situationHandicap, setSituationHandicap] = useState(false);
   const [besoinsSpecifiques, setBesoinsSpecifiques] = useState('');
@@ -178,7 +180,14 @@ export default function Stagiaires() {
       setEmail(stagiaire.email);
       setEntreprise(stagiaire.entreprise || '');
       setSiret(stagiaire.siret || '');
-      setFonction(stagiaire.fonction || '');
+      const existingFonction = stagiaire.fonction || '';
+      if (existingFonction && !FONCTIONS_LIST.includes(existingFonction)) {
+        setFonction('Autre');
+        setFonctionAutre(existingFonction);
+      } else {
+        setFonction(existingFonction);
+        setFonctionAutre('');
+      }
       setAdresse(stagiaire.adresse || '');
       setSituationHandicap(stagiaire.situation_handicap || false);
       setBesoinsSpecifiques(stagiaire.besoins_specifiques || '');
@@ -198,6 +207,7 @@ export default function Stagiaires() {
       setEntreprise('');
       setSiret('');
       setFonction('');
+      setFonctionAutre('');
       setAdresse('');
       setSituationHandicap(false);
       setBesoinsSpecifiques('');
@@ -226,7 +236,7 @@ export default function Stagiaires() {
       email,
       entreprise: entreprise || null,
       siret: siret || null,
-      fonction: fonction || null,
+      fonction: fonction === 'Autre' ? (fonctionAutre || null) : (fonction || null),
       adresse: adresse || null,
       situation_handicap: situationHandicap,
       besoins_specifiques: besoinsSpecifiques || null,
@@ -540,7 +550,7 @@ export default function Stagiaires() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="fonction">Fonction</Label>
-                        <Select value={fonction} onValueChange={setFonction}>
+                        <Select value={fonction} onValueChange={(val) => { setFonction(val); if (val !== 'Autre') setFonctionAutre(''); }}>
                           <SelectTrigger id="fonction">
                             <SelectValue placeholder="Sélectionner une fonction" />
                           </SelectTrigger>
@@ -552,8 +562,18 @@ export default function Stagiaires() {
                             <SelectItem value="Assistante commerciale">Assistante commerciale</SelectItem>
                             <SelectItem value="Assistante de direction">Assistante de direction</SelectItem>
                             <SelectItem value="Comptable">Comptable</SelectItem>
+                            <SelectItem value="Artisan">Artisan</SelectItem>
+                            <SelectItem value="Autre">Autre</SelectItem>
                           </SelectContent>
                         </Select>
+                        {fonction === 'Autre' && (
+                          <Input
+                            placeholder="Précisez la fonction"
+                            value={fonctionAutre}
+                            onChange={(e) => setFonctionAutre(e.target.value)}
+                            className="mt-2"
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="anciennete">Ancienneté *</Label>
