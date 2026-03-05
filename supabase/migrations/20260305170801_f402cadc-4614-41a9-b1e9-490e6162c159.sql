@@ -1,0 +1,1 @@
+ALTER TABLE public.stagiaires ADD COLUMN chef_entreprise boolean DEFAULT false;
