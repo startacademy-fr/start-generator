@@ -72,6 +72,7 @@ export default function Stagiaires() {
   const [dateNaissance, setDateNaissance] = useState('');
   const [nomJeuneFille, setNomJeuneFille] = useState('');
   const [estSalarie, setEstSalarie] = useState(false);
+  const [chefEntreprise, setChefEntreprise] = useState(false);
 
   // Fetch stagiaires
   const { data: stagiaires, isLoading } = useQuery({
@@ -122,6 +123,7 @@ export default function Stagiaires() {
       date_naissance: string | null;
       nom_jeune_fille: string | null;
       est_salarie: boolean;
+      chef_entreprise: boolean;
     }) => {
       if (editingStagiaire) {
         const { error } = await supabase
@@ -186,6 +188,7 @@ export default function Stagiaires() {
       setDateNaissance(stagiaire.date_naissance || '');
       setNomJeuneFille(stagiaire.nom_jeune_fille || '');
       setEstSalarie(stagiaire.est_salarie || false);
+      setChefEntreprise((stagiaire as any).chef_entreprise || false);
     } else {
       setEditingStagiaire(null);
       setCivilite('');
@@ -204,6 +207,7 @@ export default function Stagiaires() {
       setDateNaissance('');
       setNomJeuneFille('');
       setEstSalarie(false);
+      setChefEntreprise(false);
     }
     setIsDialogOpen(true);
   };
@@ -232,6 +236,7 @@ export default function Stagiaires() {
       date_naissance: dateNaissance || null,
       nom_jeune_fille: civilite === 'Mme' ? (nomJeuneFille || null) : null,
       est_salarie: estSalarie,
+      chef_entreprise: chefEntreprise,
     });
   };
 
@@ -459,6 +464,16 @@ export default function Stagiaires() {
                         />
                         <Label htmlFor="est_salarie" className="text-sm font-normal">
                           Salarié(e)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="chef_entreprise"
+                          checked={chefEntreprise}
+                          onCheckedChange={(checked) => setChefEntreprise(checked as boolean)}
+                        />
+                        <Label htmlFor="chef_entreprise" className="text-sm font-normal">
+                          Chef d'entreprise
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">

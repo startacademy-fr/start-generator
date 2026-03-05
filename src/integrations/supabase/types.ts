@@ -459,6 +459,7 @@ export type Database = {
           adresse: string | null
           anciennete: string | null
           besoins_specifiques: string | null
+          chef_entreprise: boolean | null
           civilite: string | null
           created_at: string
           date_naissance: string | null
@@ -480,6 +481,7 @@ export type Database = {
           adresse?: string | null
           anciennete?: string | null
           besoins_specifiques?: string | null
+          chef_entreprise?: boolean | null
           civilite?: string | null
           created_at?: string
           date_naissance?: string | null
@@ -501,6 +503,7 @@ export type Database = {
           adresse?: string | null
           anciennete?: string | null
           besoins_specifiques?: string | null
+          chef_entreprise?: boolean | null
           civilite?: string | null
           created_at?: string
           date_naissance?: string | null
