@@ -64,6 +64,7 @@ export default function AccessTokens() {
   const [generatedLinks, setGeneratedLinks] = useState<{ stagiaire: string; link: string }[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [regeneratedLink, setRegeneratedLink] = useState<{ stagiaire: string; link: string } | null>(null);
 
   // Fetch formations
   const { data: formations } = useQuery({
@@ -189,6 +190,36 @@ export default function AccessTokens() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['access-tokens'] });
       toast.success('Lien révoqué');
+    },
+    onError: (error) => {
+      toast.error('Erreur: ' + error.message);
+    },
+  });
+
+  // Regenerate token mutation
+  const regenerateMutation = useMutation({
+    mutationFn: async ({ tokenId, inscriptionId }: { tokenId: string; inscriptionId: string }) => {
+      // Revoke old token
+      await supabase.from('access_tokens').update({ revoked: true }).eq('id', tokenId);
+      
+      // Generate new token
+      const expiresAt = addDays(new Date(), 30).toISOString();
+      const { data, error } = await supabase.functions.invoke('manage-token', {
+        body: { action: 'generate', inscription_id: inscriptionId, expires_at: expiresAt },
+      });
+      if (error) throw error;
+      
+      const inscription = getInscriptionDetails(inscriptionId);
+      const link = `${window.location.origin}/portail?token=${encodeURIComponent(data.token)}`;
+      return { 
+        stagiaire: inscription ? `${inscription.stagiaire.prenom} ${inscription.stagiaire.nom}` : '', 
+        link 
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['access-tokens'] });
+      setRegeneratedLink(result);
+      toast.success('Nouveau lien généré');
     },
     onError: (error) => {
       toast.error('Erreur: ' + error.message);
@@ -385,14 +416,17 @@ export default function AccessTokens() {
                       <div className="flex justify-end gap-1">
                         {status === 'active' && (
                           <>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              title="Le lien n'est disponible qu'au moment de la génération"
-                              disabled
-                            >
-                              <Copy className="h-4 w-4 opacity-40" />
-                            </Button>
+                            {canManage && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                title="Régénérer et copier le lien"
+                                onClick={() => regenerateMutation.mutate({ tokenId: token.id, inscriptionId: token.inscription_id })}
+                                disabled={regenerateMutation.isPending}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
                             {canManage && (
                               <Button 
                                 variant="ghost" 
@@ -515,6 +549,35 @@ export default function AccessTokens() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerated link dialog */}
+      <Dialog open={!!regeneratedLink} onOpenChange={(open) => !open && setRegeneratedLink(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Nouveau lien généré
+            </DialogTitle>
+            <DialogDescription>
+              L'ancien lien a été révoqué. Copiez le nouveau lien ci-dessous.
+            </DialogDescription>
+          </DialogHeader>
+          {regeneratedLink && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">{regeneratedLink.stagiaire}</span>
+                <Button size="sm" variant="outline" onClick={() => copyToClipboard(regeneratedLink.link)}>
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copier
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setRegeneratedLink(null)}>Fermer</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
