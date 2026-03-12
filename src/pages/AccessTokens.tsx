@@ -53,9 +53,9 @@ interface InscriptionWithDetails {
 }
 
 export default function AccessTokens() {
-  const { isAdmin, isAssistante } = useAuth();
+  const { canEdit } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = isAdmin() || isAssistante();
+  const canManage = canEdit();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormation, setSelectedFormation] = useState<string>('all');

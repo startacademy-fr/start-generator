@@ -74,9 +74,9 @@ interface InscriptionWithDetails {
 }
 
 export default function Documents() {
-  const { isAdmin, isAssistante } = useAuth();
+  const { canGenerateDocuments } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = isAdmin() || isAssistante();
+  const canManage = canGenerateDocuments();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');

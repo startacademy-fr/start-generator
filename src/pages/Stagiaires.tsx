@@ -40,9 +40,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ImportStagiairesDialog } from '@/components/ImportStagiairesDialog';
 
 export default function Stagiaires() {
-  const { isAdmin, isAssistante } = useAuth();
+  const { canEdit } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = isAdmin() || isAssistante();
+  const canManage = canEdit();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStagiaire, setEditingStagiaire] = useState<Stagiaire | null>(null);

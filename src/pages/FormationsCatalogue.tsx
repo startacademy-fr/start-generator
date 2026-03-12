@@ -30,9 +30,9 @@ interface FormationCatalogue {
 }
 
 export default function FormationsCatalogue() {
-  const { isAdmin, isAssistante } = useAuth();
+  const { canEdit } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = isAdmin() || isAssistante();
+  const canManage = canEdit();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FormationCatalogue | null>(null);

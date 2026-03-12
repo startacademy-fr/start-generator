@@ -23,9 +23,9 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportInscriptionsDialog } from '@/components/ImportInscriptionsDialog';
 
 export default function Sessions() {
-  const { isAdmin, isAssistante } = useAuth();
+  const { canEdit } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = isAdmin() || isAssistante();
+  const canManage = canEdit();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFormation, setEditingFormation] = useState<Formation | null>(null);

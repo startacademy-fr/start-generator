@@ -34,14 +34,13 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/formations" element={<RoleGuard allowedRoles={['admin', 'assistante']}><FormationsCatalogue /></RoleGuard>} />
-              <Route path="/sessions" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Sessions /></RoleGuard>} />
-              <Route path="/formateurs" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Formateurs /></RoleGuard>} />
-              <Route path="/stagiaires" element={<RoleGuard allowedRoles={['admin', 'assistante']}><Stagiaires /></RoleGuard>} />
-              
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/audit" element={<RoleGuard allowedRoles={['admin', 'assistante']}><AuditDashboard /></RoleGuard>} />
-              <Route path="/access-tokens" element={<RoleGuard allowedRoles={['admin', 'assistante']}><AccessTokens /></RoleGuard>} />
+              <Route path="/formations" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante', 'lecteur']}><FormationsCatalogue /></RoleGuard>} />
+              <Route path="/sessions" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante', 'lecteur']}><Sessions /></RoleGuard>} />
+              <Route path="/formateurs" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante', 'lecteur']}><Formateurs /></RoleGuard>} />
+              <Route path="/stagiaires" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante', 'lecteur']}><Stagiaires /></RoleGuard>} />
+              <Route path="/documents" element={<RoleGuard allowedRoles={['super_admin', 'assistante', 'formateur']}><Documents /></RoleGuard>} />
+              <Route path="/audit" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante']}><AuditDashboard /></RoleGuard>} />
+              <Route path="/access-tokens" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante']}><AccessTokens /></RoleGuard>} />
               <Route path="/settings" element={<Dashboard />} />
             </Route>
             <Route path="*" element={<NotFound />} />

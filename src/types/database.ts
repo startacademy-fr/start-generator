@@ -1,6 +1,6 @@
 // Custom types for the Qualiopi Generator application
 
-export type AppRole = 'admin' | 'assistante' | 'formateur';
+export type AppRole = 'super_admin' | 'admin' | 'assistante' | 'formateur' | 'lecteur';
 
 export type InscriptionStatut = 'inscrit' | 'en_cours' | 'termine' | 'abandonne';
 
