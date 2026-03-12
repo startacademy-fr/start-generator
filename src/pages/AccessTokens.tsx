@@ -111,11 +111,13 @@ export default function AccessTokens() {
   // Generate tokens mutation
   const generateMutation = useMutation({
     mutationFn: async (formationId: string) => {
-      const formationInscriptions = inscriptions?.filter(i => i.formation.id === formationId) || [];
+      const targetInscriptions = formationId === '__all__'
+        ? inscriptions || []
+        : inscriptions?.filter(i => i.formation.id === formationId) || [];
       const links: { stagiaire: string; link: string }[] = [];
       const expiresAt = addDays(new Date(), 30).toISOString();
 
-      for (const inscription of formationInscriptions) {
+      for (const inscription of targetInscriptions) {
         // Check if token already exists for this inscription
         const existingToken = tokens?.find(t => t.inscription_id === inscription.id && !t.revoked);
         
@@ -477,6 +479,7 @@ export default function AccessTokens() {
                       <SelectValue placeholder="Sélectionner une formation" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__all__">🔄 Toutes les sessions (liens manquants uniquement)</SelectItem>
                       {formations?.map(f => (
                         <SelectItem key={f.id} value={f.id}>
                           {f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})
@@ -490,7 +493,10 @@ export default function AccessTokens() {
                   <div className="bg-muted/50 rounded-lg p-3 text-sm">
                     <p className="font-medium mb-1">Stagiaires concernés</p>
                     <p className="text-muted-foreground">
-                      {inscriptions?.filter(i => i.formation.id === createFormation).length || 0} stagiaire(s)
+                      {createFormation === '__all__' 
+                        ? `${inscriptions?.filter(i => !tokens?.find(t => t.inscription_id === i.id && !t.revoked)).length || 0} stagiaire(s) sans lien actif (sur ${inscriptions?.length || 0} total)`
+                        : `${inscriptions?.filter(i => i.formation.id === createFormation).length || 0} stagiaire(s)`
+                      }
                     </p>
                   </div>
                 )}
