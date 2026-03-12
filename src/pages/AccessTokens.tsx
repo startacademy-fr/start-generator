@@ -64,6 +64,7 @@ export default function AccessTokens() {
   const [generatedLinks, setGeneratedLinks] = useState<{ stagiaire: string; link: string }[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [regeneratedLink, setRegeneratedLink] = useState<{ stagiaire: string; link: string } | null>(null);
 
   // Fetch formations
   const { data: formations } = useQuery({
