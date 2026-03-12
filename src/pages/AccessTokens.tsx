@@ -111,11 +111,13 @@ export default function AccessTokens() {
   // Generate tokens mutation
   const generateMutation = useMutation({
     mutationFn: async (formationId: string) => {
-      const formationInscriptions = inscriptions?.filter(i => i.formation.id === formationId) || [];
+      const targetInscriptions = formationId === '__all__'
+        ? inscriptions || []
+        : inscriptions?.filter(i => i.formation.id === formationId) || [];
       const links: { stagiaire: string; link: string }[] = [];
       const expiresAt = addDays(new Date(), 30).toISOString();
 
-      for (const inscription of formationInscriptions) {
+      for (const inscription of targetInscriptions) {
         // Check if token already exists for this inscription
         const existingToken = tokens?.find(t => t.inscription_id === inscription.id && !t.revoked);
         
