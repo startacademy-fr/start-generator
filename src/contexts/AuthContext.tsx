@@ -14,9 +14,17 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   hasRole: (role: AppRole) => boolean;
+  isSuperAdmin: () => boolean;
   isAdmin: () => boolean;
   isAssistante: () => boolean;
   isFormateur: () => boolean;
+  isLecteur: () => boolean;
+  /** Super admin or admin (full management, except role management for admin) */
+  canManageAll: () => boolean;
+  /** Can create/edit/delete data (super_admin, admin, assistante) */
+  canEdit: () => boolean;
+  /** Can generate documents (super_admin and assistante only, NOT admin) */
+  canGenerateDocuments: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfileAndRoles = async (userId: string) => {
     try {
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -41,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(profileData as Profile);
       }
 
-      // Fetch roles
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('role')
@@ -56,14 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer Supabase calls with setTimeout
           setTimeout(() => {
             fetchProfileAndRoles(session.user.id);
           }, 0);
@@ -76,7 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -92,25 +95,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
   const signUp = async (email: string, password: string, prenom: string, nom: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: {
-          prenom,
-          nom,
-        },
+        data: { prenom, nom },
       },
     });
     return { error };
@@ -124,17 +120,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     const redirectUrl = `${window.location.origin}/auth?reset=true`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
     return { error };
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  const isAdmin = () => hasRole('admin');
+  const isSuperAdmin = () => hasRole('super_admin');
+  const isAdmin = () => hasRole('admin') || hasRole('super_admin');
   const isAssistante = () => hasRole('assistante');
   const isFormateur = () => hasRole('formateur');
+  const isLecteur = () => hasRole('lecteur');
+  const canManageAll = () => isSuperAdmin() || hasRole('admin');
+  const canEdit = () => isSuperAdmin() || hasRole('admin') || hasRole('assistante');
+  const canGenerateDocuments = () => isSuperAdmin() || hasRole('assistante');
 
   return (
     <AuthContext.Provider
@@ -149,9 +147,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         resetPassword,
         hasRole,
+        isSuperAdmin,
         isAdmin,
         isAssistante,
         isFormateur,
+        isLecteur,
+        canManageAll,
+        canEdit,
+        canGenerateDocuments,
       }}
     >
       {children}

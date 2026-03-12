@@ -21,16 +21,15 @@ import { useState } from 'react';
 import logo from '@/assets/logo.png';
 
 const allNavigation = [
-  { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'assistante', 'formateur'] },
-  { name: 'Formations', href: '/formations', icon: BookOpen, roles: ['admin', 'assistante'] },
-  { name: 'Sessions', href: '/sessions', icon: CalendarDays, roles: ['admin', 'assistante'] },
-  { name: 'Formateurs', href: '/formateurs', icon: UserCog, roles: ['admin', 'assistante'] },
-  { name: 'Stagiaires', href: '/stagiaires', icon: Users, roles: ['admin', 'assistante'] },
-  
-  { name: 'Documents', href: '/documents', icon: FileText, roles: ['admin', 'assistante', 'formateur'] },
-  { name: 'Suivi Audit', href: '/audit', icon: ClipboardCheck, roles: ['admin', 'assistante'] },
+  { name: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'assistante', 'formateur', 'lecteur'] },
+  { name: 'Formations', href: '/formations', icon: BookOpen, roles: ['super_admin', 'admin', 'assistante', 'lecteur'] },
+  { name: 'Sessions', href: '/sessions', icon: CalendarDays, roles: ['super_admin', 'admin', 'assistante', 'lecteur'] },
+  { name: 'Formateurs', href: '/formateurs', icon: UserCog, roles: ['super_admin', 'admin', 'assistante', 'lecteur'] },
+  { name: 'Stagiaires', href: '/stagiaires', icon: Users, roles: ['super_admin', 'admin', 'assistante', 'lecteur'] },
+  { name: 'Documents', href: '/documents', icon: FileText, roles: ['super_admin', 'assistante', 'formateur'] },
+  { name: 'Suivi Audit', href: '/audit', icon: ClipboardCheck, roles: ['super_admin', 'admin', 'assistante'] },
   { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
-  { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['admin', 'assistante'] },
+  { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['super_admin', 'admin', 'assistante'] },
 ];
 
 export function AppSidebar() {
@@ -38,15 +37,16 @@ export function AppSidebar() {
   const { profile, roles, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Filter navigation based on user roles
   const navigation = allNavigation.filter((item) =>
     item.roles.some((role) => roles.includes(role as any))
   );
 
   const getRoleLabel = () => {
+    if (roles.includes('super_admin')) return 'Super Administrateur';
     if (roles.includes('admin')) return 'Administrateur';
     if (roles.includes('assistante')) return 'Assistante';
     if (roles.includes('formateur')) return 'Formateur';
+    if (roles.includes('lecteur')) return 'Lecteur';
     return 'Utilisateur';
   };
 
