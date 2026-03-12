@@ -552,6 +552,35 @@ export default function AccessTokens() {
         </DialogContent>
       </Dialog>
 
+      {/* Regenerated link dialog */}
+      <Dialog open={!!regeneratedLink} onOpenChange={(open) => !open && setRegeneratedLink(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Nouveau lien généré
+            </DialogTitle>
+            <DialogDescription>
+              L'ancien lien a été révoqué. Copiez le nouveau lien ci-dessous.
+            </DialogDescription>
+          </DialogHeader>
+          {regeneratedLink && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">{regeneratedLink.stagiaire}</span>
+                <Button size="sm" variant="outline" onClick={() => copyToClipboard(regeneratedLink.link)}>
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copier
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setRegeneratedLink(null)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation dialog */}
       <DeleteConfirmDialog
         open={isDeleteDialogOpen}
