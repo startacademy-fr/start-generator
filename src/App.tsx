@@ -16,6 +16,7 @@ import Stagiaires from "./pages/Stagiaires";
 import Documents from "./pages/Documents";
 import AuditDashboard from "./pages/AuditDashboard";
 import AccessTokens from "./pages/AccessTokens";
+import RoleManagement from "./pages/RoleManagement";
 import StagiairePortal from "./pages/StagiairePortal";
 import NotFound from "./pages/NotFound";
 
