@@ -416,14 +416,17 @@ export default function AccessTokens() {
                       <div className="flex justify-end gap-1">
                         {status === 'active' && (
                           <>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              title="Le lien n'est disponible qu'au moment de la génération"
-                              disabled
-                            >
-                              <Copy className="h-4 w-4 opacity-40" />
-                            </Button>
+                            {canManage && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                title="Régénérer et copier le lien"
+                                onClick={() => regenerateMutation.mutate({ tokenId: token.id, inscriptionId: token.inscription_id })}
+                                disabled={regenerateMutation.isPending}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            )}
                             {canManage && (
                               <Button 
                                 variant="ghost" 
