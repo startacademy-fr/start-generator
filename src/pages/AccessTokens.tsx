@@ -196,6 +196,36 @@ export default function AccessTokens() {
     },
   });
 
+  // Regenerate token mutation
+  const regenerateMutation = useMutation({
+    mutationFn: async ({ tokenId, inscriptionId }: { tokenId: string; inscriptionId: string }) => {
+      // Revoke old token
+      await supabase.from('access_tokens').update({ revoked: true }).eq('id', tokenId);
+      
+      // Generate new token
+      const expiresAt = addDays(new Date(), 30).toISOString();
+      const { data, error } = await supabase.functions.invoke('manage-token', {
+        body: { action: 'generate', inscription_id: inscriptionId, expires_at: expiresAt },
+      });
+      if (error) throw error;
+      
+      const inscription = getInscriptionDetails(inscriptionId);
+      const link = `${window.location.origin}/portail?token=${encodeURIComponent(data.token)}`;
+      return { 
+        stagiaire: inscription ? `${inscription.stagiaire.prenom} ${inscription.stagiaire.nom}` : '', 
+        link 
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['access-tokens'] });
+      setRegeneratedLink(result);
+      toast.success('Nouveau lien généré');
+    },
+    onError: (error) => {
+      toast.error('Erreur: ' + error.message);
+    },
+  });
+
   const copyToClipboard = (link: string) => {
     navigator.clipboard.writeText(link);
     toast.success('Lien copié !');
