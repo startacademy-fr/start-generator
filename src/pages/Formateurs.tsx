@@ -48,9 +48,9 @@ import type { Profile } from '@/types/database';
 import { ImportFormateursDialog } from '@/components/ImportFormateursDialog';
 
 export default function Formateurs() {
-  const { isAdmin } = useAuth();
+  const { canManageAll } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = isAdmin();
+  const canManage = canManageAll();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFormateur, setEditingFormateur] = useState<Profile | null>(null);
