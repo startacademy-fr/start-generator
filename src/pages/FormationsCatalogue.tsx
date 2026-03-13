@@ -307,9 +307,19 @@ export default function FormationsCatalogue() {
         )}
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Rechercher une formation..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Rechercher une formation..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox
+            checked={filterIncomplete}
+            onCheckedChange={(checked) => setFilterIncomplete(!!checked)}
+          />
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span className="text-sm text-muted-foreground">Fiches incomplètes uniquement</span>
+        </label>
       </div>
 
       <div className="rounded-lg border bg-card">
