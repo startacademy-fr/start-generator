@@ -268,9 +268,14 @@ export default function FormationsCatalogue() {
                     <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="programme">Programme de formation (optionnel)</Label>
-                    <Textarea id="programme" value={programme} onChange={(e) => setProgramme(e.target.value)} rows={4} placeholder="Collez ici le programme détaillé..." />
-                    <p className="text-xs text-muted-foreground">Le programme est utilisé par l'IA pour générer des compétences pertinentes.</p>
+                    <Label htmlFor="objectifs">Objectifs de la formation</Label>
+                    <Textarea id="objectifs" value={objectifs} onChange={(e) => setObjectifs(e.target.value)} rows={3} placeholder="Ex: À l'issue de la formation, le stagiaire sera capable de..." />
+                    <p className="text-xs text-muted-foreground">Les objectifs sont utilisés par l'IA pour générer les documents Qualiopi (QCM, compétences, grilles…).</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="programme">Programme détaillé (optionnel)</Label>
+                    <Textarea id="programme" value={programme} onChange={(e) => setProgramme(e.target.value)} rows={4} placeholder="Collez ici le programme détaillé de la formation (modules, chapitres…)" />
+                    <p className="text-xs text-muted-foreground">Le programme détaillé enrichit la génération du déroulé pédagogique et de l'analyse du besoin.</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Programme PDF (optionnel)</Label>
