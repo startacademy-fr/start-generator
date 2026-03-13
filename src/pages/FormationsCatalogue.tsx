@@ -276,6 +276,8 @@ export default function FormationsCatalogue() {
                 setIsBulkExtracting(true);
                 setBulkProgress({ current: 0, total: toExtract.length });
                 let success = 0;
+                let retryCount = 0;
+                const maxRetries = 3;
                 const { data: session } = await supabase.auth.getSession();
                 for (let i = 0; i < toExtract.length; i++) {
                   setBulkProgress({ current: i + 1, total: toExtract.length });
@@ -286,6 +288,7 @@ export default function FormationsCatalogue() {
                       body: JSON.stringify({ pdfUrl: toExtract[i].programme_pdf_url }),
                     });
                     if (response.ok) {
+                      retryCount = 0; // Reset retry count on success
                       const data = await response.json();
                       const updates: Record<string, string> = {};
                       if (data.objectifs && !toExtract[i].objectifs) updates.objectifs = data.objectifs;
@@ -295,9 +298,14 @@ export default function FormationsCatalogue() {
                         success++;
                       }
                     } else if (response.status === 429) {
-                      toast.warning('Limite de requêtes atteinte, pause de 30s…');
+                      if (retryCount >= maxRetries) {
+                        console.error(`Max retries exceeded for ${toExtract[i].titre}`);
+                        continue;
+                      }
+                      retryCount++;
+                      toast.warning(`Limite de requêtes atteinte (tentative ${retryCount}/${maxRetries}), pause de 30s…`);
                       await new Promise(r => setTimeout(r, 30000));
-                      i--; // retry
+                      i--; // retry current item
                       continue;
                     }
                     // Small delay to avoid rate limiting
