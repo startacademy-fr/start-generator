@@ -18,6 +18,7 @@ interface ParsedFormation {
   reference: string;
   titre: string;
   nombre_heures: number | null;
+  objectifs: string | null;
   programme: string | null;
   status: 'new' | 'duplicate' | 'error';
   errorMessage?: string;
