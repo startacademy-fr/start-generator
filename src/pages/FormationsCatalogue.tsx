@@ -391,13 +391,14 @@ export default function FormationsCatalogue() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {f.programme && <Badge variant="secondary" className="text-xs">Texte</Badge>}
+                      {f.objectifs && <Badge variant="secondary" className="text-xs">Objectifs</Badge>}
+                      {f.programme && <Badge variant="secondary" className="text-xs">Programme</Badge>}
                       {f.programme_pdf_url && (
                         <Badge variant="outline" className="text-xs gap-1 cursor-pointer" onClick={() => window.open(f.programme_pdf_url!, '_blank')}>
                           <FileText className="h-3 w-3" /> PDF
                         </Badge>
                       )}
-                      {!f.programme && !f.programme_pdf_url && <span className="text-muted-foreground text-sm">—</span>}
+                      {!f.objectifs && !f.programme && !f.programme_pdf_url && <span className="text-muted-foreground text-sm">—</span>}
                     </div>
                   </TableCell>
                   <TableCell>
