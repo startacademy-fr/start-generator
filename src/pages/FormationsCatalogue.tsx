@@ -25,6 +25,7 @@ interface FormationCatalogue {
   reference: string;
   titre: string;
   nombre_heures: number | null;
+  objectifs: string | null;
   programme: string | null;
   programme_pdf_url: string | null;
   created_at: string;
