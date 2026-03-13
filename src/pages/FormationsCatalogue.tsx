@@ -207,7 +207,7 @@ export default function FormationsCatalogue() {
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
 
-  const isIncomplete = (f: FormationCatalogue) => !f.programme || !f.programme_pdf_url;
+  const isIncomplete = (f: FormationCatalogue) => !f.objectifs || !f.programme_pdf_url;
 
   const filtered = formations?.filter((f) =>
     f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
