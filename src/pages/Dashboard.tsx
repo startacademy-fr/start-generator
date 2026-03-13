@@ -88,6 +88,7 @@ export default function Dashboard() {
     tauxCompletionDossiers: null,
   });
   const [recentFormations, setRecentFormations] = useState<RecentFormation[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
