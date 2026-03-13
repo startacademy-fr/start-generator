@@ -272,6 +272,68 @@ export default function Dashboard() {
             inscriptions_count: (f.inscriptions as { count: number }[])?.[0]?.count || 0,
           })) || []
         );
+
+        // Build alerts
+        const alertItems: AlertItem[] = [];
+
+        // Formations without formateur
+        const { data: noFormateurData } = await supabase
+          .from('formations')
+          .select('id')
+          .is('formateur_id', null)
+          .eq('archived', false);
+        if (noFormateurData && noFormateurData.length > 0) {
+          alertItems.push({
+            id: 'no-formateur',
+            type: 'warning',
+            message: `${noFormateurData.length} session(s) sans formateur assigné`,
+            link: '/formations',
+            icon: UserX,
+          });
+        }
+
+        // Unresolved reclamations
+        const { data: openReclamations } = await supabase
+          .from('reclamations')
+          .select('id')
+          .eq('statut', 'en_cours');
+        if (openReclamations && openReclamations.length > 0) {
+          alertItems.push({
+            id: 'open-reclamations',
+            type: 'error',
+            message: `${openReclamations.length} réclamation(s) non traitée(s)`,
+            link: '/audit',
+            icon: MessageSquare,
+          });
+        }
+
+        // Incomplete catalogue entries (no objectives or no PDF)
+        const { data: incompleteCatalogue } = await supabase
+          .from('formations_catalogue')
+          .select('id')
+          .or('objectifs.is.null,programme_pdf_url.is.null');
+        if (incompleteCatalogue && incompleteCatalogue.length > 0) {
+          alertItems.push({
+            id: 'incomplete-catalogue',
+            type: 'info',
+            message: `${incompleteCatalogue.length} formation(s) catalogue incomplète(s)`,
+            link: '/catalogue',
+            icon: FileWarning,
+          });
+        }
+
+        // Low document completion rate
+        if (tauxCompletionDossiers !== null && tauxCompletionDossiers < 50) {
+          alertItems.push({
+            id: 'low-completion',
+            type: 'warning',
+            message: `Taux de complétion des dossiers faible (${tauxCompletionDossiers}%)`,
+            link: '/documents',
+            icon: AlertTriangle,
+          });
+        }
+
+        setAlerts(alertItems);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
