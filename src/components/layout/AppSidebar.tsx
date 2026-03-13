@@ -12,8 +12,7 @@ import {
   UserCog,
   BookOpen,
   CalendarDays,
-  ClipboardCheck,
-  ShieldCheck
+  ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
