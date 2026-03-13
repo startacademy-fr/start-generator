@@ -839,7 +839,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-deroule', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           nombreHeures: formation.nombre_heures,
         },
       });
