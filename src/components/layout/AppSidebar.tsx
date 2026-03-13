@@ -12,8 +12,7 @@ import {
   UserCog,
   BookOpen,
   CalendarDays,
-  ClipboardCheck,
-  ShieldCheck
+  ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,7 +30,6 @@ const allNavigation = [
   { name: 'Suivi Audit', href: '/audit', icon: ClipboardCheck, roles: ['super_admin', 'admin', 'assistante'] },
   { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
   { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['super_admin', 'admin', 'assistante'] },
-  { name: 'Gestion des rôles', href: '/roles', icon: ShieldCheck, roles: ['super_admin'] },
 ];
 
 export function AppSidebar() {

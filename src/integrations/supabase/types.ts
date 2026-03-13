@@ -330,6 +330,48 @@ export type Database = {
           },
         ]
       }
+      organisme_settings: {
+        Row: {
+          adresse: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          nda: string | null
+          nom_organisme: string
+          siret: string | null
+          site_web: string | null
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          nda?: string | null
+          nom_organisme?: string
+          siret?: string | null
+          site_web?: string | null
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          nda?: string | null
+          nom_organisme?: string
+          siret?: string | null
+          site_web?: string | null
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pieces_jointes: {
         Row: {
           created_at: string
