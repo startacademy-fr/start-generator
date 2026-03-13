@@ -177,12 +177,14 @@ export default function FormationsCatalogue() {
       setEditing(formation);
       setTitre(formation.titre);
       setNombreHeures(formation.nombre_heures?.toString() || '');
+      setObjectifs(formation.objectifs || '');
       setProgramme(formation.programme || '');
       setExistingPdfUrl(formation.programme_pdf_url || null);
     } else {
       setEditing(null);
       setTitre('');
       setNombreHeures('');
+      setObjectifs('');
       setProgramme('');
       setExistingPdfUrl(null);
     }
