@@ -512,7 +512,72 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts */}
+      {/* Alerts & Notifications */}
+      {alerts.length > 0 && (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-warning" />
+              <CardTitle className="text-base">Alertes & Notifications</CardTitle>
+              <Badge variant="secondary" className="ml-auto">{alerts.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {alerts.map((alert) => (
+              <Link key={alert.id} to={alert.link}>
+                <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+                  alert.type === 'error' ? 'border-destructive/30 bg-destructive/5' :
+                  alert.type === 'warning' ? 'border-warning/30 bg-warning/5' :
+                  'border-border bg-card'
+                }`}>
+                  <alert.icon className={`h-4 w-4 shrink-0 ${
+                    alert.type === 'error' ? 'text-destructive' :
+                    alert.type === 'warning' ? 'text-warning' :
+                    'text-muted-foreground'
+                  }`} />
+                  <span className="text-sm font-medium flex-1">{alert.message}</span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progress Bars */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Complétion des dossiers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold mb-2">{stats.tauxCompletionDossiers ?? 0}%</div>
+            <Progress value={stats.tauxCompletionDossiers ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">Inscriptions avec 7+ documents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Taux de réussite QCM</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold mb-2">{stats.tauxReussiteQCM ?? '—'}{stats.tauxReussiteQCM != null ? '%' : ''}</div>
+            <Progress value={stats.tauxReussiteQCM ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">Score moyen {n1Year}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Satisfaction stagiaires</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold mb-2">{stats.tauxSatisfaction ?? '—'}{stats.tauxSatisfaction != null ? '%' : ''}</div>
+            <Progress value={stats.tauxSatisfaction ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">Satisfaction à froid {n1Year}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {(stats.heuresParFormateur.length > 0 || stats.formationsParType.length > 0) && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Pie chart - Heures par formateur */}
