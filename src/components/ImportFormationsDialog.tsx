@@ -101,6 +101,7 @@ export function ImportFormationsDialog({ open, onOpenChange, existingReferences 
           reference: f.reference,
           titre: f.titre,
           nombre_heures: f.nombre_heures,
+          objectifs: f.objectifs,
           programme: f.programme,
         }));
         const { error } = await supabase.from('formations_catalogue').insert(batch);
