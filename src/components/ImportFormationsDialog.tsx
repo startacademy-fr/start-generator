@@ -59,11 +59,12 @@ export function ImportFormationsDialog({ open, onOpenChange, existingReferences 
           const titre = row['Intitulé de la formation'] || row['Nom du produit'] || '';
           const customId = row['Custom ID'] || '';
           const heuresRaw = row['Durée de formation (en heures)'] || '';
-          const programme = row['Contenu de la formation'] || '';
+          const objectifsRaw = row['Objectifs de la formation'] || row['Objectifs'] || '';
+          const programme = row['Contenu de la formation'] || row['Programme'] || '';
           const reference = customId || generateReference();
 
           if (!titre.trim()) {
-            return { reference, titre, nombre_heures: null, programme: null, status: 'error' as const, errorMessage: 'Titre manquant' };
+            return { reference, titre, nombre_heures: null, objectifs: null, programme: null, status: 'error' as const, errorMessage: 'Titre manquant' };
           }
 
           const isDuplicate = existingReferences.includes(reference);
@@ -72,6 +73,7 @@ export function ImportFormationsDialog({ open, onOpenChange, existingReferences 
             reference,
             titre: titre.trim(),
             nombre_heures: heuresRaw ? parseInt(String(heuresRaw)) || null : null,
+            objectifs: objectifsRaw?.trim() || null,
             programme: programme?.trim() || null,
             status: isDuplicate ? 'duplicate' as const : 'new' as const,
           };
