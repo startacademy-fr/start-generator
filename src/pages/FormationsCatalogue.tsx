@@ -53,6 +53,7 @@ export default function FormationsCatalogue() {
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const { data: formations, isLoading } = useQuery({
     queryKey: ['formations-catalogue'],
