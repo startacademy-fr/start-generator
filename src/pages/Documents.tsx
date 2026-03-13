@@ -627,7 +627,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-qcm', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           nombreQuestions: 13,
         },
       });
