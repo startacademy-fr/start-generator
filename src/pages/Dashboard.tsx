@@ -51,6 +51,14 @@ interface DashboardStats {
   tauxCompletionDossiers: number | null;
 }
 
+interface AlertItem {
+  id: string;
+  type: 'warning' | 'error' | 'info';
+  message: string;
+  link: string;
+  icon: typeof AlertTriangle;
+}
+
 interface RecentFormation {
   id: string;
   titre: string;
