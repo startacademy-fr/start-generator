@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Sparkles, Loader2, Wand2 } from 'lucide-react';
+import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Sparkles, Loader2, Wand2, Download } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
