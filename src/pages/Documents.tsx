@@ -18,6 +18,9 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -1354,41 +1357,120 @@ export default function Documents() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Session de formation</label>
-                  <Select value={generateFormation} onValueChange={setGenerateFormation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une session" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formations?.map(f => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {(() => {
+                    // Calculate completion per formation
+                    const formationStats = formations?.map(f => {
+                      const formInscriptions = inscriptions?.filter(i => i.formation_id === f.id) || [];
+                      const totalExpected = formInscriptions.length * DOCUMENT_TYPES.length;
+                      const existingDocs = formInscriptions.reduce((count, insc) => {
+                        return count + (documents?.filter(d => d.inscription_id === insc.id).length || 0);
+                      }, 0);
+                      const isComplete = totalExpected > 0 && existingDocs >= totalExpected;
+                      const missingCount = totalExpected - existingDocs;
+                      return { ...f, totalExpected, existingDocs, isComplete, missingCount, stagiaireCount: formInscriptions.length };
+                    }) || [];
+
+                    const incomplete = formationStats.filter(f => !f.isComplete && f.stagiaireCount > 0);
+                    const complete = formationStats.filter(f => f.isComplete && f.stagiaireCount > 0);
+                    const noStagiaires = formationStats.filter(f => f.stagiaireCount === 0);
+
+                    return (
+                      <Select value={generateFormation} onValueChange={setGenerateFormation}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une session" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {incomplete.length > 0 && (
+                            <>
+                              <SelectLabel className="text-xs text-destructive font-semibold flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" /> Documents manquants
+                              </SelectLabel>
+                              {incomplete.map(f => (
+                                <SelectItem key={f.id} value={f.id}>
+                                  <span className="flex items-center gap-2">
+                                    <span className="inline-flex items-center justify-center rounded-full bg-destructive/10 text-destructive text-[10px] font-bold min-w-[20px] h-5 px-1">
+                                      {f.missingCount}
+                                    </span>
+                                    <span>{f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})</span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          {complete.length > 0 && (
+                            <>
+                              <SelectSeparator />
+                              <SelectLabel className="text-xs text-green-600 font-semibold flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Dossiers complets
+                              </SelectLabel>
+                              {complete.map(f => (
+                                <SelectItem key={f.id} value={f.id}>
+                                  <span className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                    <span className="text-muted-foreground">{f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})</span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          {noStagiaires.length > 0 && (
+                            <>
+                              <SelectSeparator />
+                              <SelectLabel className="text-xs text-muted-foreground font-semibold">
+                                Sans stagiaires
+                              </SelectLabel>
+                              {noStagiaires.map(f => (
+                                <SelectItem key={f.id} value={f.id} disabled>
+                                  <span className="text-muted-foreground">{f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})</span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Types de documents</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {DOCUMENT_TYPES.map(docType => (
-                      <div key={docType.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={docType.id}
-                          checked={selectedDocTypes.includes(docType.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedDocTypes([...selectedDocTypes, docType.id]);
-                            } else {
-                              setSelectedDocTypes(selectedDocTypes.filter(d => d !== docType.id));
-                            }
-                          }}
-                        />
-                        <label htmlFor={docType.id} className="text-sm">
-                          {docType.icon} {docType.label}
-                        </label>
-                      </div>
-                    ))}
+                    {DOCUMENT_TYPES.map(docType => {
+                      // Show which doc types are already generated for selected formation
+                      const alreadyGenerated = generateFormation ? (() => {
+                        const formInscriptions = inscriptions?.filter(i => i.formation_id === generateFormation) || [];
+                        const total = formInscriptions.length;
+                        const generated = formInscriptions.filter(insc => 
+                          documents?.some(d => d.inscription_id === insc.id && d.type === docType.id)
+                        ).length;
+                        return { total, generated };
+                      })() : null;
+
+                      const isFullyGenerated = alreadyGenerated && alreadyGenerated.total > 0 && alreadyGenerated.generated >= alreadyGenerated.total;
+
+                      return (
+                        <div key={docType.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={docType.id}
+                            checked={selectedDocTypes.includes(docType.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDocTypes([...selectedDocTypes, docType.id]);
+                              } else {
+                                setSelectedDocTypes(selectedDocTypes.filter(d => d !== docType.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={docType.id} className={`text-sm flex items-center gap-1 ${isFullyGenerated ? 'text-muted-foreground line-through' : ''}`}>
+                            {docType.icon} {docType.label}
+                            {isFullyGenerated && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                            {alreadyGenerated && !isFullyGenerated && alreadyGenerated.generated > 0 && (
+                              <span className="text-[10px] text-amber-600 font-medium">({alreadyGenerated.generated}/{alreadyGenerated.total})</span>
+                            )}
+                          </label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1397,6 +1479,9 @@ export default function Documents() {
                     <p className="font-medium mb-1">Résumé</p>
                     <p className="text-muted-foreground">
                       {inscriptions?.filter(i => i.formation_id === generateFormation).length || 0} stagiaire(s) × {selectedDocTypes.length} type(s) de document
+                    </p>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      💡 Les documents déjà existants ne seront pas régénérés
                     </p>
                   </div>
                 )}
