@@ -376,10 +376,10 @@ export default function FormationsCatalogue() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
-                                {!f.programme && !f.programme_pdf_url
-                                  ? 'Objectifs pédagogiques et programme PDF manquants'
-                                  : !f.programme
-                                  ? 'Objectifs pédagogiques (texte) manquants'
+                                {!f.objectifs && !f.programme_pdf_url
+                                  ? 'Objectifs de formation et programme PDF manquants'
+                                  : !f.objectifs
+                                  ? 'Objectifs de formation manquants'
                                   : 'Programme PDF manquant'}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">L'IA utilise ces informations pour générer des documents pertinents</p>
