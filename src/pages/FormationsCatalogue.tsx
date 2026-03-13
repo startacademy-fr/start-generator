@@ -54,6 +54,8 @@ export default function FormationsCatalogue() {
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isBulkExtracting, setIsBulkExtracting] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
   const { data: formations, isLoading } = useQuery({
     queryKey: ['formations-catalogue'],
