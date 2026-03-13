@@ -14,7 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportFormationsDialog } from '@/components/ImportFormationsDialog';
 
@@ -41,6 +43,7 @@ export default function FormationsCatalogue() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [sortField, setSortField] = useState<'titre' | 'sessions' | 'reference'>('titre');
   const [sortAsc, setSortAsc] = useState(true);
+  const [filterIncomplete, setFilterIncomplete] = useState(false);
 
   // Form state
   const [titre, setTitre] = useState('');
@@ -199,10 +202,13 @@ export default function FormationsCatalogue() {
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
 
+  const isIncomplete = (f: FormationCatalogue) => !f.programme || !f.programme_pdf_url;
+
   const filtered = formations?.filter((f) =>
     f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.reference.toLowerCase().includes(searchQuery.toLowerCase())
-  )?.sort((a, b) => {
+  )?.filter((f) => !filterIncomplete || isIncomplete(f))
+  ?.sort((a, b) => {
     let cmp = 0;
     if (sortField === 'titre') {
       cmp = a.titre.localeCompare(b.titre, 'fr');
@@ -301,9 +307,19 @@ export default function FormationsCatalogue() {
         )}
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Rechercher une formation..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Rechercher une formation..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox
+            checked={filterIncomplete}
+            onCheckedChange={(checked) => setFilterIncomplete(!!checked)}
+          />
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span className="text-sm text-muted-foreground">Fiches incomplètes uniquement</span>
+        </label>
       </div>
 
       <div className="rounded-lg border bg-card">
@@ -339,7 +355,30 @@ export default function FormationsCatalogue() {
                   <TableCell>
                     <Badge variant="outline" className="font-mono text-xs">{f.reference}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{f.titre}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {f.titre}
+                      {isIncomplete(f) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {!f.programme && !f.programme_pdf_url
+                                  ? 'Objectifs pédagogiques et programme PDF manquants'
+                                  : !f.programme
+                                  ? 'Objectifs pédagogiques (texte) manquants'
+                                  : 'Programme PDF manquant'}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">L'IA utilise ces informations pour générer des documents pertinents</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {f.programme && <Badge variant="secondary" className="text-xs">Texte</Badge>}
