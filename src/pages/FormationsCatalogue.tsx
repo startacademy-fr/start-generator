@@ -116,7 +116,7 @@ export default function FormationsCatalogue() {
       } else {
         const { data, error } = await supabase
           .from('formations_catalogue')
-          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, programme: programme || null, reference: generateReference() })
+          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null, reference: generateReference() })
           .select('id')
           .single();
         if (error) throw error;
