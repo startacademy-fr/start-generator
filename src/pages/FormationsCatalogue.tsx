@@ -145,6 +145,7 @@ export default function FormationsCatalogue() {
         .insert({
           titre: source.titre + ' (copie)',
           nombre_heures: source.nombre_heures,
+          objectifs: source.objectifs,
           programme: source.programme,
           programme_pdf_url: source.programme_pdf_url,
           reference: generateReference(),
