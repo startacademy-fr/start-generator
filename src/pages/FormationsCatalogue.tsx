@@ -269,10 +269,17 @@ export default function FormationsCatalogue() {
         </div>
         {canManage && (
           <div className="flex gap-2 flex-wrap">
-            {formations && formations.some(f => f.programme_pdf_url && (!f.objectifs || !f.programme)) && (
+            {formations && formations.some(f => f.programme_pdf_url) && (
               <Button variant="outline" disabled={isBulkExtracting} onClick={async () => {
-                const toExtract = formations.filter(f => f.programme_pdf_url && (!f.objectifs || !f.programme));
-                if (toExtract.length === 0) { toast.info('Toutes les formations sont déjà complètes'); return; }
+                const withPdf = formations.filter(f => f.programme_pdf_url);
+                const incomplete = withPdf.filter(f => !f.objectifs || !f.programme);
+                const toExtract = incomplete.length > 0 ? incomplete : withPdf;
+                const isOverwrite = incomplete.length === 0;
+                
+                if (isOverwrite && !confirm(`Toutes les ${withPdf.length} formations avec PDF ont déjà des objectifs et un programme. Voulez-vous tout ré-extraire et écraser les textes existants ?`)) {
+                  return;
+                }
+                
                 setIsBulkExtracting(true);
                 setBulkProgress({ current: 0, total: toExtract.length });
                 let success = 0;
@@ -288,11 +295,11 @@ export default function FormationsCatalogue() {
                       body: JSON.stringify({ pdfUrl: toExtract[i].programme_pdf_url }),
                     });
                     if (response.ok) {
-                      retryCount = 0; // Reset retry count on success
+                      retryCount = 0;
                       const data = await response.json();
                       const updates: Record<string, string> = {};
-                      if (data.objectifs && !toExtract[i].objectifs) updates.objectifs = data.objectifs;
-                      if (data.programme && !toExtract[i].programme) updates.programme = data.programme;
+                      if (data.objectifs && (isOverwrite || !toExtract[i].objectifs)) updates.objectifs = data.objectifs;
+                      if (data.programme && (isOverwrite || !toExtract[i].programme)) updates.programme = data.programme;
                       if (Object.keys(updates).length > 0) {
                         await supabase.from('formations_catalogue').update(updates).eq('id', toExtract[i].id);
                         success++;
@@ -305,10 +312,9 @@ export default function FormationsCatalogue() {
                       retryCount++;
                       toast.warning(`Limite de requêtes atteinte (tentative ${retryCount}/${maxRetries}), pause de 30s…`);
                       await new Promise(r => setTimeout(r, 30000));
-                      i--; // retry current item
+                      i--;
                       continue;
                     }
-                    // Small delay to avoid rate limiting
                     if (i < toExtract.length - 1) await new Promise(r => setTimeout(r, 3000));
                   } catch (e) {
                     console.error(`Extraction failed for ${toExtract[i].titre}:`, e);
@@ -319,7 +325,7 @@ export default function FormationsCatalogue() {
                 toast.success(`${success}/${toExtract.length} formations mises à jour`);
               }}>
                 {isBulkExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                {isBulkExtracting ? `Extraction ${bulkProgress.current}/${bulkProgress.total}…` : 'Extraire tout (IA)'}
+                {isBulkExtracting ? `Extraction ${bulkProgress.current}/${bulkProgress.total}…` : `Extraire tout (IA)${formations.filter(f => f.programme_pdf_url && (!f.objectifs || !f.programme)).length > 0 ? ` (${formations.filter(f => f.programme_pdf_url && (!f.objectifs || !f.programme)).length} incomplètes)` : ''}`}
               </Button>
             )}
             <Button variant="outline" onClick={() => setIsImportOpen(true)}>
