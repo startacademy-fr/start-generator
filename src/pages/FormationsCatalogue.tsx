@@ -328,6 +328,32 @@ export default function FormationsCatalogue() {
                 {isBulkExtracting ? `Extraction ${bulkProgress.current}/${bulkProgress.total}…` : `Extraire tout (IA)${formations.filter(f => f.programme_pdf_url && (!f.objectifs || !f.programme)).length > 0 ? ` (${formations.filter(f => f.programme_pdf_url && (!f.objectifs || !f.programme)).length} incomplètes)` : ''}`}
               </Button>
             )}
+            <Button variant="outline" onClick={() => {
+              if (!formations || formations.length === 0) return;
+              const headers = ['Référence', 'Titre', 'Heures', 'Objectifs', 'Programme', 'PDF'];
+              const csvContent = [
+                headers.join(';'),
+                ...formations.map(f => [
+                  f.reference,
+                  f.titre,
+                  f.nombre_heures || '',
+                  (f.objectifs || '').replace(/[\n\r]+/g, ' '),
+                  (f.programme || '').replace(/[\n\r]+/g, ' ').substring(0, 500),
+                  f.programme_pdf_url ? 'Oui' : 'Non',
+                ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(';'))
+              ].join('\n');
+              const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `formations_catalogue_${new Date().toISOString().split('T')[0]}.csv`;
+              link.click();
+              URL.revokeObjectURL(url);
+              toast.success('Export CSV téléchargé');
+            }}>
+              <Download className="mr-2 h-4 w-4" />
+              Exporter
+            </Button>
             <Button variant="outline" onClick={() => setIsImportOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
               Importer
