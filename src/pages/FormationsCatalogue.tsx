@@ -43,6 +43,7 @@ export default function FormationsCatalogue() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [sortField, setSortField] = useState<'titre' | 'sessions' | 'reference'>('titre');
   const [sortAsc, setSortAsc] = useState(true);
+  const [filterIncomplete, setFilterIncomplete] = useState(false);
 
   // Form state
   const [titre, setTitre] = useState('');
