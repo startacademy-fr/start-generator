@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   GraduationCap, 
   Users, 
@@ -19,7 +20,11 @@ import {
   BookOpen,
   LogOut,
   MessageSquare,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  Bell,
+  UserX,
+  FileWarning
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
