@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   GraduationCap, 
   Users, 
@@ -19,7 +20,11 @@ import {
   BookOpen,
   LogOut,
   MessageSquare,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  Bell,
+  UserX,
+  FileWarning
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -44,6 +49,14 @@ interface DashboardStats {
   tauxAbandon: number | null;
   reclamationsN1: number;
   tauxCompletionDossiers: number | null;
+}
+
+interface AlertItem {
+  id: string;
+  type: 'warning' | 'error' | 'info';
+  message: string;
+  link: string;
+  icon: typeof AlertTriangle;
 }
 
 interface RecentFormation {
@@ -75,6 +88,7 @@ export default function Dashboard() {
     tauxCompletionDossiers: null,
   });
   const [recentFormations, setRecentFormations] = useState<RecentFormation[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -258,6 +272,68 @@ export default function Dashboard() {
             inscriptions_count: (f.inscriptions as { count: number }[])?.[0]?.count || 0,
           })) || []
         );
+
+        // Build alerts
+        const alertItems: AlertItem[] = [];
+
+        // Formations without formateur
+        const { data: noFormateurData } = await supabase
+          .from('formations')
+          .select('id')
+          .is('formateur_id', null)
+          .eq('archived', false);
+        if (noFormateurData && noFormateurData.length > 0) {
+          alertItems.push({
+            id: 'no-formateur',
+            type: 'warning',
+            message: `${noFormateurData.length} session(s) sans formateur assigné`,
+            link: '/formations',
+            icon: UserX,
+          });
+        }
+
+        // Unresolved reclamations
+        const { data: openReclamations } = await supabase
+          .from('reclamations')
+          .select('id')
+          .eq('statut', 'en_cours');
+        if (openReclamations && openReclamations.length > 0) {
+          alertItems.push({
+            id: 'open-reclamations',
+            type: 'error',
+            message: `${openReclamations.length} réclamation(s) non traitée(s)`,
+            link: '/audit',
+            icon: MessageSquare,
+          });
+        }
+
+        // Incomplete catalogue entries (no objectives or no PDF)
+        const { data: incompleteCatalogue } = await supabase
+          .from('formations_catalogue')
+          .select('id')
+          .or('objectifs.is.null,programme_pdf_url.is.null');
+        if (incompleteCatalogue && incompleteCatalogue.length > 0) {
+          alertItems.push({
+            id: 'incomplete-catalogue',
+            type: 'info',
+            message: `${incompleteCatalogue.length} formation(s) catalogue incomplète(s)`,
+            link: '/catalogue',
+            icon: FileWarning,
+          });
+        }
+
+        // Low document completion rate
+        if (tauxCompletionDossiers !== null && tauxCompletionDossiers < 50) {
+          alertItems.push({
+            id: 'low-completion',
+            type: 'warning',
+            message: `Taux de complétion des dossiers faible (${tauxCompletionDossiers}%)`,
+            link: '/documents',
+            icon: AlertTriangle,
+          });
+        }
+
+        setAlerts(alertItems);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -436,7 +512,72 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts */}
+      {/* Alerts & Notifications */}
+      {alerts.length > 0 && (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-warning" />
+              <CardTitle className="text-base">Alertes & Notifications</CardTitle>
+              <Badge variant="secondary" className="ml-auto">{alerts.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {alerts.map((alert) => (
+              <Link key={alert.id} to={alert.link}>
+                <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+                  alert.type === 'error' ? 'border-destructive/30 bg-destructive/5' :
+                  alert.type === 'warning' ? 'border-warning/30 bg-warning/5' :
+                  'border-border bg-card'
+                }`}>
+                  <alert.icon className={`h-4 w-4 shrink-0 ${
+                    alert.type === 'error' ? 'text-destructive' :
+                    alert.type === 'warning' ? 'text-warning' :
+                    'text-muted-foreground'
+                  }`} />
+                  <span className="text-sm font-medium flex-1">{alert.message}</span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progress Bars */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Complétion des dossiers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold mb-2">{stats.tauxCompletionDossiers ?? 0}%</div>
+            <Progress value={stats.tauxCompletionDossiers ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">Inscriptions avec 7+ documents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Taux de réussite QCM</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold mb-2">{stats.tauxReussiteQCM ?? '—'}{stats.tauxReussiteQCM != null ? '%' : ''}</div>
+            <Progress value={stats.tauxReussiteQCM ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">Score moyen {n1Year}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Satisfaction stagiaires</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold mb-2">{stats.tauxSatisfaction ?? '—'}{stats.tauxSatisfaction != null ? '%' : ''}</div>
+            <Progress value={stats.tauxSatisfaction ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">Satisfaction à froid {n1Year}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {(stats.heuresParFormateur.length > 0 || stats.formationsParType.length > 0) && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Pie chart - Heures par formateur */}

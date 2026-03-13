@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Upload } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Upload, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, FormationCatalogue, Profile, Stagiaire } from '@/types/database';
@@ -349,6 +349,37 @@ export default function Sessions() {
           </div>
           <p className="text-muted-foreground mt-1">Gérez vos sessions de formation</p>
         </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => {
+            if (!formations || formations.length === 0) return;
+            const headers = ['N°', 'Titre', 'Formation catalogue', 'Formateur', 'Lieu', 'Heures', 'Date début', 'Date fin', 'Stagiaires', 'Archivée'];
+            const csvContent = [
+              headers.join(';'),
+              ...formations.map(f => [
+                sessionNumberMap.get(f.id) || '',
+                f.titre,
+                getCatalogueTitre(f.formation_catalogue_id) || '',
+                getFormateurName(f.formateur_id),
+                f.lieu,
+                f.nombre_heures,
+                f.date_debut,
+                f.date_fin || '',
+                inscriptionsCounts?.[f.id] || 0,
+                f.archived ? 'Oui' : 'Non',
+              ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(';'))
+            ].join('\n');
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `sessions_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast.success('Export CSV téléchargé');
+          }}>
+            <Download className="mr-2 h-4 w-4" />
+            Exporter
+          </Button>
         {canManage && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <Button variant="outline" onClick={() => setIsImportInscriptionsOpen(true)}>
@@ -436,6 +467,7 @@ export default function Sessions() {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center flex-wrap">
