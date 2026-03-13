@@ -202,10 +202,13 @@ export default function FormationsCatalogue() {
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
 
+  const isIncomplete = (f: FormationCatalogue) => !f.programme || !f.programme_pdf_url;
+
   const filtered = formations?.filter((f) =>
     f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.reference.toLowerCase().includes(searchQuery.toLowerCase())
-  )?.sort((a, b) => {
+  )?.filter((f) => !filterIncomplete || isIncomplete(f))
+  ?.sort((a, b) => {
     let cmp = 0;
     if (sortField === 'titre') {
       cmp = a.titre.localeCompare(b.titre, 'fr');
