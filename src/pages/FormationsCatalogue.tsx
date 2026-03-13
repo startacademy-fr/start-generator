@@ -355,7 +355,30 @@ export default function FormationsCatalogue() {
                   <TableCell>
                     <Badge variant="outline" className="font-mono text-xs">{f.reference}</Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{f.titre}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {f.titre}
+                      {isIncomplete(f) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {!f.programme && !f.programme_pdf_url
+                                  ? 'Objectifs pédagogiques et programme PDF manquants'
+                                  : !f.programme
+                                  ? 'Objectifs pédagogiques (texte) manquants'
+                                  : 'Programme PDF manquant'}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">L'IA utilise ces informations pour générer des documents pertinents</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {f.programme && <Badge variant="secondary" className="text-xs">Texte</Badge>}
