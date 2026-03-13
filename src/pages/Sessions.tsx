@@ -141,6 +141,7 @@ export default function Sessions() {
       // Get titre from catalogue
       const selectedCatalogue = catalogue?.find(c => c.id === formData.formation_catalogue_id);
       const titre = selectedCatalogue?.titre || 'Session sans formation';
+      const objectifs = selectedCatalogue?.objectifs || null;
       const programme = selectedCatalogue?.programme || null;
       const programme_pdf_url = selectedCatalogue?.programme_pdf_url || null;
 
