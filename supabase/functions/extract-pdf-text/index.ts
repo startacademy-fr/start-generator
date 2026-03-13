@@ -49,7 +49,15 @@ serve(async (req) => {
       throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
     }
     const pdfArrayBuffer = await pdfResponse.arrayBuffer();
-    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
+    const pdfBytes = new Uint8Array(pdfArrayBuffer);
+    // Encode in chunks to avoid stack overflow on large PDFs
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < pdfBytes.length; i += chunkSize) {
+      const chunk = pdfBytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const pdfBase64 = btoa(binary);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
