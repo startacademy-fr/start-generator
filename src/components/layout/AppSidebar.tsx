@@ -101,35 +101,35 @@ export function AppSidebar() {
         </nav>
 
         {/* User section */}
-        <div className="border-t border-sidebar-border p-4">
+        <div className="border-t border-sidebar-border p-3">
           {!collapsed && profile && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-sidebar-foreground">
+            <div className="mb-2 px-1">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
                 {profile.prenom} {profile.nom}
               </p>
               <p className="text-xs text-sidebar-foreground/60">{getRoleLabel()}</p>
             </div>
           )}
-          <div className={cn("flex gap-2", collapsed && "flex-col")}>
+          <div className={cn("flex gap-2", collapsed ? "flex-col" : "flex-row")}>
             <Button
               variant="ghost"
               size={collapsed ? "icon" : "sm"}
-              className="text-sidebar-foreground hover:bg-sidebar-accent flex-1"
+              className="text-sidebar-foreground hover:bg-sidebar-accent flex-1 justify-start px-2"
               asChild
             >
               <NavLink to="/settings">
-                <Settings className="h-4 w-4" />
-                {!collapsed && <span className="ml-2">Paramètres</span>}
+                <Settings className="h-4 w-4 flex-shrink-0" />
+                {!collapsed && <span className="ml-2 truncate">Paramètres</span>}
               </NavLink>
             </Button>
             <Button
               variant="ghost"
               size={collapsed ? "icon" : "sm"}
               onClick={signOut}
-              className="text-sidebar-foreground hover:bg-destructive hover:text-destructive-foreground"
+              className="text-sidebar-foreground hover:bg-destructive hover:text-destructive-foreground flex-1 justify-start px-2"
             >
-              <LogOut className="h-4 w-4" />
-              {!collapsed && <span className="ml-2">Déconnexion</span>}
+              <LogOut className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && <span className="ml-2 truncate">Déconnexion</span>}
             </Button>
           </div>
         </div>
