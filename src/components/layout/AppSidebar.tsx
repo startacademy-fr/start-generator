@@ -124,12 +124,12 @@ export function AppSidebar() {
             </Button>
             <Button
               variant="ghost"
-              size={collapsed ? "icon" : "sm"}
+              size="icon"
               onClick={signOut}
-              className="text-sidebar-foreground hover:bg-destructive hover:text-destructive-foreground flex-1 justify-start px-2"
+              className="text-sidebar-foreground hover:bg-destructive hover:text-destructive-foreground px-2"
+              title="Déconnexion"
             >
               <LogOut className="h-4 w-4 flex-shrink-0" />
-              {!collapsed && <span className="ml-2 truncate">Déconnexion</span>}
             </Button>
           </div>
         </div>
