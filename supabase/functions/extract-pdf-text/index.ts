@@ -51,7 +51,6 @@ serve(async (req) => {
     const pdfArrayBuffer = await pdfResponse.arrayBuffer();
     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
 
-    // Use Gemini multimodal to extract text from the PDF
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -69,13 +68,13 @@ serve(async (req) => {
           {
             role: "system",
             content: `Tu es un assistant spécialisé dans l'extraction de contenu de programmes de formation.
-Extrais le texte complet du document PDF fourni. Restitue fidèlement le contenu en le structurant clairement :
-- Conserve les titres, sous-titres, modules, chapitres
-- Utilise des tirets ou numérotation pour les listes
-- Sépare les sections par des lignes vides
-- Ne résume pas, ne reformule pas : restitue le contenu tel quel
-- Si le document contient des objectifs pédagogiques, garde-les identifiés comme tels
-- Ignore les en-têtes/pieds de page, logos, mentions légales`
+À partir du document PDF fourni, tu dois extraire DEUX éléments distincts :
+
+1. **Les objectifs pédagogiques** : les objectifs de la formation, souvent formulés comme "À l'issue de la formation, le stagiaire sera capable de…". Restitue-les sous forme de liste à puces.
+
+2. **Le programme détaillé** : le contenu complet du programme (modules, chapitres, thèmes abordés). Restitue-le fidèlement en conservant la structure (titres, sous-titres, listes numérotées ou à puces). Ne résume pas, ne reformule pas.
+
+Ignore les en-têtes/pieds de page, logos, mentions légales, informations administratives (durée, tarifs, prérequis sauf s'ils font partie des objectifs).`
           },
           {
             role: "user",
@@ -89,11 +88,36 @@ Extrais le texte complet du document PDF fourni. Restitue fidèlement le contenu
               },
               {
                 type: "text",
-                text: "Extrais le contenu textuel complet de ce programme de formation PDF."
+                text: "Extrais les objectifs pédagogiques et le programme détaillé de ce document de formation PDF."
               }
             ]
           }
         ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_formation_content",
+              description: "Extraire les objectifs pédagogiques et le programme détaillé d'un document de formation",
+              parameters: {
+                type: "object",
+                properties: {
+                  objectifs: {
+                    type: "string",
+                    description: "Les objectifs pédagogiques de la formation, sous forme de liste à puces (un objectif par ligne, précédé d'un tiret)"
+                  },
+                  programme: {
+                    type: "string",
+                    description: "Le programme détaillé complet de la formation, structuré avec titres et sous-sections"
+                  }
+                },
+                required: ["objectifs", "programme"],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "extract_formation_content" } },
       }),
     });
 
@@ -116,10 +140,28 @@ Extrais le texte complet du document PDF fourni. Restitue fidèlement le contenu
     }
 
     const aiData = await aiResponse.json();
-    const extractedText = aiData.choices?.[0]?.message?.content || "";
+    
+    // Parse tool call response
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    let objectifs = "";
+    let programme = "";
+    
+    if (toolCall?.function?.arguments) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        objectifs = args.objectifs || "";
+        programme = args.programme || "";
+      } catch {
+        // Fallback: use content as programme
+        programme = aiData.choices?.[0]?.message?.content || "";
+      }
+    } else {
+      // Fallback if no tool call
+      programme = aiData.choices?.[0]?.message?.content || "";
+    }
 
     return new Response(
-      JSON.stringify({ text: extractedText }),
+      JSON.stringify({ objectifs, programme }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

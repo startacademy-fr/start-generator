@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Sparkles, Loader2, Wand2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
@@ -54,6 +54,8 @@ export default function FormationsCatalogue() {
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isBulkExtracting, setIsBulkExtracting] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
   const { data: formations, isLoading } = useQuery({
     queryKey: ['formations-catalogue'],
@@ -127,8 +129,8 @@ export default function FormationsCatalogue() {
       if (programmePdfFile) {
         const pdfUrl = await uploadPdf(programmePdfFile, id);
         await supabase.from('formations_catalogue').update({ programme_pdf_url: pdfUrl }).eq('id', id);
-        // Auto-extract text from PDF if programme field is empty
-        if (!programme) {
+        // Auto-extract from PDF if programme or objectifs are empty
+        if (!programme || !objectifs) {
           try {
             const { data: session } = await supabase.auth.getSession();
             const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-pdf-text`, {
@@ -140,9 +142,12 @@ export default function FormationsCatalogue() {
               body: JSON.stringify({ pdfUrl }),
             });
             if (response.ok) {
-              const { text } = await response.json();
-              if (text) {
-                await supabase.from('formations_catalogue').update({ programme: text }).eq('id', id);
+              const data = await response.json();
+              const updates: Record<string, string> = {};
+              if (data.programme && !programme) updates.programme = data.programme;
+              if (data.objectifs && !objectifs) updates.objectifs = data.objectifs;
+              if (Object.keys(updates).length > 0) {
+                await supabase.from('formations_catalogue').update(updates).eq('id', id);
               }
             }
           } catch (e) {
@@ -263,7 +268,52 @@ export default function FormationsCatalogue() {
           <p className="text-muted-foreground mt-1">Catalogue des formations disponibles</p>
         </div>
         {canManage && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {formations && formations.some(f => f.programme_pdf_url && (!f.objectifs || !f.programme)) && (
+              <Button variant="outline" disabled={isBulkExtracting} onClick={async () => {
+                const toExtract = formations.filter(f => f.programme_pdf_url && (!f.objectifs || !f.programme));
+                if (toExtract.length === 0) { toast.info('Toutes les formations sont déjà complètes'); return; }
+                setIsBulkExtracting(true);
+                setBulkProgress({ current: 0, total: toExtract.length });
+                let success = 0;
+                const { data: session } = await supabase.auth.getSession();
+                for (let i = 0; i < toExtract.length; i++) {
+                  setBulkProgress({ current: i + 1, total: toExtract.length });
+                  try {
+                    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-pdf-text`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.session?.access_token}` },
+                      body: JSON.stringify({ pdfUrl: toExtract[i].programme_pdf_url }),
+                    });
+                    if (response.ok) {
+                      const data = await response.json();
+                      const updates: Record<string, string> = {};
+                      if (data.objectifs && !toExtract[i].objectifs) updates.objectifs = data.objectifs;
+                      if (data.programme && !toExtract[i].programme) updates.programme = data.programme;
+                      if (Object.keys(updates).length > 0) {
+                        await supabase.from('formations_catalogue').update(updates).eq('id', toExtract[i].id);
+                        success++;
+                      }
+                    } else if (response.status === 429) {
+                      toast.warning('Limite de requêtes atteinte, pause de 30s…');
+                      await new Promise(r => setTimeout(r, 30000));
+                      i--; // retry
+                      continue;
+                    }
+                    // Small delay to avoid rate limiting
+                    if (i < toExtract.length - 1) await new Promise(r => setTimeout(r, 3000));
+                  } catch (e) {
+                    console.error(`Extraction failed for ${toExtract[i].titre}:`, e);
+                  }
+                }
+                setIsBulkExtracting(false);
+                queryClient.invalidateQueries({ queryKey: ['formations-catalogue'] });
+                toast.success(`${success}/${toExtract.length} formations mises à jour`);
+              }}>
+                {isBulkExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                {isBulkExtracting ? `Extraction ${bulkProgress.current}/${bulkProgress.total}…` : 'Extraire tout (IA)'}
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setIsImportOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
               Importer
@@ -316,8 +366,12 @@ export default function FormationsCatalogue() {
                               body: JSON.stringify({ pdfUrl: existingPdfUrl }),
                             });
                             if (response.ok) {
-                              const { text } = await response.json();
-                              if (text) { setProgramme(text); toast.success('Programme extrait du PDF'); }
+                              const data = await response.json();
+                              if (data.objectifs) { setObjectifs(data.objectifs); }
+                              if (data.programme) { setProgramme(data.programme); }
+                              if (data.objectifs || data.programme) {
+                                toast.success('Objectifs et programme extraits du PDF');
+                              }
                             } else {
                               const err = await response.json();
                               toast.error(err.error || 'Erreur lors de l\'extraction');
@@ -326,7 +380,7 @@ export default function FormationsCatalogue() {
                           finally { setIsExtracting(false); }
                         }}>
                           {isExtracting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                          {isExtracting ? 'Extraction…' : 'Extraire le texte'}
+                          {isExtracting ? 'Extraction…' : 'Extraire objectifs + programme'}
                         </Button>
                         <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(existingPdfUrl, '_blank')}>
                           <Eye className="h-3.5 w-3.5" />
