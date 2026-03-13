@@ -129,8 +129,8 @@ export default function FormationsCatalogue() {
       if (programmePdfFile) {
         const pdfUrl = await uploadPdf(programmePdfFile, id);
         await supabase.from('formations_catalogue').update({ programme_pdf_url: pdfUrl }).eq('id', id);
-        // Auto-extract text from PDF if programme field is empty
-        if (!programme) {
+        // Auto-extract from PDF if programme or objectifs are empty
+        if (!programme || !objectifs) {
           try {
             const { data: session } = await supabase.auth.getSession();
             const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-pdf-text`, {
@@ -142,9 +142,12 @@ export default function FormationsCatalogue() {
               body: JSON.stringify({ pdfUrl }),
             });
             if (response.ok) {
-              const { text } = await response.json();
-              if (text) {
-                await supabase.from('formations_catalogue').update({ programme: text }).eq('id', id);
+              const data = await response.json();
+              const updates: Record<string, string> = {};
+              if (data.programme && !programme) updates.programme = data.programme;
+              if (data.objectifs && !objectifs) updates.objectifs = data.objectifs;
+              if (Object.keys(updates).length > 0) {
+                await supabase.from('formations_catalogue').update(updates).eq('id', id);
               }
             }
           } catch (e) {
