@@ -203,6 +203,7 @@ export type Database = {
           id: string
           lieu: string
           nombre_heures: number
+          objectifs: string | null
           programme: string | null
           programme_pdf_url: string | null
           titre: string
@@ -218,6 +219,7 @@ export type Database = {
           id?: string
           lieu: string
           nombre_heures: number
+          objectifs?: string | null
           programme?: string | null
           programme_pdf_url?: string | null
           titre: string
@@ -233,6 +235,7 @@ export type Database = {
           id?: string
           lieu?: string
           nombre_heures?: number
+          objectifs?: string | null
           programme?: string | null
           programme_pdf_url?: string | null
           titre?: string
@@ -260,6 +263,7 @@ export type Database = {
           created_at: string
           id: string
           nombre_heures: number | null
+          objectifs: string | null
           programme: string | null
           programme_pdf_url: string | null
           reference: string
@@ -270,6 +274,7 @@ export type Database = {
           created_at?: string
           id?: string
           nombre_heures?: number | null
+          objectifs?: string | null
           programme?: string | null
           programme_pdf_url?: string | null
           reference: string
@@ -280,6 +285,7 @@ export type Database = {
           created_at?: string
           id?: string
           nombre_heures?: number | null
+          objectifs?: string | null
           programme?: string | null
           programme_pdf_url?: string | null
           reference?: string

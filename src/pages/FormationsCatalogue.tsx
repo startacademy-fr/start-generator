@@ -25,6 +25,7 @@ interface FormationCatalogue {
   reference: string;
   titre: string;
   nombre_heures: number | null;
+  objectifs: string | null;
   programme: string | null;
   programme_pdf_url: string | null;
   created_at: string;
@@ -48,6 +49,7 @@ export default function FormationsCatalogue() {
   // Form state
   const [titre, setTitre] = useState('');
   const [nombreHeures, setNombreHeures] = useState('');
+  const [objectifs, setObjectifs] = useState('');
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
@@ -107,14 +109,14 @@ export default function FormationsCatalogue() {
       if (editing) {
         const { error } = await supabase
           .from('formations_catalogue')
-          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, programme: programme || null })
+          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null })
           .eq('id', editing.id);
         if (error) throw error;
         id = editing.id;
       } else {
         const { data, error } = await supabase
           .from('formations_catalogue')
-          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, programme: programme || null, reference: generateReference() })
+          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null, reference: generateReference() })
           .select('id')
           .single();
         if (error) throw error;
@@ -143,6 +145,7 @@ export default function FormationsCatalogue() {
         .insert({
           titre: source.titre + ' (copie)',
           nombre_heures: source.nombre_heures,
+          objectifs: source.objectifs,
           programme: source.programme,
           programme_pdf_url: source.programme_pdf_url,
           reference: generateReference(),
@@ -174,12 +177,14 @@ export default function FormationsCatalogue() {
       setEditing(formation);
       setTitre(formation.titre);
       setNombreHeures(formation.nombre_heures?.toString() || '');
+      setObjectifs(formation.objectifs || '');
       setProgramme(formation.programme || '');
       setExistingPdfUrl(formation.programme_pdf_url || null);
     } else {
       setEditing(null);
       setTitre('');
       setNombreHeures('');
+      setObjectifs('');
       setProgramme('');
       setExistingPdfUrl(null);
     }
@@ -202,7 +207,7 @@ export default function FormationsCatalogue() {
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
 
-  const isIncomplete = (f: FormationCatalogue) => !f.programme || !f.programme_pdf_url;
+  const isIncomplete = (f: FormationCatalogue) => !f.objectifs || !f.programme_pdf_url;
 
   const filtered = formations?.filter((f) =>
     f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -263,9 +268,14 @@ export default function FormationsCatalogue() {
                     <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="programme">Programme de formation (optionnel)</Label>
-                    <Textarea id="programme" value={programme} onChange={(e) => setProgramme(e.target.value)} rows={4} placeholder="Collez ici le programme détaillé..." />
-                    <p className="text-xs text-muted-foreground">Le programme est utilisé par l'IA pour générer des compétences pertinentes.</p>
+                    <Label htmlFor="objectifs">Objectifs de la formation</Label>
+                    <Textarea id="objectifs" value={objectifs} onChange={(e) => setObjectifs(e.target.value)} rows={3} placeholder="Ex: À l'issue de la formation, le stagiaire sera capable de..." />
+                    <p className="text-xs text-muted-foreground">Les objectifs sont utilisés par l'IA pour générer les documents Qualiopi (QCM, compétences, grilles…).</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="programme">Programme détaillé (optionnel)</Label>
+                    <Textarea id="programme" value={programme} onChange={(e) => setProgramme(e.target.value)} rows={4} placeholder="Collez ici le programme détaillé de la formation (modules, chapitres…)" />
+                    <p className="text-xs text-muted-foreground">Le programme détaillé enrichit la génération du déroulé pédagogique et de l'analyse du besoin.</p>
                   </div>
                   <div className="space-y-2">
                     <Label>Programme PDF (optionnel)</Label>
@@ -366,10 +376,10 @@ export default function FormationsCatalogue() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
-                                {!f.programme && !f.programme_pdf_url
-                                  ? 'Objectifs pédagogiques et programme PDF manquants'
-                                  : !f.programme
-                                  ? 'Objectifs pédagogiques (texte) manquants'
+                                {!f.objectifs && !f.programme_pdf_url
+                                  ? 'Objectifs de formation et programme PDF manquants'
+                                  : !f.objectifs
+                                  ? 'Objectifs de formation manquants'
                                   : 'Programme PDF manquant'}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">L'IA utilise ces informations pour générer des documents pertinents</p>
@@ -381,13 +391,14 @@ export default function FormationsCatalogue() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {f.programme && <Badge variant="secondary" className="text-xs">Texte</Badge>}
+                      {f.objectifs && <Badge variant="secondary" className="text-xs">Objectifs</Badge>}
+                      {f.programme && <Badge variant="secondary" className="text-xs">Programme</Badge>}
                       {f.programme_pdf_url && (
                         <Badge variant="outline" className="text-xs gap-1 cursor-pointer" onClick={() => window.open(f.programme_pdf_url!, '_blank')}>
                           <FileText className="h-3 w-3" /> PDF
                         </Badge>
                       )}
-                      {!f.programme && !f.programme_pdf_url && <span className="text-muted-foreground text-sm">—</span>}
+                      {!f.objectifs && !f.programme && !f.programme_pdf_url && <span className="text-muted-foreground text-sm">—</span>}
                     </div>
                   </TableCell>
                   <TableCell>

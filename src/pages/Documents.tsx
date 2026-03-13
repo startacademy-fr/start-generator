@@ -168,7 +168,7 @@ export default function Documents() {
           const { data, error } = await supabase.functions.invoke('generate-qcm', {
             body: {
               formationTitre: formation.titre,
-              programme: formation.programme,
+              programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
               nombreQuestions: 13,
             },
           });
@@ -358,7 +358,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-competencies', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           nombreCompetences: 6,
         },
       });
@@ -522,7 +522,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-analyse-besoin', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           stagiaire: {
             prenom: stagiaire.prenom,
             nom: stagiaire.nom,
@@ -627,7 +627,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-qcm', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           nombreQuestions: 13,
         },
       });
@@ -839,7 +839,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-deroule', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           nombreHeures: formation.nombre_heures,
         },
       });
@@ -930,7 +930,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-grille', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           programmePdfUrl: formation.programme_pdf_url,
           stagiairePrenom: stagiaire.prenom,
           stagiaireNom: stagiaire.nom,
