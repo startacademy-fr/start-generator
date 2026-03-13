@@ -49,6 +49,7 @@ export default function FormationsCatalogue() {
   // Form state
   const [titre, setTitre] = useState('');
   const [nombreHeures, setNombreHeures] = useState('');
+  const [objectifs, setObjectifs] = useState('');
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
