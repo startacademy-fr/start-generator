@@ -1381,7 +1381,7 @@ export default function Documents() {
                         </SelectTrigger>
                         <SelectContent>
                           {incomplete.length > 0 && (
-                            <>
+                            <SelectGroup>
                               <SelectLabel className="text-xs text-destructive font-semibold flex items-center gap-1">
                                 <AlertCircle className="h-3 w-3" /> Documents manquants
                               </SelectLabel>
@@ -1395,10 +1395,10 @@ export default function Documents() {
                                   </span>
                                 </SelectItem>
                               ))}
-                            </>
+                            </SelectGroup>
                           )}
                           {complete.length > 0 && (
-                            <>
+                            <SelectGroup>
                               <SelectSeparator />
                               <SelectLabel className="text-xs text-green-600 font-semibold flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3" /> Dossiers complets
@@ -1411,10 +1411,10 @@ export default function Documents() {
                                   </span>
                                 </SelectItem>
                               ))}
-                            </>
+                            </SelectGroup>
                           )}
                           {noStagiaires.length > 0 && (
-                            <>
+                            <SelectGroup>
                               <SelectSeparator />
                               <SelectLabel className="text-xs text-muted-foreground font-semibold">
                                 Sans stagiaires
@@ -1424,7 +1424,7 @@ export default function Documents() {
                                   <span className="text-muted-foreground">{f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})</span>
                                 </SelectItem>
                               ))}
-                            </>
+                            </SelectGroup>
                           )}
                         </SelectContent>
                       </Select>
