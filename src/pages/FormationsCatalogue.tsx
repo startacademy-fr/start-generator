@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Copy, Trash2, Search, FileText, X, Eye, Upload, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
@@ -53,6 +53,7 @@ export default function FormationsCatalogue() {
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const { data: formations, isLoading } = useQuery({
     queryKey: ['formations-catalogue'],
@@ -126,6 +127,28 @@ export default function FormationsCatalogue() {
       if (programmePdfFile) {
         const pdfUrl = await uploadPdf(programmePdfFile, id);
         await supabase.from('formations_catalogue').update({ programme_pdf_url: pdfUrl }).eq('id', id);
+        // Auto-extract text from PDF if programme field is empty
+        if (!programme) {
+          try {
+            const { data: session } = await supabase.auth.getSession();
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-pdf-text`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.session?.access_token}`,
+              },
+              body: JSON.stringify({ pdfUrl }),
+            });
+            if (response.ok) {
+              const { text } = await response.json();
+              if (text) {
+                await supabase.from('formations_catalogue').update({ programme: text }).eq('id', id);
+              }
+            }
+          } catch (e) {
+            console.error('PDF extraction failed:', e);
+          }
+        }
       } else if (existingPdfUrl === null && editing?.programme_pdf_url) {
         await supabase.from('formations_catalogue').update({ programme_pdf_url: null }).eq('id', id);
       }
@@ -283,6 +306,28 @@ export default function FormationsCatalogue() {
                       <div className="flex items-center gap-2 p-2 rounded-md border bg-muted/50">
                         <FileText className="h-4 w-4 text-primary" />
                         <span className="text-sm flex-1 truncate">Programme PDF existant</span>
+                        <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" disabled={isExtracting} onClick={async () => {
+                          setIsExtracting(true);
+                          try {
+                            const { data: session } = await supabase.auth.getSession();
+                            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-pdf-text`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.session?.access_token}` },
+                              body: JSON.stringify({ pdfUrl: existingPdfUrl }),
+                            });
+                            if (response.ok) {
+                              const { text } = await response.json();
+                              if (text) { setProgramme(text); toast.success('Programme extrait du PDF'); }
+                            } else {
+                              const err = await response.json();
+                              toast.error(err.error || 'Erreur lors de l\'extraction');
+                            }
+                          } catch (e) { toast.error('Erreur lors de l\'extraction du PDF'); }
+                          finally { setIsExtracting(false); }
+                        }}>
+                          {isExtracting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                          {isExtracting ? 'Extraction…' : 'Extraire le texte'}
+                        </Button>
                         <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(existingPdfUrl, '_blank')}>
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
@@ -301,7 +346,7 @@ export default function FormationsCatalogue() {
                     ) : (
                       <Input type="file" accept=".pdf" className="cursor-pointer" onChange={(e) => { const f = e.target.files?.[0]; if (f) setProgrammePdfFile(f); }} />
                     )}
-                    <p className="text-xs text-muted-foreground">Uploadez le programme en PDF pour une génération de documents plus précise.</p>
+                    <p className="text-xs text-muted-foreground">Uploadez un PDF puis utilisez « Extraire le texte » pour pré-remplir le programme détaillé via l'IA.</p>
                   </div>
                 </div>
                 <DialogFooter>
