@@ -930,7 +930,7 @@ export default function Documents() {
       const { data, error } = await supabase.functions.invoke('generate-grille', {
         body: {
           formationTitre: formation.titre,
-          programme: formation.programme,
+          programme: [formation.objectifs, formation.programme].filter(Boolean).join('\n\n'),
           programmePdfUrl: formation.programme_pdf_url,
           stagiairePrenom: stagiaire.prenom,
           stagiaireNom: stagiaire.nom,
