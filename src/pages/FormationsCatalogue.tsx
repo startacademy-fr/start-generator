@@ -318,8 +318,12 @@ export default function FormationsCatalogue() {
                               body: JSON.stringify({ pdfUrl: existingPdfUrl }),
                             });
                             if (response.ok) {
-                              const { text } = await response.json();
-                              if (text) { setProgramme(text); toast.success('Programme extrait du PDF'); }
+                              const data = await response.json();
+                              if (data.objectifs) { setObjectifs(data.objectifs); }
+                              if (data.programme) { setProgramme(data.programme); }
+                              if (data.objectifs || data.programme) {
+                                toast.success('Objectifs et programme extraits du PDF');
+                              }
                             } else {
                               const err = await response.json();
                               toast.error(err.error || 'Erreur lors de l\'extraction');
@@ -328,7 +332,7 @@ export default function FormationsCatalogue() {
                           finally { setIsExtracting(false); }
                         }}>
                           {isExtracting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                          {isExtracting ? 'Extraction…' : 'Extraire le texte'}
+                          {isExtracting ? 'Extraction…' : 'Extraire objectifs + programme'}
                         </Button>
                         <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => window.open(existingPdfUrl, '_blank')}>
                           <Eye className="h-3.5 w-3.5" />
