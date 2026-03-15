@@ -49,7 +49,9 @@ export default function Certificats() {
   const [formData, setFormData] = useState<CertificatFormData>(defaultFormData);
   const [generating, setGenerating] = useState(false);
   const [stagiaires, setStagiaires] = useState<StagiaireOption[]>([]);
+  const [formations, setFormations] = useState<FormationOption[]>([]);
   const [mode, setMode] = useState<'list' | 'manual'>('list');
+  const [formationMode, setFormationMode] = useState<'list' | 'manual'>('list');
   const { toast } = useToast();
 
   useEffect(() => {
