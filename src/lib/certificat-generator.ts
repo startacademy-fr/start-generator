@@ -24,6 +24,7 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
 
 interface CertificatData {
   nomPrenom: string;
+  civilite: string;
   nomFormation: string;
   natureAction: string;
   dateDebut: string;
