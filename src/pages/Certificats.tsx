@@ -77,6 +77,16 @@ export default function Certificats() {
     }
   };
 
+  const handleFormationSelect = (formationId: string) => {
+    const f = formations.find((fo) => fo.id === formationId);
+    if (f) {
+      handleChange('nomFormation', f.titre);
+      handleChange('duree', String(f.nombre_heures));
+      handleChange('dateDebut', f.date_debut);
+      handleChange('dateFin', f.date_fin || '');
+    }
+  };
+
   const handleGenerate = async () => {
     if (!formData.nomPrenom || !formData.nomFormation || !formData.dateDebut || !formData.duree) {
       toast({ title: 'Champs requis manquants', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' });
