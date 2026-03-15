@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface CertificatFormData {
   nomPrenom: string;
+  civilite: string;
   nomFormation: string;
   natureAction: string;
   dateDebut: string;
