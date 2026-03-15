@@ -53,6 +53,8 @@ export default function Certificats() {
   const [generating, setGenerating] = useState(false);
   const [stagiaires, setStagiaires] = useState<StagiaireOption[]>([]);
   const [formations, setFormations] = useState<FormationOption[]>([]);
+  const [stagiaireFormationIds, setStagiaireFormationIds] = useState<Set<string>>(new Set());
+  const [selectedStagiaireId, setSelectedStagiaireId] = useState<string | null>(null);
   const [mode, setMode] = useState<'list' | 'manual'>('list');
   const [formationMode, setFormationMode] = useState<'list' | 'manual'>('list');
   const { toast } = useToast();
@@ -73,11 +75,20 @@ export default function Certificats() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleStagiaireSelect = (stagiaireId: string) => {
+  const handleStagiaireSelect = async (stagiaireId: string) => {
     const s = stagiaires.find((st) => st.id === stagiaireId);
     if (s) {
       handleChange('nomPrenom', `${s.nom} ${s.prenom}`);
       handleChange('civilite', s.civilite || '');
+      setSelectedStagiaireId(stagiaireId);
+      // Fetch inscriptions for this stagiaire
+      const { data: inscriptions } = await supabase
+        .from('inscriptions')
+        .select('formation_id')
+        .eq('stagiaire_id', stagiaireId);
+      if (inscriptions) {
+        setStagiaireFormationIds(new Set(inscriptions.map((i) => i.formation_id)));
+      }
     }
   };
 
@@ -114,6 +125,8 @@ export default function Certificats() {
     setFormData(defaultFormData);
     setMode('list');
     setFormationMode('list');
+    setSelectedStagiaireId(null);
+    setStagiaireFormationIds(new Set());
   };
 
   return (
@@ -196,7 +209,18 @@ export default function Certificats() {
                   <SelectValue placeholder="Sélectionner une formation..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {formations.map((f) => (
+                  {selectedStagiaireId && stagiaireFormationIds.size > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Formations du stagiaire</div>
+                      {formations.filter((f) => stagiaireFormationIds.has(f.id)).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.titre}
+                        </SelectItem>
+                      ))}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-1">Autres formations</div>
+                    </>
+                  )}
+                  {formations.filter((f) => !selectedStagiaireId || !stagiaireFormationIds.has(f.id)).map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.titre}
                     </SelectItem>
