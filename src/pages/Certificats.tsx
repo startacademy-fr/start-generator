@@ -26,6 +26,14 @@ interface StagiaireOption {
   prenom: string;
 }
 
+interface FormationOption {
+  id: string;
+  titre: string;
+  nombre_heures: number;
+  date_debut: string;
+  date_fin: string | null;
+}
+
 const defaultFormData: CertificatFormData = {
   nomPrenom: '',
   nomFormation: '',
