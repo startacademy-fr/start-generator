@@ -67,7 +67,7 @@ export default function Certificats() {
   };
 
   const handleGenerate = async () => {
-    if (!formData.nomPrenom || !formData.nomFormation || !formData.dateDebut || !formData.dateFin || !formData.duree) {
+    if (!formData.nomPrenom || !formData.nomFormation || !formData.dateDebut || !formData.duree) {
       toast({ title: 'Champs requis manquants', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' });
       return;
     }
@@ -165,7 +165,7 @@ export default function Certificats() {
               <Input id="dateDebut" type="date" value={formData.dateDebut} onChange={(e) => handleChange('dateDebut', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dateFin">Date de fin *</Label>
+              <Label htmlFor="dateFin">Date de fin <span className="text-muted-foreground font-normal">(optionnel)</span></Label>
               <Input id="dateFin" type="date" value={formData.dateFin} onChange={(e) => handleChange('dateFin', e.target.value)} />
             </div>
           </div>

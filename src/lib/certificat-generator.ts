@@ -114,11 +114,16 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
 
   // Dates
   const dateDebut = format(new Date(data.dateDebut), 'dd MMMM yyyy', { locale: fr });
-  const dateFin = format(new Date(data.dateFin), 'dd MMMM yyyy', { locale: fr });
-  drawField('Période de réalisation :', `Du ${dateDebut} au ${dateFin}`);
+  if (data.dateFin) {
+    const dateFin = format(new Date(data.dateFin), 'dd MMMM yyyy', { locale: fr });
+    drawField('Période de réalisation :', `Du ${dateDebut} au ${dateFin}`);
+  } else {
+    drawField('Date de réalisation :', `Le ${dateDebut}`);
+  }
 
-  // Durée
-  drawField('Durée :', data.duree);
+  // Durée - auto-append "h" if not already present
+  const dureeDisplay = /h|heure/i.test(data.duree) ? data.duree : `${data.duree}h`;
+  drawField('Durée :', dureeDisplay);
 
   // Conclusion text
   yPos += 4;
@@ -143,15 +148,22 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   doc.setFont('helvetica', 'bold');
   doc.text('Le Directeur de l\'organisme de formation', labelX, yPos);
 
-  // === SIGNATURE & TAMPON ===
+  // === SIGNATURE ===
   const signatureY = yPos + 5;
 
   if (signatureBase64) {
     doc.addImage(signatureBase64, 'PNG', margin + 5, signatureY, 55, 22);
   }
 
+  // Signer name
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Julien Lafitte – PDG de l\'organisme de formation', margin + 5, signatureY + 27);
+
+  // Tampon - small, under signature
   if (tamponBase64) {
-    doc.addImage(tamponBase64, 'PNG', pageWidth - margin - 50, signatureY - 5, 40, 40);
+    doc.addImage(tamponBase64, 'PNG', margin + 15, signatureY + 30, 8, 8);
   }
 
   // === FOOTER ===
