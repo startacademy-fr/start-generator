@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileDown, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileDown, Loader2, UserSearch, PenLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCertificatPDF } from '@/lib/certificat-generator';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CertificatFormData {
   nomPrenom: string;
@@ -16,6 +18,12 @@ interface CertificatFormData {
   duree: string;
   faitA: string;
   leDateDu: string;
+}
+
+interface StagiaireOption {
+  id: string;
+  nom: string;
+  prenom: string;
 }
 
 const defaultFormData: CertificatFormData = {
@@ -32,10 +40,30 @@ const defaultFormData: CertificatFormData = {
 export default function Certificats() {
   const [formData, setFormData] = useState<CertificatFormData>(defaultFormData);
   const [generating, setGenerating] = useState(false);
+  const [stagiaires, setStagiaires] = useState<StagiaireOption[]>([]);
+  const [mode, setMode] = useState<'list' | 'manual'>('list');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchStagiaires = async () => {
+      const { data } = await supabase
+        .from('stagiaires')
+        .select('id, nom, prenom')
+        .order('nom');
+      if (data) setStagiaires(data);
+    };
+    fetchStagiaires();
+  }, []);
 
   const handleChange = (field: keyof CertificatFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleStagiaireSelect = (stagiaireId: string) => {
+    const s = stagiaires.find((st) => st.id === stagiaireId);
+    if (s) {
+      handleChange('nomPrenom', `${s.nom} ${s.prenom}`);
+    }
   };
 
   const handleGenerate = async () => {
@@ -57,13 +85,16 @@ export default function Certificats() {
     }
   };
 
-  const handleReset = () => setFormData(defaultFormData);
+  const handleReset = () => {
+    setFormData(defaultFormData);
+    setMode('list');
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Certificat de réalisation</h1>
-        <p className="text-muted-foreground mt-1">Générez un certificat de réalisation à partir de champs libres.</p>
+        <p className="text-muted-foreground mt-1">Générez un certificat de réalisation pour un stagiaire.</p>
       </div>
 
       <Card className="max-w-2xl">
@@ -72,10 +103,47 @@ export default function Certificats() {
           <CardDescription>Renseignez les informations puis cliquez sur Générer.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Nom & Prénom */}
+          {/* Stagiaire - mode toggle */}
           <div className="space-y-2">
-            <Label htmlFor="nomPrenom">Nom et Prénom du stagiaire *</Label>
-            <Input id="nomPrenom" placeholder="Ex : Dupont Marie" value={formData.nomPrenom} onChange={(e) => handleChange('nomPrenom', e.target.value)} />
+            <div className="flex items-center justify-between">
+              <Label>Nom et Prénom du stagiaire *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                onClick={() => {
+                  setMode(mode === 'list' ? 'manual' : 'list');
+                  handleChange('nomPrenom', '');
+                }}
+              >
+                {mode === 'list' ? <PenLine className="h-3.5 w-3.5" /> : <UserSearch className="h-3.5 w-3.5" />}
+                {mode === 'list' ? 'Saisie libre' : 'Choisir dans la liste'}
+              </Button>
+            </div>
+            {mode === 'list' ? (
+              <Select onValueChange={handleStagiaireSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un stagiaire..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {stagiaires.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nom} {s.prenom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                placeholder="Ex : Dupont Marie"
+                value={formData.nomPrenom}
+                onChange={(e) => handleChange('nomPrenom', e.target.value)}
+              />
+            )}
+            {mode === 'list' && formData.nomPrenom && (
+              <p className="text-sm text-muted-foreground">Sélectionné : <span className="font-medium text-foreground">{formData.nomPrenom}</span></p>
+            )}
           </div>
 
           {/* Formation */}
