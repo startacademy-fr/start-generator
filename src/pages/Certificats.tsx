@@ -67,7 +67,7 @@ export default function Certificats() {
   };
 
   const handleGenerate = async () => {
-    if (!formData.nomPrenom || !formData.nomFormation || !formData.dateDebut || !formData.dateFin || !formData.duree) {
+    if (!formData.nomPrenom || !formData.nomFormation || !formData.dateDebut || !formData.duree) {
       toast({ title: 'Champs requis manquants', description: 'Veuillez remplir tous les champs obligatoires.', variant: 'destructive' });
       return;
     }

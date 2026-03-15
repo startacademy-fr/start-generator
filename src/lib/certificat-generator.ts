@@ -148,15 +148,22 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   doc.setFont('helvetica', 'bold');
   doc.text('Le Directeur de l\'organisme de formation', labelX, yPos);
 
-  // === SIGNATURE & TAMPON ===
+  // === SIGNATURE ===
   const signatureY = yPos + 5;
 
   if (signatureBase64) {
     doc.addImage(signatureBase64, 'PNG', margin + 5, signatureY, 55, 22);
   }
 
+  // Signer name
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Julien Lafitte – PDG de l\'organisme de formation', margin + 5, signatureY + 27);
+
+  // Tampon - small, under signature
   if (tamponBase64) {
-    doc.addImage(tamponBase64, 'PNG', pageWidth - margin - 50, signatureY - 5, 40, 40);
+    doc.addImage(tamponBase64, 'PNG', margin + 15, signatureY + 30, 8, 8);
   }
 
   // === FOOTER ===
