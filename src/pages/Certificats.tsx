@@ -170,8 +170,45 @@ export default function Certificats() {
 
           {/* Formation */}
           <div className="space-y-2">
-            <Label htmlFor="nomFormation">Nom de la formation *</Label>
-            <Input id="nomFormation" placeholder="Ex : Loi ALUR - Immobilier" value={formData.nomFormation} onChange={(e) => handleChange('nomFormation', e.target.value)} />
+            <div className="flex items-center justify-between">
+              <Label>Nom de la formation *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                onClick={() => {
+                  setFormationMode(formationMode === 'list' ? 'manual' : 'list');
+                  handleChange('nomFormation', '');
+                }}
+              >
+                {formationMode === 'list' ? <PenLine className="h-3.5 w-3.5" /> : <UserSearch className="h-3.5 w-3.5" />}
+                {formationMode === 'list' ? 'Saisie libre' : 'Choisir dans la liste'}
+              </Button>
+            </div>
+            {formationMode === 'list' ? (
+              <Select onValueChange={handleFormationSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une formation..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {formations.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.titre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                placeholder="Ex : Loi ALUR - Immobilier"
+                value={formData.nomFormation}
+                onChange={(e) => handleChange('nomFormation', e.target.value)}
+              />
+            )}
+            {formationMode === 'list' && formData.nomFormation && (
+              <p className="text-sm text-muted-foreground">Sélectionnée : <span className="font-medium text-foreground">{formData.nomFormation}</span></p>
+            )}
           </div>
 
           {/* Nature */}
