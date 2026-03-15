@@ -53,6 +53,8 @@ export default function Certificats() {
   const [generating, setGenerating] = useState(false);
   const [stagiaires, setStagiaires] = useState<StagiaireOption[]>([]);
   const [formations, setFormations] = useState<FormationOption[]>([]);
+  const [stagiaireFormationIds, setStagiaireFormationIds] = useState<Set<string>>(new Set());
+  const [selectedStagiaireId, setSelectedStagiaireId] = useState<string | null>(null);
   const [mode, setMode] = useState<'list' | 'manual'>('list');
   const [formationMode, setFormationMode] = useState<'list' | 'manual'>('list');
   const { toast } = useToast();
