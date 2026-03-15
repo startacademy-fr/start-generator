@@ -207,7 +207,18 @@ export default function Certificats() {
                   <SelectValue placeholder="Sélectionner une formation..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {formations.map((f) => (
+                  {selectedStagiaireId && stagiaireFormationIds.size > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Formations du stagiaire</div>
+                      {formations.filter((f) => stagiaireFormationIds.has(f.id)).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.titre}
+                        </SelectItem>
+                      ))}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1 pt-1">Autres formations</div>
+                    </>
+                  )}
+                  {formations.filter((f) => !selectedStagiaireId || !stagiaireFormationIds.has(f.id)).map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.titre}
                     </SelectItem>
