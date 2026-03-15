@@ -31,6 +31,7 @@ const allNavigation = [
   { name: 'Suivi Audit', href: '/audit', icon: ClipboardCheck, roles: ['super_admin', 'admin', 'assistante'] },
   { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
   { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['super_admin', 'admin', 'assistante'] },
+  { name: 'Certificats', href: '/certificats', icon: Award, roles: ['super_admin'] },
 ];
 
 export function AppSidebar() {
