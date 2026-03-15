@@ -109,6 +109,7 @@ export default function Certificats() {
   const handleReset = () => {
     setFormData(defaultFormData);
     setMode('list');
+    setFormationMode('list');
   };
 
   return (
