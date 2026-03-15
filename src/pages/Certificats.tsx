@@ -25,6 +25,7 @@ interface StagiaireOption {
   id: string;
   nom: string;
   prenom: string;
+  civilite: string | null;
 }
 
 interface FormationOption {
