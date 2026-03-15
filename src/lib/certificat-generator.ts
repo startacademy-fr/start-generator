@@ -114,11 +114,16 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
 
   // Dates
   const dateDebut = format(new Date(data.dateDebut), 'dd MMMM yyyy', { locale: fr });
-  const dateFin = format(new Date(data.dateFin), 'dd MMMM yyyy', { locale: fr });
-  drawField('Période de réalisation :', `Du ${dateDebut} au ${dateFin}`);
+  if (data.dateFin) {
+    const dateFin = format(new Date(data.dateFin), 'dd MMMM yyyy', { locale: fr });
+    drawField('Période de réalisation :', `Du ${dateDebut} au ${dateFin}`);
+  } else {
+    drawField('Date de réalisation :', `Le ${dateDebut}`);
+  }
 
-  // Durée
-  drawField('Durée :', data.duree);
+  // Durée - auto-append "h" if not already present
+  const dureeDisplay = /h|heure/i.test(data.duree) ? data.duree : `${data.duree}h`;
+  drawField('Durée :', dureeDisplay);
 
   // Conclusion text
   yPos += 4;
