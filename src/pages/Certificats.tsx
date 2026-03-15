@@ -125,6 +125,8 @@ export default function Certificats() {
     setFormData(defaultFormData);
     setMode('list');
     setFormationMode('list');
+    setSelectedStagiaireId(null);
+    setStagiaireFormationIds(new Set());
   };
 
   return (
