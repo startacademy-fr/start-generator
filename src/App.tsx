@@ -18,6 +18,7 @@ import AuditDashboard from "./pages/AuditDashboard";
 import AccessTokens from "./pages/AccessTokens";
 import Settings from "./pages/Settings";
 import StagiairePortal from "./pages/StagiairePortal";
+import Certificats from "./pages/Certificats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/documents" element={<RoleGuard allowedRoles={['super_admin', 'assistante', 'formateur']}><Documents /></RoleGuard>} />
               <Route path="/audit" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante']}><AuditDashboard /></RoleGuard>} />
               <Route path="/access-tokens" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante']}><AccessTokens /></RoleGuard>} />
+              <Route path="/certificats" element={<RoleGuard allowedRoles={['super_admin']}><Certificats /></RoleGuard>} />
               <Route path="/roles" element={<Navigate to="/settings" replace />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
