@@ -77,6 +77,7 @@ export default function Certificats() {
     const s = stagiaires.find((st) => st.id === stagiaireId);
     if (s) {
       handleChange('nomPrenom', `${s.nom} ${s.prenom}`);
+      handleChange('civilite', s.civilite || '');
     }
   };
 

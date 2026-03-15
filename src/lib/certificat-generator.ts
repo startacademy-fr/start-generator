@@ -103,8 +103,9 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   doc.text("L'organisme de formation START ACADEMY atteste que :", labelX, yPos);
   yPos += lineSpacing + 4;
 
-  // Stagiaire
-  drawField('Stagiaire :', data.nomPrenom);
+  // Stagiaire with gendered label
+  const stagiaireLabel = data.civilite === 'Mme' ? 'La stagiaire :' : data.civilite === 'M.' ? 'Le stagiaire :' : 'Stagiaire :';
+  drawField(stagiaireLabel, data.nomPrenom);
 
   // Formation
   drawField('A suivi la formation :', data.nomFormation);
