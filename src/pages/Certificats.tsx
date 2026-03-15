@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface CertificatFormData {
   nomPrenom: string;
+  civilite: string;
   nomFormation: string;
   natureAction: string;
   dateDebut: string;
@@ -24,6 +25,7 @@ interface StagiaireOption {
   id: string;
   nom: string;
   prenom: string;
+  civilite: string | null;
 }
 
 interface FormationOption {
@@ -36,6 +38,7 @@ interface FormationOption {
 
 const defaultFormData: CertificatFormData = {
   nomPrenom: '',
+  civilite: '',
   nomFormation: '',
   natureAction: 'Plan de développement des compétences',
   dateDebut: '',
@@ -57,7 +60,7 @@ export default function Certificats() {
   useEffect(() => {
     const fetchData = async () => {
       const [{ data: stagData }, { data: formData }] = await Promise.all([
-        supabase.from('stagiaires').select('id, nom, prenom').order('nom'),
+        supabase.from('stagiaires').select('id, nom, prenom, civilite').order('nom'),
         supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin').order('date_debut', { ascending: false }),
       ]);
       if (stagData) setStagiaires(stagData);
@@ -74,6 +77,7 @@ export default function Certificats() {
     const s = stagiaires.find((st) => st.id === stagiaireId);
     if (s) {
       handleChange('nomPrenom', `${s.nom} ${s.prenom}`);
+      handleChange('civilite', s.civilite || '');
     }
   };
 

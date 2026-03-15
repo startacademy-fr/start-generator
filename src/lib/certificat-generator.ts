@@ -24,6 +24,7 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
 
 interface CertificatData {
   nomPrenom: string;
+  civilite: string;
   nomFormation: string;
   natureAction: string;
   dateDebut: string;
@@ -102,8 +103,9 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   doc.text("L'organisme de formation START ACADEMY atteste que :", labelX, yPos);
   yPos += lineSpacing + 4;
 
-  // Stagiaire
-  drawField('Stagiaire :', data.nomPrenom);
+  // Stagiaire with gendered label
+  const stagiaireLabel = data.civilite === 'Mme' ? 'La stagiaire :' : data.civilite === 'M.' ? 'Le stagiaire :' : 'Stagiaire :';
+  drawField(stagiaireLabel, data.nomPrenom);
 
   // Formation
   drawField('A suivi la formation :', data.nomFormation);
