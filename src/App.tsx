@@ -18,6 +18,7 @@ import AuditDashboard from "./pages/AuditDashboard";
 import AccessTokens from "./pages/AccessTokens";
 import Settings from "./pages/Settings";
 import StagiairePortal from "./pages/StagiairePortal";
+import Certificats from "./pages/Certificats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
