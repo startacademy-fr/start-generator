@@ -75,11 +75,20 @@ export default function Certificats() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleStagiaireSelect = (stagiaireId: string) => {
+  const handleStagiaireSelect = async (stagiaireId: string) => {
     const s = stagiaires.find((st) => st.id === stagiaireId);
     if (s) {
       handleChange('nomPrenom', `${s.nom} ${s.prenom}`);
       handleChange('civilite', s.civilite || '');
+      setSelectedStagiaireId(stagiaireId);
+      // Fetch inscriptions for this stagiaire
+      const { data: inscriptions } = await supabase
+        .from('inscriptions')
+        .select('formation_id')
+        .eq('stagiaire_id', stagiaireId);
+      if (inscriptions) {
+        setStagiaireFormationIds(new Set(inscriptions.map((i) => i.formation_id)));
+      }
     }
   };
 
