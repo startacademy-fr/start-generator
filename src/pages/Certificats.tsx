@@ -26,6 +26,14 @@ interface StagiaireOption {
   prenom: string;
 }
 
+interface FormationOption {
+  id: string;
+  titre: string;
+  nombre_heures: number;
+  date_debut: string;
+  date_fin: string | null;
+}
+
 const defaultFormData: CertificatFormData = {
   nomPrenom: '',
   nomFormation: '',
@@ -41,18 +49,21 @@ export default function Certificats() {
   const [formData, setFormData] = useState<CertificatFormData>(defaultFormData);
   const [generating, setGenerating] = useState(false);
   const [stagiaires, setStagiaires] = useState<StagiaireOption[]>([]);
+  const [formations, setFormations] = useState<FormationOption[]>([]);
   const [mode, setMode] = useState<'list' | 'manual'>('list');
+  const [formationMode, setFormationMode] = useState<'list' | 'manual'>('list');
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchStagiaires = async () => {
-      const { data } = await supabase
-        .from('stagiaires')
-        .select('id, nom, prenom')
-        .order('nom');
-      if (data) setStagiaires(data);
+    const fetchData = async () => {
+      const [{ data: stagData }, { data: formData }] = await Promise.all([
+        supabase.from('stagiaires').select('id, nom, prenom').order('nom'),
+        supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin').order('date_debut', { ascending: false }),
+      ]);
+      if (stagData) setStagiaires(stagData);
+      if (formData) setFormations(formData);
     };
-    fetchStagiaires();
+    fetchData();
   }, []);
 
   const handleChange = (field: keyof CertificatFormData, value: string) => {
@@ -63,6 +74,16 @@ export default function Certificats() {
     const s = stagiaires.find((st) => st.id === stagiaireId);
     if (s) {
       handleChange('nomPrenom', `${s.nom} ${s.prenom}`);
+    }
+  };
+
+  const handleFormationSelect = (formationId: string) => {
+    const f = formations.find((fo) => fo.id === formationId);
+    if (f) {
+      handleChange('nomFormation', f.titre);
+      handleChange('duree', String(f.nombre_heures));
+      handleChange('dateDebut', f.date_debut);
+      handleChange('dateFin', f.date_fin || '');
     }
   };
 
@@ -88,6 +109,7 @@ export default function Certificats() {
   const handleReset = () => {
     setFormData(defaultFormData);
     setMode('list');
+    setFormationMode('list');
   };
 
   return (
@@ -148,8 +170,45 @@ export default function Certificats() {
 
           {/* Formation */}
           <div className="space-y-2">
-            <Label htmlFor="nomFormation">Nom de la formation *</Label>
-            <Input id="nomFormation" placeholder="Ex : Loi ALUR - Immobilier" value={formData.nomFormation} onChange={(e) => handleChange('nomFormation', e.target.value)} />
+            <div className="flex items-center justify-between">
+              <Label>Nom de la formation *</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                onClick={() => {
+                  setFormationMode(formationMode === 'list' ? 'manual' : 'list');
+                  handleChange('nomFormation', '');
+                }}
+              >
+                {formationMode === 'list' ? <PenLine className="h-3.5 w-3.5" /> : <UserSearch className="h-3.5 w-3.5" />}
+                {formationMode === 'list' ? 'Saisie libre' : 'Choisir dans la liste'}
+              </Button>
+            </div>
+            {formationMode === 'list' ? (
+              <Select onValueChange={handleFormationSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une formation..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {formations.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.titre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                placeholder="Ex : Loi ALUR - Immobilier"
+                value={formData.nomFormation}
+                onChange={(e) => handleChange('nomFormation', e.target.value)}
+              />
+            )}
+            {formationMode === 'list' && formData.nomFormation && (
+              <p className="text-sm text-muted-foreground">Sélectionnée : <span className="font-medium text-foreground">{formData.nomFormation}</span></p>
+            )}
           </div>
 
           {/* Nature */}
