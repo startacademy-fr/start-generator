@@ -136,16 +136,21 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   doc.text(conclusionLines, labelX, yPos);
   yPos += conclusionLines.length * 5 + 10;
 
-  // === SIGNATURE BLOCK ===
-  doc.setFont('helvetica', 'bold');
+  // === FAIT A / LE ===
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(...TEXT_COLOR);
+  const faitLe = data.leDateDu ? format(new Date(data.leDateDu), 'dd MMMM yyyy', { locale: fr }) : '';
+  doc.text(`Fait à ${data.faitA}, le ${faitLe}`, labelX, yPos);
+
+  yPos += 10;
+  doc.setFont('helvetica', 'bold');
   doc.text('Julien Lafitte – PDG de l\'organisme de formation', labelX, yPos);
 
-  // Signature image
+  // Tampon+signature image (proportions originales)
   const signatureY = yPos + 5;
   if (signatureBase64) {
-    doc.addImage(signatureBase64, 'PNG', margin + 5, signatureY, 60, 25);
+    doc.addImage(signatureBase64, 'PNG', margin + 5, signatureY, 50, 50);
   }
 
   // === FOOTER ===
