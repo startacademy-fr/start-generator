@@ -38,6 +38,7 @@ interface FormationOption {
 
 const defaultFormData: CertificatFormData = {
   nomPrenom: '',
+  civilite: '',
   nomFormation: '',
   natureAction: 'Plan de développement des compétences',
   dateDebut: '',
