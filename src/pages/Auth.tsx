@@ -271,6 +271,15 @@ export default function Auth() {
       return;
     }
 
+    if (recoveryLoading || recoveryLinkInvalid) {
+      toast({
+        variant: "destructive",
+        title: "Lien invalide",
+        description: "Ce lien de réinitialisation est invalide ou expiré. Veuillez en demander un nouveau.",
+      });
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
