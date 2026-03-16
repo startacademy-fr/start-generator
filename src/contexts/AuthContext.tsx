@@ -139,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canManageAll = () => isSuperAdmin() || hasRole('admin');
   const canEdit = () => isSuperAdmin() || hasRole('admin') || hasRole('assistante');
   const canGenerateDocuments = () => isSuperAdmin() || hasRole('assistante');
+  const clearRecoveryMode = () => setIsRecoveryMode(false);
 
   return (
     <AuthContext.Provider
@@ -148,6 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         roles,
         loading,
+        isRecoveryMode,
+        clearRecoveryMode,
         signIn,
         signUp,
         signOut,
