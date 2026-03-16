@@ -85,6 +85,7 @@ export default function Dashboard() {
     formationsParType: [],
     tauxReussiteQCM: null,
     tauxSatisfaction: null,
+    tauxRecommandation: null,
     tauxAbandon: null,
     reclamationsN1: 0,
     tauxCompletionDossiers: null,
