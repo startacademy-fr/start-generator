@@ -218,6 +218,7 @@ export default function Auth() {
       setShowNewPassword(false);
       setNewPassword('');
       setConfirmPassword('');
+      clearRecoveryMode();
       navigate('/dashboard', { replace: true });
     }
   };
