@@ -96,8 +96,9 @@ export default function Dashboard() {
   const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
   const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string; recommande: boolean }[]>([]);
   const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
-  const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; [year: string]: number | string }[]>([]);
+  const [stagiairesParAnFormationRaw, setStagiairesParAnFormationRaw] = useState<{ formation: string; year: number; stagiaires: number; satisfaction: number | null; recommandation: number | null }[]>([]);
   const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
+  const [selectedTableYear, setSelectedTableYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -326,21 +327,31 @@ export default function Dashboard() {
         setAllFormationsList(formationsListData || []);
 
         // Stagiaires formés par an et par formation (toutes sessions confondues)
+        // Also include satisfaction_chaud data per formation
         const { data: allFormationsForStats } = await supabase
           .from('formations')
           .select('id, titre, date_debut');
         const { data: allInscriptionsForStats } = await supabase
           .from('inscriptions')
-          .select('formation_id, stagiaire_id');
+          .select('id, formation_id, stagiaire_id');
+        
+        // All satisfaction_chaud docs (not just N-1)
+        const allSatChaudDocs = docs?.filter(d => d.type === 'satisfaction_chaud') || [];
         
         if (allFormationsForStats && allInscriptionsForStats) {
-          // Build formation_id -> { titre, year }
           const formationInfo = new Map<string, { titre: string; year: number }>();
           allFormationsForStats.forEach(f => {
             formationInfo.set(f.id, { titre: f.titre, year: new Date(f.date_debut).getFullYear() });
           });
 
-          // Group by titre -> year -> Set<stagiaire_id> (unique stagiaires)
+          // Map inscription_id -> { titre, year }
+          const inscriptionInfo = new Map<string, { titre: string; year: number }>();
+          allInscriptionsForStats.forEach(insc => {
+            const info = formationInfo.get(insc.formation_id);
+            if (info) inscriptionInfo.set(insc.id, info);
+          });
+
+          // Group by titre -> year -> Set<stagiaire_id>
           const titreYearMap = new Map<string, Map<number, Set<string>>>();
           const yearsSet = new Set<number>();
 
@@ -358,20 +369,44 @@ export default function Dashboard() {
             yearMap.get(info.year)!.add(insc.stagiaire_id);
           });
 
+          // Group satisfaction_chaud by titre -> year -> scores & recommandations
+          const satByTitreYear = new Map<string, Map<number, { scores: number[]; recommandes: number; total: number }>>();
+          allSatChaudDocs.forEach(d => {
+            const info = inscriptionInfo.get(d.inscription_id);
+            if (!info) return;
+            const contenu = d.contenu as any;
+            const docScores = extractSatScores(contenu);
+            const avgScore = docScores.length > 0 ? docScores.reduce((a, b) => a + b, 0) / docScores.length : null;
+            const recommande = isRecommandation(contenu);
+
+            if (!satByTitreYear.has(info.titre)) satByTitreYear.set(info.titre, new Map());
+            const yearMap = satByTitreYear.get(info.titre)!;
+            if (!yearMap.has(info.year)) yearMap.set(info.year, { scores: [], recommandes: 0, total: 0 });
+            const entry = yearMap.get(info.year)!;
+            if (avgScore !== null) entry.scores.push(avgScore);
+            if (recommande) entry.recommandes++;
+            entry.total++;
+          });
+
           const years = Array.from(yearsSet).sort((a, b) => b - a);
           setStagiairesYears(years);
 
-          const tableData = Array.from(titreYearMap.entries()).map(([titre, yearMap]) => {
-            const row: { formation: string; total: number; [key: string]: number | string } = { formation: titre, total: 0 };
-            years.forEach(y => {
-              const count = yearMap.get(y)?.size || 0;
-              row[String(y)] = count;
-              row.total = (row.total as number) + count;
+          // Store raw data for year filtering (done in useMemo)
+          const allData = Array.from(titreYearMap.entries()).flatMap(([titre, yearMap]) => {
+            return Array.from(yearMap.entries()).map(([year, stagiaireSet]) => {
+              const satData = satByTitreYear.get(titre)?.get(year);
+              const satisfaction = satData && satData.scores.length > 0
+                ? Math.round((satData.scores.reduce((a, b) => a + b, 0) / satData.scores.length) * 10) / 10
+                : null;
+              const recommandation = satData && satData.total > 0
+                ? Math.round((satData.recommandes / satData.total) * 100)
+                : null;
+              return { formation: titre, year, stagiaires: stagiaireSet.size, satisfaction, recommandation };
             });
-            return row;
-          }).sort((a, b) => (b.total as number) - (a.total as number));
+          });
 
-          setStagiairesParAnFormation(tableData);
+          // Store in a ref-like state for filtering
+          setStagiairesParAnFormationRaw(allData);
         }
 
         // Recent formations
@@ -504,6 +539,12 @@ export default function Dashboard() {
     const recommandes = filtered.filter(d => d.recommande).length;
     return Math.round((recommandes / filtered.length) * 100);
   }, [satisfactionDocs, satisfactionFilter]);
+
+  const stagiairesParAnFormation = useMemo(() => {
+    return stagiairesParAnFormationRaw
+      .filter(r => r.year === selectedTableYear)
+      .sort((a, b) => b.stagiaires - a.stagiaires);
+  }, [stagiairesParAnFormationRaw, selectedTableYear]);
 
   const statCards = [
     {
@@ -845,11 +886,25 @@ export default function Dashboard() {
       )}
 
       {/* Stagiaires formés par an et par formation */}
-      {stagiairesParAnFormation.length > 0 && (
+      {stagiairesParAnFormationRaw.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Stagiaires formés par formation et par année</CardTitle>
-            <CardDescription>Nombre de stagiaires uniques par formation, toutes sessions confondues</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Stagiaires formés par formation</CardTitle>
+                <CardDescription>Nombre de stagiaires uniques, satisfaction et recommandation par formation</CardDescription>
+              </div>
+              <Select value={String(selectedTableYear)} onValueChange={(v) => setSelectedTableYear(Number(v))}>
+                <SelectTrigger className="w-[120px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {stagiairesYears.map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -857,30 +912,42 @@ export default function Dashboard() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Formation</th>
-                    {stagiairesYears.map(y => (
-                      <th key={y} className="text-center py-2 px-3 font-medium text-muted-foreground">{y}</th>
-                    ))}
-                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Total</th>
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Stagiaires</th>
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Satisfaction</th>
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Recommandation</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {stagiairesParAnFormation.map((row, idx) => (
-                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="py-2 pr-4 font-medium max-w-[300px] truncate">{row.formation}</td>
-                      {stagiairesYears.map(y => (
-                        <td key={y} className="text-center py-2 px-3">
-                          {(row[String(y)] as number) > 0 ? (
-                            <Badge variant="secondary" className="min-w-[2rem]">{row[String(y)]}</Badge>
+                  {stagiairesParAnFormation.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-4 text-muted-foreground">Aucune donnée pour {selectedTableYear}</td>
+                    </tr>
+                  ) : (
+                    stagiairesParAnFormation.map((row, idx) => (
+                      <tr key={idx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                        <td className="py-2 pr-4 font-medium max-w-[350px] truncate">{row.formation}</td>
+                        <td className="text-center py-2 px-3">
+                          <Badge variant="secondary" className="min-w-[2rem]">{row.stagiaires}</Badge>
+                        </td>
+                        <td className="text-center py-2 px-3">
+                          {row.satisfaction != null ? (
+                            <span className={`font-semibold ${row.satisfaction >= 4.5 ? 'text-success' : row.satisfaction >= 3.5 ? 'text-warning' : 'text-destructive'}`}>
+                              {row.satisfaction}/5
+                            </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
-                      ))}
-                      <td className="text-center py-2 px-3">
-                        <Badge className="min-w-[2rem]">{row.total}</Badge>
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="text-center py-2 px-3">
+                          {row.recommandation != null ? (
+                            <Badge className="min-w-[2rem]">{row.recommandation}%</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
