@@ -262,6 +262,55 @@ export default function Dashboard() {
           .order('date_debut', { ascending: false });
         setAllFormationsList(formationsListData || []);
 
+        // Stagiaires formés par an et par formation (toutes sessions confondues)
+        const { data: allFormationsForStats } = await supabase
+          .from('formations')
+          .select('id, titre, date_debut');
+        const { data: allInscriptionsForStats } = await supabase
+          .from('inscriptions')
+          .select('formation_id, stagiaire_id');
+        
+        if (allFormationsForStats && allInscriptionsForStats) {
+          // Build formation_id -> { titre, year }
+          const formationInfo = new Map<string, { titre: string; year: number }>();
+          allFormationsForStats.forEach(f => {
+            formationInfo.set(f.id, { titre: f.titre, year: new Date(f.date_debut).getFullYear() });
+          });
+
+          // Group by titre -> year -> Set<stagiaire_id> (unique stagiaires)
+          const titreYearMap = new Map<string, Map<number, Set<string>>>();
+          const yearsSet = new Set<number>();
+
+          allInscriptionsForStats.forEach(insc => {
+            const info = formationInfo.get(insc.formation_id);
+            if (!info) return;
+            yearsSet.add(info.year);
+            if (!titreYearMap.has(info.titre)) {
+              titreYearMap.set(info.titre, new Map());
+            }
+            const yearMap = titreYearMap.get(info.titre)!;
+            if (!yearMap.has(info.year)) {
+              yearMap.set(info.year, new Set());
+            }
+            yearMap.get(info.year)!.add(insc.stagiaire_id);
+          });
+
+          const years = Array.from(yearsSet).sort((a, b) => b - a);
+          setStagiairesYears(years);
+
+          const tableData = Array.from(titreYearMap.entries()).map(([titre, yearMap]) => {
+            const row: { formation: string; total: number; [key: string]: number | string } = { formation: titre, total: 0 };
+            years.forEach(y => {
+              const count = yearMap.get(y)?.size || 0;
+              row[String(y)] = count;
+              row.total = (row.total as number) + count;
+            });
+            return row;
+          }).sort((a, b) => (b.total as number) - (a.total as number));
+
+          setStagiairesParAnFormation(tableData);
+        }
+
         // Recent formations
         const { data: recentData } = await supabase
           .from('formations')
