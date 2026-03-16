@@ -109,7 +109,7 @@ serve(async (req) => {
       const serviceClient = getServiceClient();
       const { data: documents, error } = await serviceClient
         .from("documents_stagiaires")
-        .select("id, type, statut, contenu, score, date_soumission, genere_automatiquement")
+        .select("id, type, statut, contenu, score, date_soumission, genere_automatiquement, pdf_url")
         .eq("inscription_id", result.inscription_id);
 
       if (error) throw error;
