@@ -14,12 +14,15 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2, Sparkles, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { getPDFBlob } from '@/lib/pdf-generator';
 import JSZip from 'jszip';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const REQUIRED_DOC_TYPES = [
   { id: 'questionnaire_positionnement', short: 'Posit.', label: 'Positionnement' },
