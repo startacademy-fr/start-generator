@@ -211,7 +211,7 @@ export default function AuditDashboard() {
     }
   };
 
-
+  const handleExportZip = async (formationId?: string) => {
     setIsExporting(true);
     try {
       const zip = new JSZip();
