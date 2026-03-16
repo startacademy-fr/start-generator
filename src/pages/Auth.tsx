@@ -61,13 +61,13 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check if user came from password reset email
+  // Check if user came from password reset email (via URL param or auth event)
   useEffect(() => {
     const isReset = searchParams.get('reset') === 'true';
-    if (isReset) {
+    if (isReset || isRecoveryMode) {
       setShowNewPassword(true);
     }
-  }, [searchParams]);
+  }, [searchParams, isRecoveryMode]);
 
   useEffect(() => {
     if (user && !authLoading && !showNewPassword) {
