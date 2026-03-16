@@ -124,6 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  // Expose a callback for PASSWORD_RECOVERY event
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
   const hasRole = (role: AppRole) => roles.includes(role);
   const isSuperAdmin = () => hasRole('super_admin');
   const isAdmin = () => hasRole('admin') || hasRole('super_admin');
