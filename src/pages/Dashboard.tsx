@@ -94,7 +94,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
-  const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string }[]>([]);
+  const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string; recommande: boolean }[]>([]);
   const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
   const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; [year: string]: number | string }[]>([]);
   const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
