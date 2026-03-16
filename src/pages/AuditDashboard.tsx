@@ -14,12 +14,15 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, FileText, Users, ClipboardCheck, FileArchive, Loader2, Sparkles, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { getPDFBlob } from '@/lib/pdf-generator';
 import JSZip from 'jszip';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const REQUIRED_DOC_TYPES = [
   { id: 'questionnaire_positionnement', short: 'Posit.', label: 'Positionnement' },
@@ -73,7 +76,7 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('documents_stagiaires')
-        .select('id, inscription_id, type, statut');
+        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url');
       if (error) throw error;
       return data;
     },
@@ -87,13 +90,13 @@ export default function AuditDashboard() {
       const stagiaire = insc.stagiaires;
       const stagDocs = documents?.filter(d => d.inscription_id === insc.id) || [];
       
-      const docStatus: Record<string, 'complete' | 'missing'> = {};
+      const docStatus: Record<string, { status: 'complete' | 'missing'; doc?: any }> = {};
       REQUIRED_DOC_TYPES.forEach(dt => {
         const found = stagDocs.find(d => d.type === dt.id);
-        docStatus[dt.id] = found ? 'complete' : 'missing';
+        docStatus[dt.id] = found ? { status: 'complete', doc: found } : { status: 'missing' };
       });
 
-      const completedCount = Object.values(docStatus).filter(v => v === 'complete').length;
+      const completedCount = Object.values(docStatus).filter(v => v.status === 'complete').length;
       
       return {
         inscriptionId: insc.id,
@@ -126,6 +129,87 @@ export default function AuditDashboard() {
   const totalDocs = allAudits.reduce((sum, a) => sum + a.completedCount, 0);
   const totalExpected = allAudits.reduce((sum, a) => sum + a.totalRequired, 0);
   const globalProgress = totalExpected > 0 ? Math.round((totalDocs / totalExpected) * 100) : 0;
+
+  const handleDownloadDoc = async (doc: any, stagiaire: any, formation: any) => {
+    try {
+      if (doc.pdf_url) {
+        window.open(doc.pdf_url, '_blank');
+        return;
+      }
+      const blob = await getPDFBlob({
+        type: doc.type,
+        stagiaire: {
+          prenom: stagiaire.prenom,
+          nom: stagiaire.nom,
+          email: stagiaire.email || '',
+          entreprise: stagiaire.entreprise || undefined,
+          fonction: stagiaire.fonction || undefined,
+        },
+        formation: {
+          titre: formation.titre,
+          lieu: formation.lieu,
+          date_debut: formation.date_debut,
+          date_fin: formation.date_fin,
+          nombre_heures: formation.nombre_heures,
+        },
+        contenu: doc.contenu,
+        score: doc.score,
+        date_soumission: doc.date_soumission,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${doc.type}_${stagiaire.nom}_${stagiaire.prenom}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error('Erreur téléchargement: ' + err.message);
+    }
+  };
+
+  const handleDownloadStagiaireZip = async (row: any, formation: any) => {
+    try {
+      const zip = new JSZip();
+      const completeDocs = Object.entries(row.docStatus)
+        .filter(([, v]: [string, any]) => v.status === 'complete')
+        .map(([, v]: [string, any]) => v.doc);
+
+      for (const doc of completeDocs) {
+        const blob = await getPDFBlob({
+          type: doc.type,
+          stagiaire: {
+            prenom: row.stagiaire.prenom,
+            nom: row.stagiaire.nom,
+            email: row.stagiaire.email || '',
+            entreprise: row.stagiaire.entreprise || undefined,
+            fonction: row.stagiaire.fonction || undefined,
+          },
+          formation: {
+            titre: formation.titre,
+            lieu: formation.lieu,
+            date_debut: formation.date_debut,
+            date_fin: formation.date_fin,
+            nombre_heures: formation.nombre_heures,
+          },
+          contenu: doc.contenu,
+          score: doc.score,
+          date_soumission: doc.date_soumission,
+        });
+        zip.file(`${doc.type}.pdf`, blob);
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${row.stagiaire.nom}_${row.stagiaire.prenom}_documents.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('ZIP téléchargé');
+    } catch (err: any) {
+      toast.error('Erreur export: ' + err.message);
+    }
+  };
 
   const handleExportZip = async (formationId?: string) => {
     setIsExporting(true);
@@ -366,20 +450,53 @@ export default function AuditDashboard() {
                         </TableCell>
                         {REQUIRED_DOC_TYPES.map(dt => (
                           <TableCell key={dt.id} className="text-center px-1">
-                            {row.docStatus[dt.id] === 'complete' ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                            {row.docStatus[dt.id].status === 'complete' ? (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => handleDownloadDoc(row.docStatus[dt.id].doc, row.stagiaire, formation)}
+                                      className="inline-flex hover:scale-110 transition-transform cursor-pointer"
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    Télécharger {dt.label}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
                               <XCircle className="h-4 w-4 text-destructive/40 mx-auto" />
                             )}
                           </TableCell>
                         ))}
                         <TableCell className="text-center">
-                          <Badge 
-                            variant={row.isComplete ? 'default' : row.completedCount > 0 ? 'secondary' : 'destructive'}
-                            className="text-xs"
-                          >
-                            {row.completedCount}/{row.totalRequired}
-                          </Badge>
+                          <div className="flex items-center justify-center gap-1">
+                            <Badge 
+                              variant={row.isComplete ? 'default' : row.completedCount > 0 ? 'secondary' : 'destructive'}
+                              className="text-xs"
+                            >
+                              {row.completedCount}/{row.totalRequired}
+                            </Badge>
+                            {row.completedCount > 0 && (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => handleDownloadStagiaireZip(row, formation)}
+                                      className="inline-flex hover:scale-110 transition-transform cursor-pointer text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Download className="h-3.5 w-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    Télécharger ZIP du stagiaire
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
