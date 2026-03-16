@@ -753,7 +753,50 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent Formations & Quick Actions */}
+      {/* Stagiaires formés par an et par formation */}
+      {stagiairesParAnFormation.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Stagiaires formés par formation et par année</CardTitle>
+            <CardDescription>Nombre de stagiaires uniques par formation, toutes sessions confondues</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Formation</th>
+                    {stagiairesYears.map(y => (
+                      <th key={y} className="text-center py-2 px-3 font-medium text-muted-foreground">{y}</th>
+                    ))}
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stagiairesParAnFormation.map((row, idx) => (
+                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="py-2 pr-4 font-medium max-w-[300px] truncate">{row.formation}</td>
+                      {stagiairesYears.map(y => (
+                        <td key={y} className="text-center py-2 px-3">
+                          {(row[String(y)] as number) > 0 ? (
+                            <Badge variant="secondary" className="min-w-[2rem]">{row[String(y)]}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="text-center py-2 px-3">
+                        <Badge className="min-w-[2rem]">{row.total}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Formations */}
         <Card className="lg:col-span-2">
