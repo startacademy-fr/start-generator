@@ -206,6 +206,19 @@ export default function Dashboard() {
           ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
           : null;
 
+        // Build satisfaction docs with formation_id for filtering
+        // We need inscription -> formation mapping
+        const { data: allInscsForSat } = await supabase
+          .from('inscriptions')
+          .select('id, formation_id');
+        const inscToFormation = new Map<string, string>();
+        allInscsForSat?.forEach(i => inscToFormation.set(i.id, i.formation_id));
+        
+        const satDocsWithFormation = satDocs
+          .filter(d => inscToFormation.has(d.inscription_id))
+          .map(d => ({ score: d.score!, formation_id: inscToFormation.get(d.inscription_id)! }));
+        setSatisfactionDocs(satDocsWithFormation);
+
         // Taux d'abandon N-1 (inscriptions avec statut 'abandon')
         let tauxAbandon: number | null = null;
         if (formationIdsN1.length > 0) {
