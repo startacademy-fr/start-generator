@@ -130,7 +130,88 @@ export default function AuditDashboard() {
   const totalExpected = allAudits.reduce((sum, a) => sum + a.totalRequired, 0);
   const globalProgress = totalExpected > 0 ? Math.round((totalDocs / totalExpected) * 100) : 0;
 
-  const handleExportZip = async (formationId?: string) => {
+  const handleDownloadDoc = async (doc: any, stagiaire: any, formation: any) => {
+    try {
+      if (doc.pdf_url) {
+        window.open(doc.pdf_url, '_blank');
+        return;
+      }
+      const blob = await getPDFBlob({
+        type: doc.type,
+        stagiaire: {
+          prenom: stagiaire.prenom,
+          nom: stagiaire.nom,
+          email: stagiaire.email || '',
+          entreprise: stagiaire.entreprise || undefined,
+          fonction: stagiaire.fonction || undefined,
+        },
+        formation: {
+          titre: formation.titre,
+          lieu: formation.lieu,
+          date_debut: formation.date_debut,
+          date_fin: formation.date_fin,
+          nombre_heures: formation.nombre_heures,
+        },
+        contenu: doc.contenu,
+        score: doc.score,
+        date_soumission: doc.date_soumission,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${doc.type}_${stagiaire.nom}_${stagiaire.prenom}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error('Erreur téléchargement: ' + err.message);
+    }
+  };
+
+  const handleDownloadStagiaireZip = async (row: any, formation: any) => {
+    try {
+      const zip = new JSZip();
+      const completeDocs = Object.entries(row.docStatus)
+        .filter(([, v]: [string, any]) => v.status === 'complete')
+        .map(([, v]: [string, any]) => v.doc);
+
+      for (const doc of completeDocs) {
+        const blob = await getPDFBlob({
+          type: doc.type,
+          stagiaire: {
+            prenom: row.stagiaire.prenom,
+            nom: row.stagiaire.nom,
+            email: row.stagiaire.email || '',
+            entreprise: row.stagiaire.entreprise || undefined,
+            fonction: row.stagiaire.fonction || undefined,
+          },
+          formation: {
+            titre: formation.titre,
+            lieu: formation.lieu,
+            date_debut: formation.date_debut,
+            date_fin: formation.date_fin,
+            nombre_heures: formation.nombre_heures,
+          },
+          contenu: doc.contenu,
+          score: doc.score,
+          date_soumission: doc.date_soumission,
+        });
+        zip.file(`${doc.type}.pdf`, blob);
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${row.stagiaire.nom}_${row.stagiaire.prenom}_documents.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('ZIP téléchargé');
+    } catch (err: any) {
+      toast.error('Erreur export: ' + err.message);
+    }
+  };
+
+
     setIsExporting(true);
     try {
       const zip = new JSZip();
