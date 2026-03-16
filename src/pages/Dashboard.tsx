@@ -47,6 +47,7 @@ interface DashboardStats {
   formationsParType: { nom: string; count: number }[];
   tauxReussiteQCM: number | null;
   tauxSatisfaction: number | null;
+  tauxRecommandation: number | null;
   tauxAbandon: number | null;
   reclamationsN1: number;
   tauxCompletionDossiers: number | null;
