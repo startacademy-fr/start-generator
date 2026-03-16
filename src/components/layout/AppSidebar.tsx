@@ -39,9 +39,15 @@ export function AppSidebar() {
   const { profile, roles, signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
-  const navigation = allNavigation.filter((item) =>
-    item.roles.some((role) => roles.includes(role as any))
-  );
+  const navigation = allNavigation.filter((item) => {
+    const hasRole = item.roles.some((role) => roles.includes(role as any));
+    if (!hasRole) return false;
+    // Hide "Catalogue" if user already sees "Formations" (has a non-formateur role)
+    if (item.name === 'Catalogue' && roles.some(r => ['super_admin', 'admin', 'assistante', 'lecteur'].includes(r))) {
+      return false;
+    }
+    return true;
+  });
 
   const getRoleLabel = () => {
     if (roles.includes('super_admin')) return 'Super Administrateur';
