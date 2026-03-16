@@ -39,7 +39,7 @@ const newPasswordSchema = z.object({
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signIn, signUp, resetPassword, user, loading: authLoading } = useAuth();
+  const { signIn, signUp, resetPassword, user, loading: authLoading, isRecoveryMode, clearRecoveryMode } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
