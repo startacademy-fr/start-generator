@@ -196,6 +196,7 @@ export default function RoleManagement() {
                 <TableHead>Email</TableHead>
                 <TableHead>Rôle actuel</TableHead>
                 <TableHead>Modifier le rôle</TableHead>
+                <TableHead>Mot de passe</TableHead>
                 <TableHead>Inscrit le</TableHead>
               </TableRow>
             </TableHeader>
