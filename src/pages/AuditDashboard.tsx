@@ -90,13 +90,13 @@ export default function AuditDashboard() {
       const stagiaire = insc.stagiaires;
       const stagDocs = documents?.filter(d => d.inscription_id === insc.id) || [];
       
-      const docStatus: Record<string, 'complete' | 'missing'> = {};
+      const docStatus: Record<string, { status: 'complete' | 'missing'; doc?: any }> = {};
       REQUIRED_DOC_TYPES.forEach(dt => {
         const found = stagDocs.find(d => d.type === dt.id);
-        docStatus[dt.id] = found ? 'complete' : 'missing';
+        docStatus[dt.id] = found ? { status: 'complete', doc: found } : { status: 'missing' };
       });
 
-      const completedCount = Object.values(docStatus).filter(v => v === 'complete').length;
+      const completedCount = Object.values(docStatus).filter(v => v.status === 'complete').length;
       
       return {
         inscriptionId: insc.id,
