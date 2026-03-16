@@ -12,7 +12,7 @@ import {
   MapPin,
   Loader2,
   ShieldAlert,
-  Eye
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
