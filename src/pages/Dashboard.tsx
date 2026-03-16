@@ -47,6 +47,7 @@ interface DashboardStats {
   formationsParType: { nom: string; count: number }[];
   tauxReussiteQCM: number | null;
   tauxSatisfaction: number | null;
+  tauxRecommandation: number | null;
   tauxAbandon: number | null;
   reclamationsN1: number;
   tauxCompletionDossiers: number | null;
@@ -84,6 +85,7 @@ export default function Dashboard() {
     formationsParType: [],
     tauxReussiteQCM: null,
     tauxSatisfaction: null,
+    tauxRecommandation: null,
     tauxAbandon: null,
     reclamationsN1: 0,
     tauxCompletionDossiers: null,
@@ -92,7 +94,7 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
-  const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string }[]>([]);
+  const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string; recommande: boolean }[]>([]);
   const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
   const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; [year: string]: number | string }[]>([]);
   const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
@@ -179,7 +181,7 @@ export default function Dashboard() {
         // QCM scores & satisfaction from documents
         const { data: docs } = await supabase
           .from('documents_stagiaires')
-          .select('type, score, statut, inscription_id');
+          .select('type, score, statut, inscription_id, contenu');
 
         const complets = docs?.filter(d => d.statut === 'complete' || d.statut === 'genere_auto').length || 0;
         const incomplets = docs?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0;
@@ -202,24 +204,85 @@ export default function Dashboard() {
           ? Math.round(qcmDocs.reduce((sum, d) => sum + (d.score || 0), 0) / qcmDocs.length)
           : null;
 
-        // Taux satisfaction (score moyen satisfaction_froid N-1)
-        const satDocs = docs?.filter(d => d.type === 'satisfaction_froid' && d.score != null && n1InscSet.has(d.inscription_id)) || [];
-        const tauxSatisfaction = satDocs.length > 0
-          ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
-          : null;
+        // Helper: convert rating text to score /5
+        const ratingToScore = (rating: string): number | null => {
+          const r = (rating || '').toLowerCase().trim();
+          if (r === 'très bien') return 5;
+          if (r === 'bien') return 4;
+          if (r === 'moyen') return 2.5;
+          if (r === 'mauvais') return 1;
+          return null;
+        };
 
-        // Build satisfaction docs with formation_id for filtering
-        // We need inscription -> formation mapping
+        // Extract all ratings from a satisfaction_chaud contenu
+        const extractSatScores = (contenu: any): number[] => {
+          const scores: number[] = [];
+          const sections = ['organisation', 'moyens', 'pedagogie', 'groupe'];
+          for (const section of sections) {
+            if (contenu[section] && typeof contenu[section] === 'object') {
+              for (const [key, value] of Object.entries(contenu[section])) {
+                if (key === 'commentaire') continue;
+                const s = ratingToScore(value as string);
+                if (s !== null) scores.push(s);
+              }
+            }
+          }
+          // benefice.adequation
+          if (contenu.benefice?.adequation) {
+            const s = ratingToScore(contenu.benefice.adequation);
+            if (s !== null) scores.push(s);
+          }
+          return scores;
+        };
+
+        // Check if recommandation is "oui"
+        const isRecommandation = (contenu: any): boolean => {
+          const rec = (contenu?.questions_finales?.recommandation || '').toLowerCase();
+          return rec.includes('oui');
+        };
+
+        // Satisfaction à chaud docs for N-1
+        const satChaudDocs = docs?.filter(d => d.type === 'satisfaction_chaud' && n1InscSet.has(d.inscription_id)) || [];
+        
+        // Calculate average satisfaction score /5
+        let allSatScores: number[] = [];
+        let recommandationCount = 0;
+        const satDocsProcessed: { score: number; formation_id: string; recommande: boolean }[] = [];
+
+        // Build inscription -> formation mapping
         const { data: allInscsForSat } = await supabase
           .from('inscriptions')
           .select('id, formation_id');
         const inscToFormation = new Map<string, string>();
         allInscsForSat?.forEach(i => inscToFormation.set(i.id, i.formation_id));
-        
-        const satDocsWithFormation = satDocs
-          .filter(d => inscToFormation.has(d.inscription_id))
-          .map(d => ({ score: d.score!, formation_id: inscToFormation.get(d.inscription_id)! }));
-        setSatisfactionDocs(satDocsWithFormation);
+
+        satChaudDocs.forEach(d => {
+          const contenu = d.contenu as any;
+          const scores = extractSatScores(contenu);
+          const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+          const recommande = isRecommandation(contenu);
+          if (recommande) recommandationCount++;
+          if (scores.length > 0) {
+            allSatScores.push(avgScore);
+          }
+          if (inscToFormation.has(d.inscription_id)) {
+            satDocsProcessed.push({
+              score: avgScore,
+              formation_id: inscToFormation.get(d.inscription_id)!,
+              recommande,
+            });
+          }
+        });
+
+        const tauxSatisfaction = allSatScores.length > 0
+          ? Math.round((allSatScores.reduce((a, b) => a + b, 0) / allSatScores.length) * 10) / 10
+          : null;
+
+        const tauxRecommandation = satChaudDocs.length > 0
+          ? Math.round((recommandationCount / satChaudDocs.length) * 100)
+          : null;
+
+        setSatisfactionDocs(satDocsProcessed);
 
         // Taux d'abandon N-1 (inscriptions avec statut 'abandon')
         let tauxAbandon: number | null = null;
@@ -332,6 +395,7 @@ export default function Dashboard() {
           formationsParType,
           tauxReussiteQCM,
           tauxSatisfaction,
+          tauxRecommandation,
           tauxAbandon,
           reclamationsN1: reclamationsCount || 0,
           tauxCompletionDossiers,
@@ -428,7 +492,17 @@ export default function Dashboard() {
       ? satisfactionDocs 
       : satisfactionDocs.filter(d => d.formation_id === satisfactionFilter);
     if (filtered.length === 0) return null;
-    return Math.round(filtered.reduce((sum, d) => sum + d.score, 0) / filtered.length);
+    return Math.round((filtered.reduce((sum, d) => sum + d.score, 0) / filtered.length) * 10) / 10;
+  }, [satisfactionDocs, satisfactionFilter]);
+
+  const filteredRecommandation = useMemo(() => {
+    if (satisfactionDocs.length === 0) return null;
+    const filtered = satisfactionFilter === 'all' 
+      ? satisfactionDocs 
+      : satisfactionDocs.filter(d => d.formation_id === satisfactionFilter);
+    if (filtered.length === 0) return null;
+    const recommandes = filtered.filter(d => d.recommande).length;
+    return Math.round((recommandes / filtered.length) * 100);
   }, [satisfactionDocs, satisfactionFilter]);
 
   const statCards = [
@@ -508,10 +582,17 @@ export default function Dashboard() {
     },
     {
       title: `Satisfaction moyenne (${n1Year})`,
-      value: stats.tauxSatisfaction != null ? `${stats.tauxSatisfaction}%` : '—',
+      value: stats.tauxSatisfaction != null ? `${stats.tauxSatisfaction}/5` : '—',
       icon: ThumbsUp,
       color: "text-warning",
       bgColor: "bg-warning/10",
+    },
+    {
+      title: `Taux recommandation (${n1Year})`,
+      value: stats.tauxRecommandation != null ? `${stats.tauxRecommandation}%` : '—',
+      icon: Award,
+      color: "text-success",
+      bgColor: "bg-success/10",
     },
     {
       title: `Taux d'abandon (${n1Year})`,
@@ -666,14 +747,24 @@ export default function Dashboard() {
             </Select>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-2">{filteredSatisfaction ?? '—'}{filteredSatisfaction != null ? '%' : ''}</div>
-            <Progress value={filteredSatisfaction ?? 0} className="h-2" />
+            <div className="text-2xl font-bold mb-2">{filteredSatisfaction ?? '—'}{filteredSatisfaction != null ? '/5' : ''}</div>
+            <Progress value={filteredSatisfaction != null ? (filteredSatisfaction / 5) * 100 : 0} className="h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              Satisfaction à froid {satisfactionFilter === 'all' ? n1Year : ''}
+              Satisfaction à chaud {satisfactionFilter === 'all' ? n1Year : ''}
               {satisfactionFilter !== 'all' && satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length > 0 
-                ? `${satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length} réponse(s)` 
-                : satisfactionFilter === 'all' ? '' : 'Aucune donnée'}
+                ? ` — ${satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length} réponse(s)` 
+                : satisfactionFilter === 'all' ? '' : ' — Aucune donnée'}
             </p>
+            {filteredSatisfaction != null && (
+              <p className={`text-xs mt-1 font-medium ${filteredSatisfaction >= 4.5 ? 'text-success' : 'text-warning'}`}>
+                {filteredSatisfaction >= 4.5 ? '✅ Objectif atteint (≥ 4.5/5)' : '⚠️ Objectif non atteint (< 4.5/5)'}
+              </p>
+            )}
+            {filteredRecommandation != null && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📣 Taux de recommandation : <span className="font-semibold text-foreground">{filteredRecommandation}%</span>
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
