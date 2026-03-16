@@ -94,6 +94,8 @@ export default function Dashboard() {
   const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
   const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string }[]>([]);
   const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
+  const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; [year: string]: number | string }[]>([]);
+  const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -259,6 +261,55 @@ export default function Dashboard() {
           .select('id, titre')
           .order('date_debut', { ascending: false });
         setAllFormationsList(formationsListData || []);
+
+        // Stagiaires formés par an et par formation (toutes sessions confondues)
+        const { data: allFormationsForStats } = await supabase
+          .from('formations')
+          .select('id, titre, date_debut');
+        const { data: allInscriptionsForStats } = await supabase
+          .from('inscriptions')
+          .select('formation_id, stagiaire_id');
+        
+        if (allFormationsForStats && allInscriptionsForStats) {
+          // Build formation_id -> { titre, year }
+          const formationInfo = new Map<string, { titre: string; year: number }>();
+          allFormationsForStats.forEach(f => {
+            formationInfo.set(f.id, { titre: f.titre, year: new Date(f.date_debut).getFullYear() });
+          });
+
+          // Group by titre -> year -> Set<stagiaire_id> (unique stagiaires)
+          const titreYearMap = new Map<string, Map<number, Set<string>>>();
+          const yearsSet = new Set<number>();
+
+          allInscriptionsForStats.forEach(insc => {
+            const info = formationInfo.get(insc.formation_id);
+            if (!info) return;
+            yearsSet.add(info.year);
+            if (!titreYearMap.has(info.titre)) {
+              titreYearMap.set(info.titre, new Map());
+            }
+            const yearMap = titreYearMap.get(info.titre)!;
+            if (!yearMap.has(info.year)) {
+              yearMap.set(info.year, new Set());
+            }
+            yearMap.get(info.year)!.add(insc.stagiaire_id);
+          });
+
+          const years = Array.from(yearsSet).sort((a, b) => b - a);
+          setStagiairesYears(years);
+
+          const tableData = Array.from(titreYearMap.entries()).map(([titre, yearMap]) => {
+            const row: { formation: string; total: number; [key: string]: number | string } = { formation: titre, total: 0 };
+            years.forEach(y => {
+              const count = yearMap.get(y)?.size || 0;
+              row[String(y)] = count;
+              row.total = (row.total as number) + count;
+            });
+            return row;
+          }).sort((a, b) => (b.total as number) - (a.total as number));
+
+          setStagiairesParAnFormation(tableData);
+        }
 
         // Recent formations
         const { data: recentData } = await supabase
@@ -702,7 +753,50 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent Formations & Quick Actions */}
+      {/* Stagiaires formés par an et par formation */}
+      {stagiairesParAnFormation.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Stagiaires formés par formation et par année</CardTitle>
+            <CardDescription>Nombre de stagiaires uniques par formation, toutes sessions confondues</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Formation</th>
+                    {stagiairesYears.map(y => (
+                      <th key={y} className="text-center py-2 px-3 font-medium text-muted-foreground">{y}</th>
+                    ))}
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stagiairesParAnFormation.map((row, idx) => (
+                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="py-2 pr-4 font-medium max-w-[300px] truncate">{row.formation}</td>
+                      {stagiairesYears.map(y => (
+                        <td key={y} className="text-center py-2 px-3">
+                          {(row[String(y)] as number) > 0 ? (
+                            <Badge variant="secondary" className="min-w-[2rem]">{row[String(y)]}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="text-center py-2 px-3">
+                        <Badge className="min-w-[2rem]">{row.total}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Formations */}
         <Card className="lg:col-span-2">
