@@ -241,6 +241,17 @@ export default function RoleManagement() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openResetDialog(u)}
+                        disabled={isSelf}
+                      >
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Nouveau mot de passe
+                      </Button>
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {format(new Date(u.created_at), 'dd MMM yyyy', { locale: fr })}
                     </TableCell>
