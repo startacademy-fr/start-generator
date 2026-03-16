@@ -94,6 +94,8 @@ export default function Dashboard() {
   const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
   const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string }[]>([]);
   const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
+  const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; [year: string]: number | string }[]>([]);
+  const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
