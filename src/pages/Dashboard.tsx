@@ -327,21 +327,31 @@ export default function Dashboard() {
         setAllFormationsList(formationsListData || []);
 
         // Stagiaires formés par an et par formation (toutes sessions confondues)
+        // Also include satisfaction_chaud data per formation
         const { data: allFormationsForStats } = await supabase
           .from('formations')
           .select('id, titre, date_debut');
         const { data: allInscriptionsForStats } = await supabase
           .from('inscriptions')
-          .select('formation_id, stagiaire_id');
+          .select('id, formation_id, stagiaire_id');
+        
+        // All satisfaction_chaud docs (not just N-1)
+        const allSatChaudDocs = docs?.filter(d => d.type === 'satisfaction_chaud') || [];
         
         if (allFormationsForStats && allInscriptionsForStats) {
-          // Build formation_id -> { titre, year }
           const formationInfo = new Map<string, { titre: string; year: number }>();
           allFormationsForStats.forEach(f => {
             formationInfo.set(f.id, { titre: f.titre, year: new Date(f.date_debut).getFullYear() });
           });
 
-          // Group by titre -> year -> Set<stagiaire_id> (unique stagiaires)
+          // Map inscription_id -> { titre, year }
+          const inscriptionInfo = new Map<string, { titre: string; year: number }>();
+          allInscriptionsForStats.forEach(insc => {
+            const info = formationInfo.get(insc.formation_id);
+            if (info) inscriptionInfo.set(insc.id, info);
+          });
+
+          // Group by titre -> year -> Set<stagiaire_id>
           const titreYearMap = new Map<string, Map<number, Set<string>>>();
           const yearsSet = new Set<number>();
 
@@ -359,20 +369,44 @@ export default function Dashboard() {
             yearMap.get(info.year)!.add(insc.stagiaire_id);
           });
 
+          // Group satisfaction_chaud by titre -> year -> scores & recommandations
+          const satByTitreYear = new Map<string, Map<number, { scores: number[]; recommandes: number; total: number }>>();
+          allSatChaudDocs.forEach(d => {
+            const info = inscriptionInfo.get(d.inscription_id);
+            if (!info) return;
+            const contenu = d.contenu as any;
+            const docScores = extractSatScores(contenu);
+            const avgScore = docScores.length > 0 ? docScores.reduce((a, b) => a + b, 0) / docScores.length : null;
+            const recommande = isRecommandation(contenu);
+
+            if (!satByTitreYear.has(info.titre)) satByTitreYear.set(info.titre, new Map());
+            const yearMap = satByTitreYear.get(info.titre)!;
+            if (!yearMap.has(info.year)) yearMap.set(info.year, { scores: [], recommandes: 0, total: 0 });
+            const entry = yearMap.get(info.year)!;
+            if (avgScore !== null) entry.scores.push(avgScore);
+            if (recommande) entry.recommandes++;
+            entry.total++;
+          });
+
           const years = Array.from(yearsSet).sort((a, b) => b - a);
           setStagiairesYears(years);
 
-          const tableData = Array.from(titreYearMap.entries()).map(([titre, yearMap]) => {
-            const row: { formation: string; total: number; [key: string]: number | string } = { formation: titre, total: 0 };
-            years.forEach(y => {
-              const count = yearMap.get(y)?.size || 0;
-              row[String(y)] = count;
-              row.total = (row.total as number) + count;
+          // Store raw data for year filtering (done in useMemo)
+          const allData = Array.from(titreYearMap.entries()).flatMap(([titre, yearMap]) => {
+            return Array.from(yearMap.entries()).map(([year, stagiaireSet]) => {
+              const satData = satByTitreYear.get(titre)?.get(year);
+              const satisfaction = satData && satData.scores.length > 0
+                ? Math.round((satData.scores.reduce((a, b) => a + b, 0) / satData.scores.length) * 10) / 10
+                : null;
+              const recommandation = satData && satData.total > 0
+                ? Math.round((satData.recommandes / satData.total) * 100)
+                : null;
+              return { formation: titre, year, stagiaires: stagiaireSet.size, satisfaction, recommandation };
             });
-            return row;
-          }).sort((a, b) => (b.total as number) - (a.total as number));
+          });
 
-          setStagiairesParAnFormation(tableData);
+          // Store in a ref-like state for filtering
+          setStagiairesParAnFormationRaw(allData);
         }
 
         // Recent formations
