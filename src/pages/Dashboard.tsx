@@ -371,6 +371,15 @@ export default function Dashboard() {
   const currentYear = new Date().getFullYear();
   const n1Year = currentYear - 1;
 
+  const filteredSatisfaction = useMemo(() => {
+    if (satisfactionDocs.length === 0) return null;
+    const filtered = satisfactionFilter === 'all' 
+      ? satisfactionDocs 
+      : satisfactionDocs.filter(d => d.formation_id === satisfactionFilter);
+    if (filtered.length === 0) return null;
+    return Math.round(filtered.reduce((sum, d) => sum + d.score, 0) / filtered.length);
+  }, [satisfactionDocs, satisfactionFilter]);
+
   const statCards = [
     {
       title: "Sessions actives",
