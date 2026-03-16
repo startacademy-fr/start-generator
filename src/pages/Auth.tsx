@@ -63,13 +63,80 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check if user came from password reset email (via URL param or auth event)
+  // Check if user came from password reset email (via URL param/hash or auth event)
   useEffect(() => {
     const isReset = searchParams.get('reset') === 'true';
-    if (isReset || isRecoveryMode) {
+    const hasRecoveryQuery = searchParams.get('type') === 'recovery' || Boolean(searchParams.get('token_hash'));
+    const hasRecoveryHash = window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token=');
+
+    if (isReset || hasRecoveryQuery || hasRecoveryHash || isRecoveryMode) {
       setShowNewPassword(true);
     }
   }, [searchParams, isRecoveryMode]);
+
+  useEffect(() => {
+    if (!showNewPassword) return;
+
+    let isMounted = true;
+
+    const initializeRecoverySession = async () => {
+      setRecoveryLoading(true);
+      setRecoveryLinkInvalid(false);
+
+      try {
+        const queryParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+        const tokenHash = queryParams.get('token_hash');
+        const typeFromQuery = queryParams.get('type');
+        const hashAccessToken = hashParams.get('access_token');
+        const hashRefreshToken = hashParams.get('refresh_token');
+        const typeFromHash = hashParams.get('type');
+
+        if (tokenHash && typeFromQuery === 'recovery') {
+          const { error } = await supabase.auth.verifyOtp({
+            type: 'recovery',
+            token_hash: tokenHash,
+          });
+
+          if (error) throw error;
+        } else if (hashAccessToken && hashRefreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken,
+          });
+
+          if (error) throw error;
+          if (typeFromHash && typeFromHash !== 'recovery') {
+            throw new Error('Invalid recovery token type');
+          }
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          throw new Error('No recovery session found');
+        }
+
+        window.history.replaceState({}, document.title, '/auth?reset=true');
+      } catch (error) {
+        console.error('Recovery link initialization error:', error);
+
+        if (isMounted) {
+          setRecoveryLinkInvalid(true);
+        }
+      } finally {
+        if (isMounted) {
+          setRecoveryLoading(false);
+        }
+      }
+    };
+
+    initializeRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showNewPassword]);
 
   useEffect(() => {
     // Don't redirect if we're in password reset mode
