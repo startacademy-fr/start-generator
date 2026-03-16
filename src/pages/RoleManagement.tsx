@@ -46,6 +46,10 @@ export default function RoleManagement() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [targetUser, setTargetUser] = useState<{ user_id: string; prenom: string; nom: string; email: string } | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Fetch all profiles with their roles
   const { data: usersWithRoles, isLoading } = useQuery({
@@ -73,7 +77,7 @@ export default function RoleManagement() {
       // Remove all current non-formateur roles, then add new one
       // Keep formateur role if it exists and new role isn't formateur
       const rolesToRemove = currentRoles.filter(r => r !== 'formateur' || newRole === 'formateur');
-      
+
       for (const role of rolesToRemove) {
         await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role);
       }
@@ -90,6 +94,34 @@ export default function RoleManagement() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (!targetUser) throw new Error('Utilisateur invalide');
+      if (newPassword !== confirmPassword) throw new Error('Les mots de passe ne correspondent pas');
+      if (newPassword.length < 8) throw new Error('Le mot de passe doit contenir au moins 8 caractères');
+
+      const { data, error } = await supabase.functions.invoke('admin-reset-password', {
+        body: {
+          user_id: targetUser.user_id,
+          new_password: newPassword,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      toast.success('Mot de passe réinitialisé avec succès');
+      setIsResetDialogOpen(false);
+      setTargetUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Erreur lors de la réinitialisation');
+    },
+  });
+
   const filtered = usersWithRoles?.filter((u) =>
     `${u.nom} ${u.prenom} ${u.email}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -97,6 +129,13 @@ export default function RoleManagement() {
   const getPrimaryRole = (roles: AppRole[]): AppRole => {
     const priority: AppRole[] = ['super_admin', 'admin', 'assistante', 'formateur', 'lecteur'];
     return priority.find(r => roles.includes(r)) || 'lecteur';
+  };
+
+  const openResetDialog = (u: { user_id: string; prenom: string; nom: string; email: string }) => {
+    setTargetUser(u);
+    setNewPassword('');
+    setConfirmPassword('');
+    setIsResetDialogOpen(true);
   };
 
   return (
