@@ -747,14 +747,24 @@ export default function Dashboard() {
             </Select>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-2">{filteredSatisfaction ?? '—'}{filteredSatisfaction != null ? '%' : ''}</div>
-            <Progress value={filteredSatisfaction ?? 0} className="h-2" />
+            <div className="text-2xl font-bold mb-2">{filteredSatisfaction ?? '—'}{filteredSatisfaction != null ? '/5' : ''}</div>
+            <Progress value={filteredSatisfaction != null ? (filteredSatisfaction / 5) * 100 : 0} className="h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              Satisfaction à froid {satisfactionFilter === 'all' ? n1Year : ''}
+              Satisfaction à chaud {satisfactionFilter === 'all' ? n1Year : ''}
               {satisfactionFilter !== 'all' && satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length > 0 
-                ? `${satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length} réponse(s)` 
-                : satisfactionFilter === 'all' ? '' : 'Aucune donnée'}
+                ? ` — ${satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length} réponse(s)` 
+                : satisfactionFilter === 'all' ? '' : ' — Aucune donnée'}
             </p>
+            {filteredSatisfaction != null && (
+              <p className={`text-xs mt-1 font-medium ${filteredSatisfaction >= 4.5 ? 'text-success' : 'text-warning'}`}>
+                {filteredSatisfaction >= 4.5 ? '✅ Objectif atteint (≥ 4.5/5)' : '⚠️ Objectif non atteint (< 4.5/5)'}
+              </p>
+            )}
+            {filteredRecommandation != null && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📣 Taux de recommandation : <span className="font-semibold text-foreground">{filteredRecommandation}%</span>
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
