@@ -262,6 +262,54 @@ export default function RoleManagement() {
           </Table>
         )}
       </div>
+
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
+            <DialogDescription>
+              {targetUser ? `Définissez un nouveau mot de passe pour ${targetUser.prenom} ${targetUser.nom}.` : 'Définissez un nouveau mot de passe.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {targetUser && (
+              <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                {targetUser.email}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="admin-new-password">Nouveau mot de passe</Label>
+              <Input
+                id="admin-new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimum 8 caractères"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-confirm-password">Confirmer le mot de passe</Label>
+              <Input
+                id="admin-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={() => resetPasswordMutation.mutate()} disabled={resetPasswordMutation.isPending}>
+              {resetPasswordMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Enregistrer le mot de passe
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
