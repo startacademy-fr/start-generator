@@ -602,11 +602,27 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Satisfaction stagiaires</CardTitle>
+            <Select value={satisfactionFilter} onValueChange={setSatisfactionFilter}>
+              <SelectTrigger className="h-8 text-xs mt-1">
+                <SelectValue placeholder="Toutes les formations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les formations</SelectItem>
+                {allFormationsList.map(f => (
+                  <SelectItem key={f.id} value={f.id}>{f.titre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-2">{stats.tauxSatisfaction ?? '—'}{stats.tauxSatisfaction != null ? '%' : ''}</div>
-            <Progress value={stats.tauxSatisfaction ?? 0} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">Satisfaction à froid {n1Year}</p>
+            <div className="text-2xl font-bold mb-2">{filteredSatisfaction ?? '—'}{filteredSatisfaction != null ? '%' : ''}</div>
+            <Progress value={filteredSatisfaction ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">
+              Satisfaction à froid {satisfactionFilter === 'all' ? n1Year : ''}
+              {satisfactionFilter !== 'all' && satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length > 0 
+                ? `${satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length} réponse(s)` 
+                : satisfactionFilter === 'all' ? '' : 'Aucune donnée'}
+            </p>
           </CardContent>
         </Card>
       </div>
