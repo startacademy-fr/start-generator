@@ -1,136 +1,106 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { 
-  FileText, 
   CheckCircle2, 
   Clock, 
-  AlertCircle,
   GraduationCap,
   Calendar,
   MapPin,
   Loader2,
-  ShieldAlert
+  ShieldAlert,
+  Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { DocumentFormDialog } from '@/components/stagiaire-portal/DocumentFormDialog';
 
 interface TokenData {
   inscription_id: string;
-  stagiaire: {
-    prenom: string;
-    nom: string;
-    email: string;
-  };
-  formation: {
-    titre: string;
-    lieu: string;
-    date_debut: string;
-    date_fin: string | null;
-    nombre_heures: number;
-  };
+  stagiaire: { prenom: string; nom: string; email: string };
+  formation: { titre: string; lieu: string; date_debut: string; date_fin: string | null; nombre_heures: number };
+}
+
+interface PortalDocument {
+  id: string;
+  type: string;
+  statut: string;
+  genere_automatiquement: boolean;
 }
 
 const DOCUMENT_TYPES = [
   { id: 'questionnaire_positionnement', label: 'Questionnaire de positionnement', icon: '📋', phase: 'avant' },
   { id: 'analyse_besoin', label: 'Analyse du besoin', icon: '🎯', phase: 'avant' },
-  { id: 'qcm', label: 'QCM d\'évaluation', icon: '✅', phase: 'pendant' },
+  { id: 'qcm', label: "QCM d'évaluation", icon: '✅', phase: 'pendant' },
   { id: 'satisfaction_chaud', label: 'Satisfaction à chaud', icon: '🔥', phase: 'pendant' },
   { id: 'satisfaction_froid', label: 'Satisfaction à froid', icon: '❄️', phase: 'apres' },
 ];
+
+const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-token`;
+const API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+async function callTokenApi(body: Record<string, any>) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': API_KEY },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erreur');
+  return data;
+}
 
 export default function StagiairePortal() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
+  const [documents, setDocuments] = useState<PortalDocument[]>([]);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(true);
+  const [selectedDocType, setSelectedDocType] = useState<typeof DOCUMENT_TYPES[0] | null>(null);
 
-  // Validate token via edge function
+  // Validate token
   useEffect(() => {
-    const validateToken = async () => {
-      if (!token) {
-        setTokenError('Aucun token fourni');
-        setIsValidating(false);
-        return;
-      }
+    if (!token) { setTokenError('Aucun token fourni'); setIsValidating(false); return; }
+    if (token.length > 500) { setTokenError('Lien invalide'); setIsValidating(false); return; }
 
-      // Basic format validation
-      if (token.length > 500) {
-        setTokenError('Lien invalide');
-        setIsValidating(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-token`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({ action: 'validate', token }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.valid) {
-          throw new Error(data.error || 'Token invalide');
-        }
-
+    callTokenApi({ action: 'validate', token })
+      .then(data => {
         setTokenData({
           inscription_id: data.inscription.id,
           stagiaire: data.inscription.stagiaire as any,
           formation: data.inscription.formation as any,
         });
-      } catch (error) {
-        setTokenError('Lien invalide ou expiré');
-      } finally {
-        setIsValidating(false);
-      }
-    };
-
-    validateToken();
+      })
+      .catch(() => setTokenError('Lien invalide ou expiré'))
+      .finally(() => setIsValidating(false));
   }, [token]);
 
-  // Fetch documents for this inscription
-  const { data: documents } = useQuery({
-    queryKey: ['stagiaire-documents', tokenData?.inscription_id],
-    enabled: !!tokenData?.inscription_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('documents_stagiaires')
-        .select('*')
-        .eq('inscription_id', tokenData!.inscription_id);
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Fetch documents via edge function (bypasses RLS)
+  const fetchDocuments = useCallback(() => {
+    if (!token) return;
+    callTokenApi({ action: 'get-documents', token })
+      .then(data => setDocuments(data.documents || []))
+      .catch(() => {});
+  }, [token]);
 
-  // Calculate progress
-  const completedDocs = documents?.filter(d => d.statut === 'complete' || d.statut === 'genere_auto').length || 0;
-  const totalDocs = DOCUMENT_TYPES.length;
-  const progressPercent = (completedDocs / totalDocs) * 100;
+  useEffect(() => { if (tokenData) fetchDocuments(); }, [tokenData, fetchDocuments]);
 
-  const getDocStatus = (docType: string) => {
-    const doc = documents?.find(d => d.type === docType);
+  // Progress calculation
+  const getDocStatus = (docTypeId: string): 'completed' | 'in_progress' | 'pending' => {
+    const doc = documents.find(d => d.type === docTypeId);
     if (!doc) return 'pending';
     if (doc.statut === 'complete' || doc.statut === 'genere_auto') return 'completed';
     if (doc.statut === 'en_cours') return 'in_progress';
     return 'pending';
   };
 
-  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const completedDocs = DOCUMENT_TYPES.filter(d => getDocStatus(d.id) === 'completed').length;
+  const progressPercent = (completedDocs / DOCUMENT_TYPES.length) * 100;
 
-  // Loading state
   if (isValidating) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background flex items-center justify-center p-4">
@@ -142,7 +112,6 @@ export default function StagiairePortal() {
     );
   }
 
-  // Error state
   if (tokenError || !tokenData) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-destructive/5 to-background flex items-center justify-center p-4">
@@ -150,9 +119,7 @@ export default function StagiairePortal() {
           <CardHeader className="text-center">
             <ShieldAlert className="h-12 w-12 mx-auto text-destructive mb-4" />
             <CardTitle className="text-destructive">Accès refusé</CardTitle>
-            <CardDescription>
-              {tokenError || 'Impossible de valider votre accès'}
-            </CardDescription>
+            <CardDescription>{tokenError || 'Impossible de valider votre accès'}</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-sm text-muted-foreground">
@@ -164,9 +131,14 @@ export default function StagiairePortal() {
     );
   }
 
+  const phases = [
+    { key: 'avant', label: 'Avant la formation', icon: <Clock className="h-4 w-4" /> },
+    { key: 'pendant', label: 'Pendant la formation', icon: <GraduationCap className="h-4 w-4" /> },
+    { key: 'apres', label: 'Après la formation', icon: <CheckCircle2 className="h-4 w-4" /> },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background">
-      {/* Header */}
       <header className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-10">
         <div className="container py-4 px-4">
           <div className="flex items-center justify-between">
@@ -214,87 +186,69 @@ export default function StagiairePortal() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Progression</CardTitle>
-              <span className="text-sm font-medium text-primary">{completedDocs}/{totalDocs}</span>
+              <span className="text-sm font-medium text-primary">{completedDocs}/{DOCUMENT_TYPES.length}</span>
             </div>
           </CardHeader>
           <CardContent>
             <Progress value={progressPercent} className="h-3" />
             <p className="text-xs text-muted-foreground mt-2">
-              {progressPercent === 100 
+              {progressPercent === 100
                 ? '✨ Tous les documents sont complétés !'
-                : `${totalDocs - completedDocs} document(s) restant(s)`}
+                : `${DOCUMENT_TYPES.length - completedDocs} document(s) restant(s)`}
             </p>
           </CardContent>
         </Card>
 
         {/* Documents by phase */}
         <div className="space-y-4">
-          {/* Avant la formation */}
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Avant la formation
-            </h3>
-            <div className="space-y-2">
-              {DOCUMENT_TYPES.filter(d => d.phase === 'avant').map(docType => {
-                const status = getDocStatus(docType.id);
-                return (
-                  <DocumentCard 
-                    key={docType.id} 
-                    docType={docType} 
-                    status={status}
-                    inscriptionId={tokenData.inscription_id}
-                  />
-                );
-              })}
+          {phases.map(phase => (
+            <div key={phase.key}>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                {phase.icon}
+                {phase.label}
+              </h3>
+              <div className="space-y-2">
+                {DOCUMENT_TYPES.filter(d => d.phase === phase.key).map(docType => {
+                  const status = getDocStatus(docType.id);
+                  const isAutoGenerated = documents.find(d => d.type === docType.id)?.genere_automatiquement;
+                  return (
+                    <Card
+                      key={docType.id}
+                      className={`transition-all ${status === 'completed' ? 'bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900' : ''}`}
+                    >
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{docType.icon}</span>
+                          <div>
+                            <p className="font-medium text-sm">{docType.label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {status === 'completed'
+                                ? isAutoGenerated ? 'Généré automatiquement' : 'Complété'
+                                : status === 'in_progress' ? 'En cours' : 'À compléter'}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          {status === 'completed' ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ) : status === 'in_progress' ? (
+                            <Clock className="h-5 w-5 text-amber-500" />
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => setSelectedDocType(docType)}>
+                              Compléter
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-
-          {/* Pendant la formation */}
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Pendant la formation
-            </h3>
-            <div className="space-y-2">
-              {DOCUMENT_TYPES.filter(d => d.phase === 'pendant').map(docType => {
-                const status = getDocStatus(docType.id);
-                return (
-                  <DocumentCard 
-                    key={docType.id} 
-                    docType={docType} 
-                    status={status}
-                    inscriptionId={tokenData.inscription_id}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Après la formation */}
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Après la formation
-            </h3>
-            <div className="space-y-2">
-              {DOCUMENT_TYPES.filter(d => d.phase === 'apres').map(docType => {
-                const status = getDocStatus(docType.id);
-                return (
-                  <DocumentCard 
-                    key={docType.id} 
-                    docType={docType} 
-                    status={status}
-                    inscriptionId={tokenData.inscription_id}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          ))}
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t bg-muted/30 mt-8">
         <div className="container py-4 px-4 text-center">
           <p className="text-xs text-muted-foreground">
@@ -305,47 +259,19 @@ export default function StagiairePortal() {
           </p>
         </div>
       </footer>
+
+      {/* Document form dialog */}
+      {selectedDocType && token && (
+        <DocumentFormDialog
+          open={!!selectedDocType}
+          onOpenChange={(open) => { if (!open) setSelectedDocType(null); }}
+          docType={selectedDocType}
+          token={token}
+          stagiaire={tokenData.stagiaire}
+          formation={tokenData.formation}
+          onSubmitted={fetchDocuments}
+        />
+      )}
     </div>
-  );
-}
-
-function DocumentCard({ 
-  docType, 
-  status,
-  inscriptionId
-}: { 
-  docType: { id: string; label: string; icon: string }; 
-  status: 'pending' | 'in_progress' | 'completed';
-  inscriptionId: string;
-}) {
-  const handleComplete = () => {
-    window.location.href = `/stagiaire/document?inscription=${inscriptionId}&type=${docType.id}`;
-  };
-
-  return (
-    <Card className={`transition-all ${status === 'completed' ? 'bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900' : ''}`}>
-      <CardContent className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{docType.icon}</span>
-          <div>
-            <p className="font-medium text-sm">{docType.label}</p>
-            <p className="text-xs text-muted-foreground">
-              {status === 'completed' ? 'Complété' : status === 'in_progress' ? 'En cours' : 'À compléter'}
-            </p>
-          </div>
-        </div>
-        <div>
-          {status === 'completed' ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-          ) : status === 'in_progress' ? (
-            <Clock className="h-5 w-5 text-amber-500" />
-          ) : (
-            <Button size="sm" variant="outline" onClick={handleComplete}>
-              Compléter
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
