@@ -29,6 +29,7 @@ interface PortalDocument {
   type: string;
   statut: string;
   genere_automatiquement: boolean;
+  pdf_url: string | null;
 }
 
 const DOCUMENT_TYPES = [
