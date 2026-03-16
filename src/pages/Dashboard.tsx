@@ -395,6 +395,7 @@ export default function Dashboard() {
           formationsParType,
           tauxReussiteQCM,
           tauxSatisfaction,
+          tauxRecommandation,
           tauxAbandon,
           reclamationsN1: reclamationsCount || 0,
           tauxCompletionDossiers,
