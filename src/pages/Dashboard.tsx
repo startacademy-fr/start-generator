@@ -181,7 +181,7 @@ export default function Dashboard() {
         // QCM scores & satisfaction from documents
         const { data: docs } = await supabase
           .from('documents_stagiaires')
-          .select('type, score, statut, inscription_id');
+          .select('type, score, statut, inscription_id, contenu');
 
         const complets = docs?.filter(d => d.statut === 'complete' || d.statut === 'genere_auto').length || 0;
         const incomplets = docs?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0;
@@ -204,24 +204,85 @@ export default function Dashboard() {
           ? Math.round(qcmDocs.reduce((sum, d) => sum + (d.score || 0), 0) / qcmDocs.length)
           : null;
 
-        // Taux satisfaction (score moyen satisfaction_froid N-1)
-        const satDocs = docs?.filter(d => d.type === 'satisfaction_froid' && d.score != null && n1InscSet.has(d.inscription_id)) || [];
-        const tauxSatisfaction = satDocs.length > 0
-          ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
-          : null;
+        // Helper: convert rating text to score /5
+        const ratingToScore = (rating: string): number | null => {
+          const r = (rating || '').toLowerCase().trim();
+          if (r === 'très bien') return 5;
+          if (r === 'bien') return 4;
+          if (r === 'moyen') return 2.5;
+          if (r === 'mauvais') return 1;
+          return null;
+        };
 
-        // Build satisfaction docs with formation_id for filtering
-        // We need inscription -> formation mapping
+        // Extract all ratings from a satisfaction_chaud contenu
+        const extractSatScores = (contenu: any): number[] => {
+          const scores: number[] = [];
+          const sections = ['organisation', 'moyens', 'pedagogie', 'groupe'];
+          for (const section of sections) {
+            if (contenu[section] && typeof contenu[section] === 'object') {
+              for (const [key, value] of Object.entries(contenu[section])) {
+                if (key === 'commentaire') continue;
+                const s = ratingToScore(value as string);
+                if (s !== null) scores.push(s);
+              }
+            }
+          }
+          // benefice.adequation
+          if (contenu.benefice?.adequation) {
+            const s = ratingToScore(contenu.benefice.adequation);
+            if (s !== null) scores.push(s);
+          }
+          return scores;
+        };
+
+        // Check if recommandation is "oui"
+        const isRecommandation = (contenu: any): boolean => {
+          const rec = (contenu?.questions_finales?.recommandation || '').toLowerCase();
+          return rec.includes('oui');
+        };
+
+        // Satisfaction à chaud docs for N-1
+        const satChaudDocs = docs?.filter(d => d.type === 'satisfaction_chaud' && n1InscSet.has(d.inscription_id)) || [];
+        
+        // Calculate average satisfaction score /5
+        let allSatScores: number[] = [];
+        let recommandationCount = 0;
+        const satDocsProcessed: { score: number; formation_id: string; recommande: boolean }[] = [];
+
+        // Build inscription -> formation mapping
         const { data: allInscsForSat } = await supabase
           .from('inscriptions')
           .select('id, formation_id');
         const inscToFormation = new Map<string, string>();
         allInscsForSat?.forEach(i => inscToFormation.set(i.id, i.formation_id));
-        
-        const satDocsWithFormation = satDocs
-          .filter(d => inscToFormation.has(d.inscription_id))
-          .map(d => ({ score: d.score!, formation_id: inscToFormation.get(d.inscription_id)! }));
-        setSatisfactionDocs(satDocsWithFormation);
+
+        satChaudDocs.forEach(d => {
+          const contenu = d.contenu as any;
+          const scores = extractSatScores(contenu);
+          const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+          const recommande = isRecommandation(contenu);
+          if (recommande) recommandationCount++;
+          if (scores.length > 0) {
+            allSatScores.push(avgScore);
+          }
+          if (inscToFormation.has(d.inscription_id)) {
+            satDocsProcessed.push({
+              score: avgScore,
+              formation_id: inscToFormation.get(d.inscription_id)!,
+              recommande,
+            });
+          }
+        });
+
+        const tauxSatisfaction = allSatScores.length > 0
+          ? Math.round((allSatScores.reduce((a, b) => a + b, 0) / allSatScores.length) * 10) / 10
+          : null;
+
+        const tauxRecommandation = satChaudDocs.length > 0
+          ? Math.round((recommandationCount / satChaudDocs.length) * 100)
+          : null;
+
+        setSatisfactionDocs(satDocsProcessed);
 
         // Taux d'abandon N-1 (inscriptions avec statut 'abandon')
         let tauxAbandon: number | null = null;
