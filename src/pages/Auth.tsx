@@ -39,7 +39,7 @@ const newPasswordSchema = z.object({
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signIn, signUp, resetPassword, user, loading: authLoading } = useAuth();
+  const { signIn, signUp, resetPassword, user, loading: authLoading, isRecoveryMode, clearRecoveryMode } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
@@ -61,13 +61,13 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check if user came from password reset email
+  // Check if user came from password reset email (via URL param or auth event)
   useEffect(() => {
     const isReset = searchParams.get('reset') === 'true';
-    if (isReset) {
+    if (isReset || isRecoveryMode) {
       setShowNewPassword(true);
     }
-  }, [searchParams]);
+  }, [searchParams, isRecoveryMode]);
 
   useEffect(() => {
     if (user && !authLoading && !showNewPassword) {
@@ -218,6 +218,7 @@ export default function Auth() {
       setShowNewPassword(false);
       setNewPassword('');
       setConfirmPassword('');
+      clearRecoveryMode();
       navigate('/dashboard', { replace: true });
     }
   };

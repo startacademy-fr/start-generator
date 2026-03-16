@@ -9,6 +9,8 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
+  isRecoveryMode: boolean;
+  clearRecoveryMode: () => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, prenom: string, nom: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -19,11 +21,8 @@ interface AuthContextType {
   isAssistante: () => boolean;
   isFormateur: () => boolean;
   isLecteur: () => boolean;
-  /** Super admin or admin (full management, except role management for admin) */
   canManageAll: () => boolean;
-  /** Can create/edit/delete data (super_admin, admin, assistante) */
   canEdit: () => boolean;
-  /** Can generate documents (super_admin and assistante only, NOT admin) */
   canGenerateDocuments: () => boolean;
 }
 
@@ -66,6 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveryMode(true);
+        }
         
         if (session?.user) {
           setTimeout(() => {
@@ -124,6 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  // Expose a callback for PASSWORD_RECOVERY event
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
   const hasRole = (role: AppRole) => roles.includes(role);
   const isSuperAdmin = () => hasRole('super_admin');
   const isAdmin = () => hasRole('admin') || hasRole('super_admin');
@@ -133,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canManageAll = () => isSuperAdmin() || hasRole('admin');
   const canEdit = () => isSuperAdmin() || hasRole('admin') || hasRole('assistante');
   const canGenerateDocuments = () => isSuperAdmin() || hasRole('assistante');
+  const clearRecoveryMode = () => setIsRecoveryMode(false);
 
   return (
     <AuthContext.Provider
@@ -142,6 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         roles,
         loading,
+        isRecoveryMode,
+        clearRecoveryMode,
         signIn,
         signUp,
         signOut,
