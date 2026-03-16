@@ -9,6 +9,8 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
+  isRecoveryMode: boolean;
+  clearRecoveryMode: () => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, prenom: string, nom: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -19,11 +21,8 @@ interface AuthContextType {
   isAssistante: () => boolean;
   isFormateur: () => boolean;
   isLecteur: () => boolean;
-  /** Super admin or admin (full management, except role management for admin) */
   canManageAll: () => boolean;
-  /** Can create/edit/delete data (super_admin, admin, assistante) */
   canEdit: () => boolean;
-  /** Can generate documents (super_admin and assistante only, NOT admin) */
   canGenerateDocuments: () => boolean;
 }
 
