@@ -20,6 +20,7 @@ import Settings from "./pages/Settings";
 import StagiairePortal from "./pages/StagiairePortal";
 import Certificats from "./pages/Certificats";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
