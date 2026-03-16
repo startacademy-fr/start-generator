@@ -540,6 +540,12 @@ export default function Dashboard() {
     return Math.round((recommandes / filtered.length) * 100);
   }, [satisfactionDocs, satisfactionFilter]);
 
+  const stagiairesParAnFormation = useMemo(() => {
+    return stagiairesParAnFormationRaw
+      .filter(r => r.year === selectedTableYear)
+      .sort((a, b) => b.stagiaires - a.stagiaires);
+  }, [stagiairesParAnFormationRaw, selectedTableYear]);
+
   const statCards = [
     {
       title: "Sessions actives",
