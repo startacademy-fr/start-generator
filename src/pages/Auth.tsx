@@ -70,10 +70,12 @@ export default function Auth() {
   }, [searchParams, isRecoveryMode]);
 
   useEffect(() => {
-    if (user && !authLoading && !showNewPassword) {
+    // Don't redirect if we're in password reset mode
+    if (showNewPassword || isRecoveryMode || searchParams.get('reset') === 'true') return;
+    if (user && !authLoading) {
       navigate('/dashboard', { replace: true });
     }
-  }, [user, authLoading, navigate, showNewPassword]);
+  }, [user, authLoading, navigate, showNewPassword, isRecoveryMode, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
