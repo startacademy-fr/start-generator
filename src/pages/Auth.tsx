@@ -45,6 +45,8 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState('login');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryLinkInvalid, setRecoveryLinkInvalid] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
