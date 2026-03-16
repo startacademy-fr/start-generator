@@ -12,7 +12,7 @@ import {
   MapPin,
   Loader2,
   ShieldAlert,
-  Eye
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -29,6 +29,7 @@ interface PortalDocument {
   type: string;
   statut: string;
   genere_automatiquement: boolean;
+  pdf_url: string | null;
 }
 
 const DOCUMENT_TYPES = [
@@ -228,9 +229,19 @@ export default function StagiairePortal() {
                             </p>
                           </div>
                         </div>
-                        <div>
+                        <div className="flex items-center gap-2">
                           {status === 'completed' ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            <>
+                              {documents.find(d => d.type === docType.id)?.pdf_url && (
+                                <Button size="sm" variant="outline" asChild>
+                                  <a href={documents.find(d => d.type === docType.id)!.pdf_url!} target="_blank" rel="noopener noreferrer">
+                                    <Download className="h-4 w-4 mr-1" />
+                                    PDF
+                                  </a>
+                                </Button>
+                              )}
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            </>
                           ) : status === 'in_progress' ? (
                             <Clock className="h-5 w-5 text-amber-500" />
                           ) : (
