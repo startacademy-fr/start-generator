@@ -45,6 +45,8 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState('login');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryLinkInvalid, setRecoveryLinkInvalid] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -61,13 +63,80 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Check if user came from password reset email (via URL param or auth event)
+  // Check if user came from password reset email (via URL param/hash or auth event)
   useEffect(() => {
     const isReset = searchParams.get('reset') === 'true';
-    if (isReset || isRecoveryMode) {
+    const hasRecoveryQuery = searchParams.get('type') === 'recovery' || Boolean(searchParams.get('token_hash'));
+    const hasRecoveryHash = window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token=');
+
+    if (isReset || hasRecoveryQuery || hasRecoveryHash || isRecoveryMode) {
       setShowNewPassword(true);
     }
   }, [searchParams, isRecoveryMode]);
+
+  useEffect(() => {
+    if (!showNewPassword) return;
+
+    let isMounted = true;
+
+    const initializeRecoverySession = async () => {
+      setRecoveryLoading(true);
+      setRecoveryLinkInvalid(false);
+
+      try {
+        const queryParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+        const tokenHash = queryParams.get('token_hash');
+        const typeFromQuery = queryParams.get('type');
+        const hashAccessToken = hashParams.get('access_token');
+        const hashRefreshToken = hashParams.get('refresh_token');
+        const typeFromHash = hashParams.get('type');
+
+        if (tokenHash && typeFromQuery === 'recovery') {
+          const { error } = await supabase.auth.verifyOtp({
+            type: 'recovery',
+            token_hash: tokenHash,
+          });
+
+          if (error) throw error;
+        } else if (hashAccessToken && hashRefreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken,
+          });
+
+          if (error) throw error;
+          if (typeFromHash && typeFromHash !== 'recovery') {
+            throw new Error('Invalid recovery token type');
+          }
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          throw new Error('No recovery session found');
+        }
+
+        window.history.replaceState({}, document.title, '/auth?reset=true');
+      } catch (error) {
+        console.error('Recovery link initialization error:', error);
+
+        if (isMounted) {
+          setRecoveryLinkInvalid(true);
+        }
+      } finally {
+        if (isMounted) {
+          setRecoveryLoading(false);
+        }
+      }
+    };
+
+    initializeRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showNewPassword]);
 
   useEffect(() => {
     // Don't redirect if we're in password reset mode
@@ -202,6 +271,15 @@ export default function Auth() {
       return;
     }
 
+    if (recoveryLoading || recoveryLinkInvalid) {
+      toast({
+        variant: "destructive",
+        title: "Lien invalide",
+        description: "Ce lien de réinitialisation est invalide ou expiré. Veuillez en demander un nouveau.",
+      });
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
@@ -258,40 +336,61 @@ export default function Auth() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleNewPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                  />
+              {recoveryLoading ? (
+                <div className="py-6 text-center space-y-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+                  <p className="text-sm text-muted-foreground">Validation du lien en cours...</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
+              ) : recoveryLinkInvalid ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Ce lien est invalide ou expiré. Demandez un nouveau lien depuis la page de connexion.
+                  </p>
+                  <Button type="button" variant="ghost" className="w-full" onClick={() => {
+                    setShowNewPassword(false);
+                    clearRecoveryMode();
+                    navigate('/auth', { replace: true });
+                  }}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Retour à la connexion
+                  </Button>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Mise à jour...
-                    </>
-                  ) : (
-                    "Mettre à jour le mot de passe"
-                  )}
-                </Button>
-              </form>
+              ) : (
+                <form onSubmit={handleNewPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading || recoveryLoading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Mise à jour...
+                      </>
+                    ) : (
+                      "Mettre à jour le mot de passe"
+                    )}
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
 
