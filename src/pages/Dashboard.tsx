@@ -253,6 +253,13 @@ export default function Dashboard() {
           tauxCompletionDossiers = Math.round((completDossiers / totalInscriptions) * 100);
         }
 
+        // Fetch all formations for satisfaction filter dropdown
+        const { data: formationsListData } = await supabase
+          .from('formations')
+          .select('id, titre')
+          .order('date_debut', { ascending: false });
+        setAllFormationsList(formationsListData || []);
+
         // Recent formations
         const { data: recentData } = await supabase
           .from('formations')
