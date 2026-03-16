@@ -450,20 +450,53 @@ export default function AuditDashboard() {
                         </TableCell>
                         {REQUIRED_DOC_TYPES.map(dt => (
                           <TableCell key={dt.id} className="text-center px-1">
-                            {row.docStatus[dt.id] === 'complete' ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                            {row.docStatus[dt.id].status === 'complete' ? (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => handleDownloadDoc(row.docStatus[dt.id].doc, row.stagiaire, formation)}
+                                      className="inline-flex hover:scale-110 transition-transform cursor-pointer"
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    Télécharger {dt.label}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             ) : (
                               <XCircle className="h-4 w-4 text-destructive/40 mx-auto" />
                             )}
                           </TableCell>
                         ))}
                         <TableCell className="text-center">
-                          <Badge 
-                            variant={row.isComplete ? 'default' : row.completedCount > 0 ? 'secondary' : 'destructive'}
-                            className="text-xs"
-                          >
-                            {row.completedCount}/{row.totalRequired}
-                          </Badge>
+                          <div className="flex items-center justify-center gap-1">
+                            <Badge 
+                              variant={row.isComplete ? 'default' : row.completedCount > 0 ? 'secondary' : 'destructive'}
+                              className="text-xs"
+                            >
+                              {row.completedCount}/{row.totalRequired}
+                            </Badge>
+                            {row.completedCount > 0 && (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => handleDownloadStagiaireZip(row, formation)}
+                                      className="inline-flex hover:scale-110 transition-transform cursor-pointer text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Download className="h-3.5 w-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    Télécharger ZIP du stagiaire
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
