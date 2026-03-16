@@ -67,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveryMode(true);
+        }
+        
         if (session?.user) {
           setTimeout(() => {
             fetchProfileAndRoles(session.user.id);
