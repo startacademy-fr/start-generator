@@ -492,7 +492,17 @@ export default function Dashboard() {
       ? satisfactionDocs 
       : satisfactionDocs.filter(d => d.formation_id === satisfactionFilter);
     if (filtered.length === 0) return null;
-    return Math.round(filtered.reduce((sum, d) => sum + d.score, 0) / filtered.length);
+    return Math.round((filtered.reduce((sum, d) => sum + d.score, 0) / filtered.length) * 10) / 10;
+  }, [satisfactionDocs, satisfactionFilter]);
+
+  const filteredRecommandation = useMemo(() => {
+    if (satisfactionDocs.length === 0) return null;
+    const filtered = satisfactionFilter === 'all' 
+      ? satisfactionDocs 
+      : satisfactionDocs.filter(d => d.formation_id === satisfactionFilter);
+    if (filtered.length === 0) return null;
+    const recommandes = filtered.filter(d => d.recommande).length;
+    return Math.round((recommandes / filtered.length) * 100);
   }, [satisfactionDocs, satisfactionFilter]);
 
   const statCards = [
