@@ -880,11 +880,25 @@ export default function Dashboard() {
       )}
 
       {/* Stagiaires formés par an et par formation */}
-      {stagiairesParAnFormation.length > 0 && (
+      {stagiairesParAnFormationRaw.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Stagiaires formés par formation et par année</CardTitle>
-            <CardDescription>Nombre de stagiaires uniques par formation, toutes sessions confondues</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Stagiaires formés par formation</CardTitle>
+                <CardDescription>Nombre de stagiaires uniques, satisfaction et recommandation par formation</CardDescription>
+              </div>
+              <Select value={String(selectedTableYear)} onValueChange={(v) => setSelectedTableYear(Number(v))}>
+                <SelectTrigger className="w-[120px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {stagiairesYears.map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -892,30 +906,42 @@ export default function Dashboard() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Formation</th>
-                    {stagiairesYears.map(y => (
-                      <th key={y} className="text-center py-2 px-3 font-medium text-muted-foreground">{y}</th>
-                    ))}
-                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Total</th>
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Stagiaires</th>
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Satisfaction</th>
+                    <th className="text-center py-2 px-3 font-medium text-muted-foreground">Recommandation</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {stagiairesParAnFormation.map((row, idx) => (
-                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="py-2 pr-4 font-medium max-w-[300px] truncate">{row.formation}</td>
-                      {stagiairesYears.map(y => (
-                        <td key={y} className="text-center py-2 px-3">
-                          {(row[String(y)] as number) > 0 ? (
-                            <Badge variant="secondary" className="min-w-[2rem]">{row[String(y)]}</Badge>
+                  {stagiairesParAnFormation.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-4 text-muted-foreground">Aucune donnée pour {selectedTableYear}</td>
+                    </tr>
+                  ) : (
+                    stagiairesParAnFormation.map((row, idx) => (
+                      <tr key={idx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                        <td className="py-2 pr-4 font-medium max-w-[350px] truncate">{row.formation}</td>
+                        <td className="text-center py-2 px-3">
+                          <Badge variant="secondary" className="min-w-[2rem]">{row.stagiaires}</Badge>
+                        </td>
+                        <td className="text-center py-2 px-3">
+                          {row.satisfaction != null ? (
+                            <span className={`font-semibold ${row.satisfaction >= 4.5 ? 'text-success' : row.satisfaction >= 3.5 ? 'text-warning' : 'text-destructive'}`}>
+                              {row.satisfaction}/5
+                            </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
-                      ))}
-                      <td className="text-center py-2 px-3">
-                        <Badge className="min-w-[2rem]">{row.total}</Badge>
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="text-center py-2 px-3">
+                          {row.recommandation != null ? (
+                            <Badge className="min-w-[2rem]">{row.recommandation}%</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
