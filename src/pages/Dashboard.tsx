@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   GraduationCap, 
   Users, 
@@ -90,6 +91,9 @@ export default function Dashboard() {
   const [recentFormations, setRecentFormations] = useState<RecentFormation[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
+  const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string }[]>([]);
+  const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -202,6 +206,19 @@ export default function Dashboard() {
           ? Math.round(satDocs.reduce((sum, d) => sum + (d.score || 0), 0) / satDocs.length)
           : null;
 
+        // Build satisfaction docs with formation_id for filtering
+        // We need inscription -> formation mapping
+        const { data: allInscsForSat } = await supabase
+          .from('inscriptions')
+          .select('id, formation_id');
+        const inscToFormation = new Map<string, string>();
+        allInscsForSat?.forEach(i => inscToFormation.set(i.id, i.formation_id));
+        
+        const satDocsWithFormation = satDocs
+          .filter(d => inscToFormation.has(d.inscription_id))
+          .map(d => ({ score: d.score!, formation_id: inscToFormation.get(d.inscription_id)! }));
+        setSatisfactionDocs(satDocsWithFormation);
+
         // Taux d'abandon N-1 (inscriptions avec statut 'abandon')
         let tauxAbandon: number | null = null;
         if (formationIdsN1.length > 0) {
@@ -235,6 +252,13 @@ export default function Dashboard() {
           const completDossiers = Array.from(docCountByInsc.values()).filter(c => c >= 7).length;
           tauxCompletionDossiers = Math.round((completDossiers / totalInscriptions) * 100);
         }
+
+        // Fetch all formations for satisfaction filter dropdown
+        const { data: formationsListData } = await supabase
+          .from('formations')
+          .select('id, titre')
+          .order('date_debut', { ascending: false });
+        setAllFormationsList(formationsListData || []);
 
         // Recent formations
         const { data: recentData } = await supabase
@@ -346,6 +370,15 @@ export default function Dashboard() {
 
   const currentYear = new Date().getFullYear();
   const n1Year = currentYear - 1;
+
+  const filteredSatisfaction = useMemo(() => {
+    if (satisfactionDocs.length === 0) return null;
+    const filtered = satisfactionFilter === 'all' 
+      ? satisfactionDocs 
+      : satisfactionDocs.filter(d => d.formation_id === satisfactionFilter);
+    if (filtered.length === 0) return null;
+    return Math.round(filtered.reduce((sum, d) => sum + d.score, 0) / filtered.length);
+  }, [satisfactionDocs, satisfactionFilter]);
 
   const statCards = [
     {
@@ -569,11 +602,27 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Satisfaction stagiaires</CardTitle>
+            <Select value={satisfactionFilter} onValueChange={setSatisfactionFilter}>
+              <SelectTrigger className="h-8 text-xs mt-1">
+                <SelectValue placeholder="Toutes les formations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les formations</SelectItem>
+                {allFormationsList.map(f => (
+                  <SelectItem key={f.id} value={f.id}>{f.titre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-2">{stats.tauxSatisfaction ?? '—'}{stats.tauxSatisfaction != null ? '%' : ''}</div>
-            <Progress value={stats.tauxSatisfaction ?? 0} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">Satisfaction à froid {n1Year}</p>
+            <div className="text-2xl font-bold mb-2">{filteredSatisfaction ?? '—'}{filteredSatisfaction != null ? '%' : ''}</div>
+            <Progress value={filteredSatisfaction ?? 0} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-2">
+              Satisfaction à froid {satisfactionFilter === 'all' ? n1Year : ''}
+              {satisfactionFilter !== 'all' && satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length > 0 
+                ? `${satisfactionDocs.filter(d => d.formation_id === satisfactionFilter).length} réponse(s)` 
+                : satisfactionFilter === 'all' ? '' : 'Aucune donnée'}
+            </p>
           </CardContent>
         </Card>
       </div>
