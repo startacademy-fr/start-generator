@@ -336,40 +336,61 @@ export default function Auth() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleNewPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                  />
+              {recoveryLoading ? (
+                <div className="py-6 text-center space-y-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+                  <p className="text-sm text-muted-foreground">Validation du lien en cours...</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
+              ) : recoveryLinkInvalid ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Ce lien est invalide ou expiré. Demandez un nouveau lien depuis la page de connexion.
+                  </p>
+                  <Button type="button" variant="ghost" className="w-full" onClick={() => {
+                    setShowNewPassword(false);
+                    clearRecoveryMode();
+                    navigate('/auth', { replace: true });
+                  }}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Retour à la connexion
+                  </Button>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Mise à jour...
-                    </>
-                  ) : (
-                    "Mettre à jour le mot de passe"
-                  )}
-                </Button>
-              </form>
+              ) : (
+                <form onSubmit={handleNewPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading || recoveryLoading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Mise à jour...
+                      </>
+                    ) : (
+                      "Mettre à jour le mot de passe"
+                    )}
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
 
