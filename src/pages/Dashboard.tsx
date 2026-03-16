@@ -582,10 +582,17 @@ export default function Dashboard() {
     },
     {
       title: `Satisfaction moyenne (${n1Year})`,
-      value: stats.tauxSatisfaction != null ? `${stats.tauxSatisfaction}%` : '—',
+      value: stats.tauxSatisfaction != null ? `${stats.tauxSatisfaction}/5` : '—',
       icon: ThumbsUp,
       color: "text-warning",
       bgColor: "bg-warning/10",
+    },
+    {
+      title: `Taux recommandation (${n1Year})`,
+      value: stats.tauxRecommandation != null ? `${stats.tauxRecommandation}%` : '—',
+      icon: Award,
+      color: "text-success",
+      bgColor: "bg-success/10",
     },
     {
       title: `Taux d'abandon (${n1Year})`,
