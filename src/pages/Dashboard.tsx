@@ -96,8 +96,9 @@ export default function Dashboard() {
   const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
   const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string; recommande: boolean }[]>([]);
   const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
-  const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; [year: string]: number | string }[]>([]);
+  const [stagiairesParAnFormation, setStagiairesParAnFormation] = useState<{ formation: string; stagiaires: number; satisfaction: number | null; recommandation: number | null }[]>([]);
   const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
+  const [selectedTableYear, setSelectedTableYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     async function fetchDashboardData() {
