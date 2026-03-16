@@ -91,6 +91,9 @@ export default function Dashboard() {
   const [recentFormations, setRecentFormations] = useState<RecentFormation[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [satisfactionFilter, setSatisfactionFilter] = useState<string>('all');
+  const [satisfactionDocs, setSatisfactionDocs] = useState<{ score: number; formation_id: string }[]>([]);
+  const [allFormationsList, setAllFormationsList] = useState<{ id: string; titre: string }[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
