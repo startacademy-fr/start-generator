@@ -80,6 +80,7 @@ export default function AuditDashboard() {
       if (error) throw error;
       return data;
     },
+    refetchOnMount: 'always',
   });
 
   // Build audit matrix
