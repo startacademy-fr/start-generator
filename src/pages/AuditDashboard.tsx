@@ -39,6 +39,7 @@ export default function AuditDashboard() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: formations } = useQuery({
     queryKey: ['audit-formations'],
@@ -416,7 +417,29 @@ export default function AuditDashboard() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate(`/documents?autoGenerate=${formation.id}`)}
+                      onClick={async () => {
+                        // Re-check live data before navigating
+                        const formationInscriptionIds = inscriptions
+                          ?.filter(i => i.formation_id === formation.id)
+                          .map(i => i.id) || [];
+                        
+                        if (formationInscriptionIds.length === 0) return;
+
+                        const { data: liveDocs } = await supabase
+                          .from('documents_stagiaires')
+                          .select('inscription_id, type')
+                          .in('inscription_id', formationInscriptionIds);
+
+                        const totalExpected = formationInscriptionIds.length * REQUIRED_DOC_TYPES.length;
+                        const totalFound = liveDocs?.length || 0;
+
+                        if (totalFound >= totalExpected) {
+                          toast.info('Tous les documents sont déjà générés pour cette formation. Rafraîchissement en cours...');
+                          queryClient.invalidateQueries({ queryKey: ['audit-documents'] });
+                        } else {
+                          navigate(`/documents?autoGenerate=${formation.id}`);
+                        }
+                      }}
                     >
                       <Sparkles className="mr-1.5 h-3.5 w-3.5" />
                       Générer docs manquants
