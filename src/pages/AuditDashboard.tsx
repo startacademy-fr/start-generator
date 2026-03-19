@@ -39,6 +39,7 @@ export default function AuditDashboard() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: formations } = useQuery({
     queryKey: ['audit-formations'],
