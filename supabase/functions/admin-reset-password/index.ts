@@ -29,16 +29,15 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const jwtToken = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await callerClient.auth.getClaims(jwtToken);
-    if (claimsError || !claimsData?.claims?.sub) {
+    const { data: { user: callerUser }, error: userError } = await callerClient.auth.getUser();
+    if (userError || !callerUser) {
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const callerId = claimsData.claims.sub;
+    const callerId = callerUser.id;
 
     // Strict authorization: only super_admin
     const { data: isSuperAdmin } = await callerClient.rpc("has_role", {
