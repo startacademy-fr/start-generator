@@ -391,7 +391,13 @@ export default function AuditDashboard() {
         const formProgress = Math.round((auditRows.reduce((s, r) => s + r.completedCount, 0) / (auditRows.length * REQUIRED_DOC_TYPES.length)) * 100);
 
         return (
-          <Card key={formation.id}>
+          <Card key={formation.id} className={formComplete === auditRows.length ? 'border-emerald-300 bg-emerald-50/30 dark:border-emerald-800 dark:bg-emerald-950/20' : ''}>
+            {formComplete === auditRows.length && (
+              <div className="flex items-center gap-2 px-6 pt-4 pb-0 text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="text-sm font-medium">Dossier complet — Tous les documents sont générés pour cette formation</span>
+              </div>
+            )}
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
