@@ -48,7 +48,8 @@ export default function AuditDashboard() {
         .from('formations')
         .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
         .eq('archived', false)
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data;
     },
@@ -66,7 +67,8 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inscriptions')
-        .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)');
+        .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)')
+        .limit(10000);
       if (error) throw error;
       return data as any[];
     },
@@ -77,7 +79,8 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('documents_stagiaires')
-        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url');
+        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url')
+        .limit(10000);
       if (error) throw error;
       return data;
     },
@@ -428,7 +431,8 @@ export default function AuditDashboard() {
                         const { data: liveDocs } = await supabase
                           .from('documents_stagiaires')
                           .select('inscription_id, type')
-                          .in('inscription_id', formationInscriptionIds);
+                          .in('inscription_id', formationInscriptionIds)
+                          .limit(10000);
 
                         const totalExpected = formationInscriptionIds.length * REQUIRED_DOC_TYPES.length;
                         const totalFound = liveDocs?.length || 0;
