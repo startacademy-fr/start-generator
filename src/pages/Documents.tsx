@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchAllRows } from '@/lib/supabase-helpers';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
