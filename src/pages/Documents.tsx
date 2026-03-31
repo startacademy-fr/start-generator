@@ -111,7 +111,8 @@ export default function Documents() {
       const { data, error } = await supabase
         .from('formations')
         .select('*')
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data as Formation[];
     },
