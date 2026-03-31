@@ -56,7 +56,8 @@ export default function Sessions() {
       const { data, error } = await supabase
         .from('formations_catalogue')
         .select('*')
-        .order('titre', { ascending: true });
+        .order('titre', { ascending: true })
+        .limit(10000);
       if (error) throw error;
       return data as FormationCatalogue[];
     },
