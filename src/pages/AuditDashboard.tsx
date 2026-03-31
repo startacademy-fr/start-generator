@@ -48,7 +48,8 @@ export default function AuditDashboard() {
         .from('formations')
         .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
         .eq('archived', false)
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data;
     },
