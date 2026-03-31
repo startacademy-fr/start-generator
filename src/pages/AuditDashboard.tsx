@@ -431,7 +431,8 @@ export default function AuditDashboard() {
                         const { data: liveDocs } = await supabase
                           .from('documents_stagiaires')
                           .select('inscription_id, type')
-                          .in('inscription_id', formationInscriptionIds);
+                          .in('inscription_id', formationInscriptionIds)
+                          .limit(10000);
 
                         const totalExpected = formationInscriptionIds.length * REQUIRED_DOC_TYPES.length;
                         const totalFound = liveDocs?.length || 0;
