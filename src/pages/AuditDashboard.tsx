@@ -67,7 +67,8 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inscriptions')
-        .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)');
+        .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)')
+        .limit(10000);
       if (error) throw error;
       return data as any[];
     },
