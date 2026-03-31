@@ -91,7 +91,8 @@ export default function AccessTokens() {
           id,
           stagiaire:stagiaires(*),
           formation:formations(*)
-        `);
+        `)
+        .limit(10000);
       if (error) throw error;
       return data as unknown as InscriptionWithDetails[];
     },
