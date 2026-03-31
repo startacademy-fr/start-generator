@@ -70,7 +70,8 @@ export default function Sessions() {
       const query = supabase
         .from('formations')
         .select('*')
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (!showArchived) query.eq('archived', false);
       const { data, error } = await query;
       if (error) throw error;
