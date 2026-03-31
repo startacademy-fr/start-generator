@@ -244,10 +244,12 @@ export default function AuditDashboard() {
         return;
       }
 
-      // Fetch full documents with inscriptions
-      const { data: allDocs } = await supabase
-        .from('documents_stagiaires')
-        .select('*, inscriptions(stagiaire_id, formation_id, stagiaires(prenom, nom, email, entreprise, fonction))');
+      // Fetch full documents with inscriptions (paginated)
+      const allDocs = await fetchAllRows<any>(() =>
+        supabase
+          .from('documents_stagiaires')
+          .select('*, inscriptions(stagiaire_id, formation_id, stagiaires(prenom, nom, email, entreprise, fonction))')
+      );
 
       for (const formation of targetFormations) {
         const formationInscriptions = inscriptions?.filter(i => i.formation_id === formation.id) || [];
