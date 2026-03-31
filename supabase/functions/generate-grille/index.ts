@@ -148,13 +148,24 @@ IMPORTANT : Les compétences doivent refléter EXACTEMENT les thématiques du pr
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const message = data.choices?.[0]?.message;
+    const toolCall = message?.tool_calls?.[0];
 
-    if (!toolCall?.function?.arguments) {
-      throw new Error("Invalid response from AI");
+    let parsed;
+    if (toolCall?.function?.arguments) {
+      parsed = JSON.parse(toolCall.function.arguments);
+    } else if (message?.content) {
+      // Fallback: extract JSON from content
+      const jsonMatch = message.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      }
     }
 
-    const parsed = JSON.parse(toolCall.function.arguments);
+    if (!parsed?.competences || !parsed?.commentaire || !parsed?.axe_amelioration) {
+      console.error("Unexpected AI response structure:", JSON.stringify(data.choices?.[0]));
+      throw new Error("Invalid response from AI");
+    }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
