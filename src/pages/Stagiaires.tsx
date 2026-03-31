@@ -83,7 +83,8 @@ export default function Stagiaires() {
       const { data, error } = await supabase
         .from('stagiaires')
         .select('*')
-        .order('nom', { ascending: true });
+        .order('nom', { ascending: true })
+        .limit(10000);
       if (error) throw error;
       return data as Stagiaire[];
     },
