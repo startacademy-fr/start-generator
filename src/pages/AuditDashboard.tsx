@@ -445,11 +445,12 @@ export default function AuditDashboard() {
                         
                         if (formationInscriptionIds.length === 0) return;
 
-                        const { data: liveDocs } = await supabase
-                          .from('documents_stagiaires')
-                          .select('inscription_id, type')
-                          .in('inscription_id', formationInscriptionIds)
-                          .limit(10000);
+                        const liveDocs = await fetchAllRows<any>(() =>
+                          supabase
+                            .from('documents_stagiaires')
+                            .select('inscription_id, type')
+                            .in('inscription_id', formationInscriptionIds)
+                        );
 
                         const totalExpected = formationInscriptionIds.length * REQUIRED_DOC_TYPES.length;
                         const totalFound = liveDocs?.length || 0;
