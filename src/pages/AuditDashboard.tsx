@@ -34,23 +34,7 @@ const REQUIRED_DOC_TYPES = [
   { id: 'grille_observation', short: 'Grille', label: 'Grille observation' },
 ];
 
-const PAGE_SIZE = 1000;
-
-async function fetchAllRows<T>(
-  queryBuilder: () => ReturnType<ReturnType<typeof supabase.from>['select']>
-): Promise<T[]> {
-  const allRows: T[] = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await queryBuilder().range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    allRows.push(...(data as T[]));
-    if (data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
-  return allRows;
-}
+import { fetchAllRows } from '@/lib/supabase-helpers';
 
 export default function AuditDashboard() {
   const navigate = useNavigate();
