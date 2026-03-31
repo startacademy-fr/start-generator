@@ -79,7 +79,8 @@ export default function AuditDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('documents_stagiaires')
-        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url');
+        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url')
+        .limit(10000);
       if (error) throw error;
       return data;
     },
