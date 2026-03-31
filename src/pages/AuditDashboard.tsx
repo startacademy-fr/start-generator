@@ -34,6 +34,8 @@ const REQUIRED_DOC_TYPES = [
   { id: 'grille_observation', short: 'Grille', label: 'Grille observation' },
 ];
 
+import { fetchAllRows } from '@/lib/supabase-helpers';
+
 export default function AuditDashboard() {
   const navigate = useNavigate();
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
@@ -44,14 +46,13 @@ export default function AuditDashboard() {
   const { data: formations } = useQuery({
     queryKey: ['audit-formations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('formations')
-        .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
-        .eq('archived', false)
-        .order('date_debut', { ascending: false })
-        .limit(10000);
-      if (error) throw error;
-      return data;
+      return fetchAllRows<any>(() =>
+        supabase
+          .from('formations')
+          .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
+          .eq('archived', false)
+          .order('date_debut', { ascending: false })
+      );
     },
   });
 
@@ -65,24 +66,22 @@ export default function AuditDashboard() {
   const { data: inscriptions } = useQuery({
     queryKey: ['audit-inscriptions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('inscriptions')
-        .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)')
-        .limit(10000);
-      if (error) throw error;
-      return data as any[];
+      return fetchAllRows<any>(() =>
+        supabase
+          .from('inscriptions')
+          .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)')
+      );
     },
   });
 
   const { data: documents } = useQuery({
     queryKey: ['audit-documents'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('documents_stagiaires')
-        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url')
-        .limit(10000);
-      if (error) throw error;
-      return data;
+      return fetchAllRows<any>(() =>
+        supabase
+          .from('documents_stagiaires')
+          .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url')
+      );
     },
     refetchOnMount: 'always',
   });
@@ -229,10 +228,12 @@ export default function AuditDashboard() {
         return;
       }
 
-      // Fetch full documents with inscriptions
-      const { data: allDocs } = await supabase
-        .from('documents_stagiaires')
-        .select('*, inscriptions(stagiaire_id, formation_id, stagiaires(prenom, nom, email, entreprise, fonction))');
+      // Fetch full documents with inscriptions (paginated)
+      const allDocs = await fetchAllRows<any>(() =>
+        supabase
+          .from('documents_stagiaires')
+          .select('*, inscriptions(stagiaire_id, formation_id, stagiaires(prenom, nom, email, entreprise, fonction))')
+      );
 
       for (const formation of targetFormations) {
         const formationInscriptions = inscriptions?.filter(i => i.formation_id === formation.id) || [];
@@ -428,11 +429,12 @@ export default function AuditDashboard() {
                         
                         if (formationInscriptionIds.length === 0) return;
 
-                        const { data: liveDocs } = await supabase
-                          .from('documents_stagiaires')
-                          .select('inscription_id, type')
-                          .in('inscription_id', formationInscriptionIds)
-                          .limit(10000);
+                        const liveDocs = await fetchAllRows<any>(() =>
+                          supabase
+                            .from('documents_stagiaires')
+                            .select('inscription_id, type')
+                            .in('inscription_id', formationInscriptionIds)
+                        );
 
                         const totalExpected = formationInscriptionIds.length * REQUIRED_DOC_TYPES.length;
                         const totalFound = liveDocs?.length || 0;
