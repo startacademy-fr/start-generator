@@ -75,7 +75,8 @@ export default function Formateurs() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('nom', { ascending: true });
+        .order('nom', { ascending: true })
+        .limit(10000);
       if (error) throw error;
       return data as (Profile & { telephone?: string })[];
     },
