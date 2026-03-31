@@ -91,7 +91,7 @@ export default function Sessions() {
   const { data: inscriptionsCounts } = useQuery({
     queryKey: ['inscriptions-counts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('inscriptions').select('formation_id');
+      const { data, error } = await supabase.from('inscriptions').select('formation_id').limit(10000);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data.forEach((i) => { counts[i.formation_id] = (counts[i.formation_id] || 0) + 1; });
