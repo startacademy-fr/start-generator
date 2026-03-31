@@ -34,6 +34,24 @@ const REQUIRED_DOC_TYPES = [
   { id: 'grille_observation', short: 'Grille', label: 'Grille observation' },
 ];
 
+const PAGE_SIZE = 1000;
+
+async function fetchAllRows<T>(
+  queryBuilder: () => ReturnType<ReturnType<typeof supabase.from>['select']>
+): Promise<T[]> {
+  const allRows: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await queryBuilder().range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows.push(...(data as T[]));
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return allRows;
+}
+
 export default function AuditDashboard() {
   const navigate = useNavigate();
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
@@ -44,14 +62,13 @@ export default function AuditDashboard() {
   const { data: formations } = useQuery({
     queryKey: ['audit-formations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('formations')
-        .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
-        .eq('archived', false)
-        .order('date_debut', { ascending: false })
-        .limit(10000);
-      if (error) throw error;
-      return data;
+      return fetchAllRows<any>(() =>
+        supabase
+          .from('formations')
+          .select('id, titre, date_debut, date_fin, nombre_heures, lieu')
+          .eq('archived', false)
+          .order('date_debut', { ascending: false })
+      );
     },
   });
 
@@ -65,24 +82,22 @@ export default function AuditDashboard() {
   const { data: inscriptions } = useQuery({
     queryKey: ['audit-inscriptions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('inscriptions')
-        .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)')
-        .limit(10000);
-      if (error) throw error;
-      return data as any[];
+      return fetchAllRows<any>(() =>
+        supabase
+          .from('inscriptions')
+          .select('id, formation_id, stagiaire_id, stagiaires(id, prenom, nom, email, entreprise)')
+      );
     },
   });
 
   const { data: documents } = useQuery({
     queryKey: ['audit-documents'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('documents_stagiaires')
-        .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url')
-        .limit(10000);
-      if (error) throw error;
-      return data;
+      return fetchAllRows<any>(() =>
+        supabase
+          .from('documents_stagiaires')
+          .select('id, inscription_id, type, statut, contenu, score, date_soumission, pdf_url')
+      );
     },
     refetchOnMount: 'always',
   });
