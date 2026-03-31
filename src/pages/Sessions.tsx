@@ -82,7 +82,7 @@ export default function Sessions() {
   const { data: formateurs } = useQuery({
     queryKey: ['formateurs'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, prenom, nom, user_id');
+      const { data, error } = await supabase.from('profiles').select('id, prenom, nom, user_id').limit(10000);
       if (error) throw error;
       return data as Profile[];
     },
