@@ -56,8 +56,8 @@ export default function RoleManagement() {
     queryKey: ['role-management-users'],
     queryFn: async () => {
       const [{ data: profiles, error: pError }, { data: roles, error: rError }] = await Promise.all([
-        supabase.from('profiles').select('*').order('nom'),
-        supabase.from('user_roles').select('*'),
+        supabase.from('profiles').select('*').order('nom').limit(10000),
+        supabase.from('user_roles').select('*').limit(10000),
       ]);
       if (pError) throw pError;
       if (rError) throw rError;

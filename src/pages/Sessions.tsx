@@ -56,7 +56,8 @@ export default function Sessions() {
       const { data, error } = await supabase
         .from('formations_catalogue')
         .select('*')
-        .order('titre', { ascending: true });
+        .order('titre', { ascending: true })
+        .limit(10000);
       if (error) throw error;
       return data as FormationCatalogue[];
     },
@@ -69,7 +70,8 @@ export default function Sessions() {
       const query = supabase
         .from('formations')
         .select('*')
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (!showArchived) query.eq('archived', false);
       const { data, error } = await query;
       if (error) throw error;
@@ -80,7 +82,7 @@ export default function Sessions() {
   const { data: formateurs } = useQuery({
     queryKey: ['formateurs'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, prenom, nom, user_id');
+      const { data, error } = await supabase.from('profiles').select('id, prenom, nom, user_id').limit(10000);
       if (error) throw error;
       return data as Profile[];
     },
@@ -89,7 +91,7 @@ export default function Sessions() {
   const { data: inscriptionsCounts } = useQuery({
     queryKey: ['inscriptions-counts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('inscriptions').select('formation_id');
+      const { data, error } = await supabase.from('inscriptions').select('formation_id').limit(10000);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data.forEach((i) => { counts[i.formation_id] = (counts[i.formation_id] || 0) + 1; });
@@ -100,7 +102,7 @@ export default function Sessions() {
   const { data: stagiaires } = useQuery({
     queryKey: ['stagiaires-all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('stagiaires').select('*').order('nom', { ascending: true });
+      const { data, error } = await supabase.from('stagiaires').select('*').order('nom', { ascending: true }).limit(10000);
       if (error) throw error;
       return data as Stagiaire[];
     },

@@ -83,7 +83,8 @@ export default function Stagiaires() {
       const { data, error } = await supabase
         .from('stagiaires')
         .select('*')
-        .order('nom', { ascending: true });
+        .order('nom', { ascending: true })
+        .limit(10000);
       if (error) throw error;
       return data as Stagiaire[];
     },
@@ -95,7 +96,8 @@ export default function Stagiaires() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inscriptions')
-        .select('stagiaire_id');
+        .select('stagiaire_id')
+        .limit(10000);
       if (error) throw error;
       
       const counts: Record<string, number> = {};

@@ -63,7 +63,8 @@ export default function FormationsCatalogue() {
       const { data, error } = await supabase
         .from('formations_catalogue')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data as FormationCatalogue[];
     },
@@ -75,7 +76,8 @@ export default function FormationsCatalogue() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('formations')
-        .select('formation_catalogue_id');
+        .select('formation_catalogue_id')
+        .limit(10000);
       if (error) throw error;
       const counts: Record<string, number> = {};
       data.forEach((f: any) => {

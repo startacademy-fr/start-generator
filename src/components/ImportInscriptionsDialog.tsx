@@ -51,9 +51,9 @@ export function ImportInscriptionsDialog({ open, onOpenChange }: ImportInscripti
 
         // Fetch existing stagiaires and formations
         const [stagRes, formRes, inscRes] = await Promise.all([
-          supabase.from('stagiaires').select('id, nom, prenom, email'),
-          supabase.from('formations').select('id, titre, date_debut'),
-          supabase.from('inscriptions').select('stagiaire_id, formation_id'),
+          supabase.from('stagiaires').select('id, nom, prenom, email').limit(10000),
+          supabase.from('formations').select('id, titre, date_debut').limit(10000),
+          supabase.from('inscriptions').select('stagiaire_id, formation_id').limit(10000),
         ]);
 
         const stagiaires = stagRes.data || [];

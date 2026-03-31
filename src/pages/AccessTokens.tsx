@@ -74,7 +74,8 @@ export default function AccessTokens() {
         .from('formations')
         .select('*')
         .eq('archived', false)
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data as Formation[];
     },
@@ -90,7 +91,8 @@ export default function AccessTokens() {
           id,
           stagiaire:stagiaires(*),
           formation:formations(*)
-        `);
+        `)
+        .limit(10000);
       if (error) throw error;
       return data as unknown as InscriptionWithDetails[];
     },
@@ -103,7 +105,8 @@ export default function AccessTokens() {
       const { data, error } = await supabase
         .from('access_tokens')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data;
     },

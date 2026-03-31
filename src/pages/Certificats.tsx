@@ -61,8 +61,8 @@ export default function Certificats() {
   useEffect(() => {
     const fetchData = async () => {
       const [{ data: stagData }, { data: formData }] = await Promise.all([
-        supabase.from('stagiaires').select('*').order('nom'),
-        supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin').order('date_debut', { ascending: false }),
+        supabase.from('stagiaires').select('*').order('nom').limit(10000),
+        supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin').order('date_debut', { ascending: false }).limit(10000),
       ]);
       if (stagData) setStagiaires(stagData as Stagiaire[]);
       if (formData) setFormations(formData);
