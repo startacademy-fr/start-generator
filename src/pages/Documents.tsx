@@ -109,13 +109,12 @@ export default function Documents() {
   const { data: formations } = useQuery({
     queryKey: ['formations-all'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('formations')
-        .select('*')
-        .order('date_debut', { ascending: false })
-        .limit(10000);
-      if (error) throw error;
-      return data as Formation[];
+      return fetchAllRows<Formation>(() =>
+        supabase
+          .from('formations')
+          .select('*')
+          .order('date_debut', { ascending: false })
+      );
     },
   });
 
@@ -123,19 +122,18 @@ export default function Documents() {
   const { data: inscriptions } = useQuery({
     queryKey: ['inscriptions-with-details'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('inscriptions')
-        .select(`
-          id,
-          stagiaire_id,
-          formation_id,
-          statut,
-          stagiaire:stagiaires(*),
-          formation:formations(*)
-        `)
-        .limit(10000);
-      if (error) throw error;
-      return data as unknown as InscriptionWithDetails[];
+      return fetchAllRows<InscriptionWithDetails>(() =>
+        supabase
+          .from('inscriptions')
+          .select(`
+            id,
+            stagiaire_id,
+            formation_id,
+            statut,
+            stagiaire:stagiaires(*),
+            formation:formations(*)
+          `)
+      ) as Promise<InscriptionWithDetails[]>;
     },
   });
 
@@ -143,13 +141,12 @@ export default function Documents() {
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('documents_stagiaires')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10000);
-      if (error) throw error;
-      return data as DocumentStagiaire[];
+      return fetchAllRows<DocumentStagiaire>(() =>
+        supabase
+          .from('documents_stagiaires')
+          .select('*')
+          .order('created_at', { ascending: false })
+      );
     },
   });
 
