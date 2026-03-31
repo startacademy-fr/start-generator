@@ -145,7 +145,8 @@ export default function Documents() {
       const { data, error } = await supabase
         .from('documents_stagiaires')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data as DocumentStagiaire[];
     },

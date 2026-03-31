@@ -105,7 +105,8 @@ export default function AccessTokens() {
       const { data, error } = await supabase
         .from('access_tokens')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data;
     },

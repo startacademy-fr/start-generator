@@ -89,7 +89,8 @@ export default function Formateurs() {
       const { data, error } = await supabase
         .from('formations')
         .select('formateur_id')
-        .not('formateur_id', 'is', null);
+        .not('formateur_id', 'is', null)
+        .limit(10000);
       if (error) throw error;
       
       const counts: Record<string, number> = {};

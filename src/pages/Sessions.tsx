@@ -102,7 +102,7 @@ export default function Sessions() {
   const { data: stagiaires } = useQuery({
     queryKey: ['stagiaires-all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('stagiaires').select('*').order('nom', { ascending: true });
+      const { data, error } = await supabase.from('stagiaires').select('*').order('nom', { ascending: true }).limit(10000);
       if (error) throw error;
       return data as Stagiaire[];
     },
