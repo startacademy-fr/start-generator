@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRoles(rolesData.map(r => r.role as AppRole));
       }
     } catch (error) {
-      console.error('Error fetching profile/roles:', error);
+      if (import.meta.env.DEV) console.error('Error fetching profile/roles:', error);
     }
   };
 
