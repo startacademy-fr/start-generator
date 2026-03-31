@@ -74,7 +74,8 @@ export default function AccessTokens() {
         .from('formations')
         .select('*')
         .eq('archived', false)
-        .order('date_debut', { ascending: false });
+        .order('date_debut', { ascending: false })
+        .limit(10000);
       if (error) throw error;
       return data as Formation[];
     },
