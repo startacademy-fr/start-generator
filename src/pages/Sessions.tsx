@@ -548,6 +548,7 @@ export default function Sessions() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
+                      {incomplete && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                       <span className="font-medium">{formation.titre}</span>
                       {formation.archived && <Badge variant="secondary" className="text-xs">Archivée</Badge>}
                     </div>
