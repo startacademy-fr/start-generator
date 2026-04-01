@@ -57,6 +57,7 @@ export default function BilanPedagogiqueFinancier() {
   const [loading, setLoading] = useState(true);
   const [organisme, setOrganisme] = useState<OrganismeSettings | null>(null);
   const [formations, setFormations] = useState<FormationRow[]>([]);
+  const [catalogueMap, setCatalogueMap] = useState<Map<string, CatalogueRow>>(new Map());
   const [inscriptions, setInscriptions] = useState<InscriptionRow[]>([]);
   const [stagiaires, setStagiaires] = useState<StagiaireRow[]>([]);
 
