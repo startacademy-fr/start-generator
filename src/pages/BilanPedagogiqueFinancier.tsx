@@ -129,6 +129,20 @@ export default function BilanPedagogiqueFinancier() {
     // Unique enterprises
     const entreprises = new Set(uniqueStagiaires.map(s => s?.entreprise).filter(Boolean));
 
+    // CA from montant_total
+    const caFormation = formations.reduce((sum, f) => sum + (f.montant_total || 0), 0);
+
+    // OPCO breakdown
+    const opcoBreakdown: Record<string, { count: number; montant: number }> = {};
+    relevantInscriptions.forEach(insc => {
+      const opco = insc.organisme_prise_en_charge || 'Non renseigné';
+      if (!opcoBreakdown[opco]) opcoBreakdown[opco] = { count: 0, montant: 0 };
+      opcoBreakdown[opco].count += 1;
+    });
+
+    // Sessions with/without montant
+    const sessionsWithMontant = formations.filter(f => f.montant_total !== null && f.montant_total > 0).length;
+
     // Objective categories
     const objectifCategories: Record<string, number> = {
       'Perfectionnement / compétences': 0,
@@ -143,8 +157,6 @@ export default function BilanPedagogiqueFinancier() {
         objectifCategories['Certification / qualification'] += nbInsc;
       } else if (obj.includes('créa') || obj.includes('entrepren')) {
         objectifCategories['Création d\'entreprise'] += nbInsc;
-      } else if (obj.includes('perfect') || obj.includes('compéten')) {
-        objectifCategories['Perfectionnement / compétences'] += nbInsc;
       } else {
         objectifCategories['Perfectionnement / compétences'] += nbInsc;
       }
@@ -155,7 +167,7 @@ export default function BilanPedagogiqueFinancier() {
       nbStagiaires: uniqueStagiaires.length,
       nbInscriptions: relevantInscriptions.length,
       heuresFormation,
-      heuresStagiaires: heuresFormation, // heures-stagiaires
+      heuresStagiaires: heuresFormation,
       completedInscriptions,
       hommes,
       femmes,
@@ -164,6 +176,9 @@ export default function BilanPedagogiqueFinancier() {
       autres,
       nbEntreprises: entreprises.size,
       objectifCategories,
+      caFormation,
+      opcoBreakdown,
+      sessionsWithMontant,
     };
   }, [formations, inscriptions, stagiaires]);
 
