@@ -451,6 +451,20 @@ export default function BilanPedagogiqueFinancier() {
               <p className="text-sm text-muted-foreground">Taux d'achèvement</p>
             </div>
           </div>
+
+          <Separator />
+
+          {/* OPCO breakdown */}
+          <div>
+            <h3 className="font-semibold mb-3 text-foreground">Répartition par organisme de prise en charge</h3>
+            <div className="space-y-2">
+              {Object.entries(stats.opcoBreakdown)
+                .sort(([,a], [,b]) => b.count - a.count)
+                .map(([opco, data]) => (
+                  <StatRow key={opco} label={opco} value={data.count} total={stats.nbInscriptions} />
+                ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
