@@ -205,6 +205,19 @@ export default function BilanPedagogiqueFinancier() {
       specialiteBreakdown[code].heures += f.nombre_heures * nbInsc;
     });
 
+    // Hours by formateur type (interne / externe)
+    let heuresInternes = 0;
+    let heuresExternes = 0;
+    formations.forEach(f => {
+      const profile = f.formateur_id ? profilesMap.get(f.formateur_id) : null;
+      const type = profile?.type_formateur?.toLowerCase() || 'interne';
+      if (type === 'externe') {
+        heuresExternes += f.nombre_heures;
+      } else {
+        heuresInternes += f.nombre_heures;
+      }
+    });
+
     return {
       nbFormations: formations.length,
       nbStagiaires: nbStagiairesBPF,
@@ -223,8 +236,10 @@ export default function BilanPedagogiqueFinancier() {
       opcoBreakdown,
       sessionsWithMontant,
       specialiteBreakdown,
+      heuresInternes,
+      heuresExternes,
     };
-  }, [formations, inscriptions, stagiaires, catalogueMap]);
+  }, [formations, inscriptions, stagiaires, catalogueMap, profilesMap]);
 
   const handleFinancialChange = (field: string, value: string) => {
     // Only allow numbers and dots
