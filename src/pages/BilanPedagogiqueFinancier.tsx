@@ -199,7 +199,7 @@ export default function BilanPedagogiqueFinancier() {
     const specialiteBreakdown: Record<string, { stagiaires: number; heures: number }> = {};
     formations.forEach(f => {
       const catalogue = f.formation_catalogue_id ? catalogueMap.get(f.formation_catalogue_id) : null;
-      const code = catalogue?.specialite_nsf || (f as any).specialite_nsf || 'non_renseigne';
+      const code = catalogue?.specialite_nsf || f.specialite_nsf || 'non_renseigne';
       if (!specialiteBreakdown[code]) specialiteBreakdown[code] = { stagiaires: 0, heures: 0 };
       const nbInsc = relevantInscriptions.filter(i => i.formation_id === f.id).length;
       specialiteBreakdown[code].stagiaires += nbInsc;
