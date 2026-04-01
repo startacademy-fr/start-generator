@@ -62,11 +62,13 @@ export default function BilanPedagogiqueFinancier() {
     charges_autres: '',
   });
 
-  const year = 2025;
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const availableYears = Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2025 + i);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [year]);
 
   const loadData = async () => {
     try {
