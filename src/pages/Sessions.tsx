@@ -35,7 +35,7 @@ export default function Sessions() {
   const [filterFormateurId, setFilterFormateurId] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-  const [sortField, setSortField] = useState<'date' | 'titre'>('date');
+  const [sortField, setSortField] = useState<'date' | 'titre' | 'numero' | 'lieu' | 'heures' | 'formateur' | 'stagiaires'>('date');
   const [sortAsc, setSortAsc] = useState(false);
   const [addStagiaireFormation, setAddStagiaireFormation] = useState<Formation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Formation | null>(null);
