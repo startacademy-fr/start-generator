@@ -118,7 +118,7 @@ export default function FormationsCatalogue() {
       if (editing) {
         const { error } = await supabase
           .from('formations_catalogue')
-          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null })
+          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null, specialite_nsf: specialiteNsf || null })
           .eq('id', editing.id);
         if (error) throw error;
         id = editing.id;
