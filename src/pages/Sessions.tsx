@@ -500,6 +500,10 @@ export default function Sessions() {
           <span className="text-muted-foreground text-sm">→</span>
           <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[150px]" placeholder="Au" />
         </div>
+        <Button variant={showIncomplete ? 'destructive' : 'outline'} onClick={() => setShowIncomplete(!showIncomplete)} size="sm">
+          <AlertTriangle className="mr-2 h-4 w-4" />
+          {showIncomplete ? `${incompleteCount} incomplète(s)` : `Incomplètes (${incompleteCount})`}
+        </Button>
         <Button variant={showArchived ? 'secondary' : 'outline'} onClick={() => setShowArchived(!showArchived)} size="sm">
           <Archive className="mr-2 h-4 w-4" />
           {showArchived ? 'Masquer archivées' : 'Voir archivées'}
