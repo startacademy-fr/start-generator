@@ -34,6 +34,7 @@ interface InscriptionRow {
   formation_id: string;
   stagiaire_id: string;
   statut: string;
+  organisme_prise_en_charge: string | null;
 }
 
 interface StagiaireRow {
