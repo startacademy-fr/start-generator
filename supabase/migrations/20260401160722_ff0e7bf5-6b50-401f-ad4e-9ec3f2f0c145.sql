@@ -1,0 +1,1 @@
+ALTER TABLE public.formations_catalogue ADD COLUMN specialite_nsf text DEFAULT NULL;
