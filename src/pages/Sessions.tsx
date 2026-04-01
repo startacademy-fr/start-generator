@@ -271,6 +271,7 @@ export default function Sessions() {
       setDateDebut('');
       setDateFin('');
       setFormateurId('');
+      setMontantTotal('');
       setSelectedStagiaireIds([]);
     }
     setIsDialogOpen(true);
