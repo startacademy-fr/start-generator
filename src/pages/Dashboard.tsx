@@ -816,7 +816,7 @@ export default function Dashboard() {
           {stats.heuresParFormateur.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Heures par formateur ({n1Year})</CardTitle>
+                <CardTitle className="text-base">Heures par formateur ({n1Year}) — Total : {stats.heuresParFormateur.reduce((s, f) => s + f.heures, 0)}h</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[280px]">
