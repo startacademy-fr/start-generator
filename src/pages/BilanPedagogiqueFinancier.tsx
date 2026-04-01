@@ -26,6 +26,7 @@ interface FormationRow {
   date_debut: string;
   date_fin: string | null;
   objectifs: string | null;
+  montant_total: number | null;
 }
 
 interface InscriptionRow {
@@ -33,6 +34,7 @@ interface InscriptionRow {
   formation_id: string;
   stagiaire_id: string;
   statut: string;
+  organisme_prise_en_charge: string | null;
 }
 
 interface StagiaireRow {
@@ -73,12 +75,12 @@ export default function BilanPedagogiqueFinancier() {
       const [orgResult, formationsData, inscriptionsData, stagiairesData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
         fetchAllRows<InscriptionRow>(() =>
-          supabase.from('inscriptions').select('id, formation_id, stagiaire_id, statut')
+          supabase.from('inscriptions').select('id, formation_id, stagiaire_id, statut, organisme_prise_en_charge')
         ),
         fetchAllRows<StagiaireRow>(() =>
           supabase.from('stagiaires').select('id, civilite, est_salarie, chef_entreprise, entreprise')
@@ -127,6 +129,20 @@ export default function BilanPedagogiqueFinancier() {
     // Unique enterprises
     const entreprises = new Set(uniqueStagiaires.map(s => s?.entreprise).filter(Boolean));
 
+    // CA from montant_total
+    const caFormation = formations.reduce((sum, f) => sum + (f.montant_total || 0), 0);
+
+    // OPCO breakdown
+    const opcoBreakdown: Record<string, { count: number; montant: number }> = {};
+    relevantInscriptions.forEach(insc => {
+      const opco = insc.organisme_prise_en_charge || 'Non renseigné';
+      if (!opcoBreakdown[opco]) opcoBreakdown[opco] = { count: 0, montant: 0 };
+      opcoBreakdown[opco].count += 1;
+    });
+
+    // Sessions with/without montant
+    const sessionsWithMontant = formations.filter(f => f.montant_total !== null && f.montant_total > 0).length;
+
     // Objective categories
     const objectifCategories: Record<string, number> = {
       'Perfectionnement / compétences': 0,
@@ -141,8 +157,6 @@ export default function BilanPedagogiqueFinancier() {
         objectifCategories['Certification / qualification'] += nbInsc;
       } else if (obj.includes('créa') || obj.includes('entrepren')) {
         objectifCategories['Création d\'entreprise'] += nbInsc;
-      } else if (obj.includes('perfect') || obj.includes('compéten')) {
-        objectifCategories['Perfectionnement / compétences'] += nbInsc;
       } else {
         objectifCategories['Perfectionnement / compétences'] += nbInsc;
       }
@@ -153,7 +167,7 @@ export default function BilanPedagogiqueFinancier() {
       nbStagiaires: uniqueStagiaires.length,
       nbInscriptions: relevantInscriptions.length,
       heuresFormation,
-      heuresStagiaires: heuresFormation, // heures-stagiaires
+      heuresStagiaires: heuresFormation,
       completedInscriptions,
       hommes,
       femmes,
@@ -162,6 +176,9 @@ export default function BilanPedagogiqueFinancier() {
       autres,
       nbEntreprises: entreprises.size,
       objectifCategories,
+      caFormation,
+      opcoBreakdown,
+      sessionsWithMontant,
     };
   }, [formations, inscriptions, stagiaires]);
 
@@ -171,7 +188,7 @@ export default function BilanPedagogiqueFinancier() {
     setFinancials(prev => ({ ...prev, [field]: value }));
   };
 
-  const totalProduits = (parseFloat(financials.ca_formation) || 0) + 
+  const totalProduits = stats.caFormation + 
     (parseFloat(financials.subventions) || 0) + 
     (parseFloat(financials.autres_produits) || 0);
   
@@ -258,7 +275,9 @@ export default function BilanPedagogiqueFinancier() {
             <Calculator className="h-5 w-5 text-primary" />
             Partie B — Bilan financier
           </CardTitle>
-          <CardDescription>Saisissez les montants financiers de l'exercice {year}</CardDescription>
+          <CardDescription>
+            CA formation calculé automatiquement depuis les montants des sessions ({stats.sessionsWithMontant}/{stats.nbFormations} sessions renseignées)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -267,13 +286,15 @@ export default function BilanPedagogiqueFinancier() {
               <h3 className="font-semibold text-foreground border-b pb-2">Produits</h3>
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="ca_formation">Chiffre d'affaires formation (€)</Label>
-                  <Input
-                    id="ca_formation"
-                    placeholder="0.00"
-                    value={financials.ca_formation}
-                    onChange={e => handleFinancialChange('ca_formation', e.target.value)}
-                  />
+                  <Label className="text-muted-foreground text-xs">Chiffre d'affaires formation (calculé)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="secondary" className="text-base px-3 py-1.5">
+                      {formatCurrency(stats.caFormation)}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      ({stats.sessionsWithMontant} sessions)
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="subventions">Subventions et aides (€)</Label>
@@ -428,6 +449,20 @@ export default function BilanPedagogiqueFinancier() {
                 {stats.nbInscriptions > 0 ? Math.round((stats.completedInscriptions / stats.nbInscriptions) * 100) : 0}%
               </p>
               <p className="text-sm text-muted-foreground">Taux d'achèvement</p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* OPCO breakdown */}
+          <div>
+            <h3 className="font-semibold mb-3 text-foreground">Répartition par organisme de prise en charge</h3>
+            <div className="space-y-2">
+              {Object.entries(stats.opcoBreakdown)
+                .sort(([,a], [,b]) => b.count - a.count)
+                .map(([opco, data]) => (
+                  <StatRow key={opco} label={opco} value={data.count} total={stats.nbInscriptions} />
+                ))}
             </div>
           </div>
         </CardContent>
