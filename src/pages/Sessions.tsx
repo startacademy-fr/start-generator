@@ -559,17 +559,27 @@ export default function Sessions() {
            <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[60px]">N°</TableHead>
+                <TableHead className="w-[60px] cursor-pointer select-none" onClick={() => toggleSort('numero')}>
+                  <div className="flex items-center">N° <SortIcon field="numero" /></div>
+                </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('titre')}>
                   <div className="flex items-center">Formation <SortIcon field="titre" /></div>
                 </TableHead>
-                <TableHead>Lieu</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('lieu')}>
+                  <div className="flex items-center">Lieu <SortIcon field="lieu" /></div>
+                </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('date')}>
                   <div className="flex items-center">Dates <SortIcon field="date" /></div>
                 </TableHead>
-                <TableHead>Heures</TableHead>
-                <TableHead>Formateur</TableHead>
-                <TableHead>Stagiaires</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('heures')}>
+                  <div className="flex items-center">Heures <SortIcon field="heures" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('formateur')}>
+                  <div className="flex items-center">Formateur <SortIcon field="formateur" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('stagiaires')}>
+                  <div className="flex items-center">Stagiaires <SortIcon field="stagiaires" /></div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
