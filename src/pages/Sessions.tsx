@@ -308,7 +308,9 @@ export default function Sessions() {
     return catalogue.find(c => c.id === catalogueId)?.titre || null;
   };
 
-  const toggleSort = (field: 'date' | 'titre') => {
+  type SortField = 'date' | 'titre' | 'numero' | 'lieu' | 'heures' | 'formateur' | 'stagiaires';
+
+  const toggleSort = (field: SortField) => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
     } else {
@@ -317,7 +319,7 @@ export default function Sessions() {
     }
   };
 
-  const SortIcon = ({ field }: { field: 'date' | 'titre' }) => {
+  const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
