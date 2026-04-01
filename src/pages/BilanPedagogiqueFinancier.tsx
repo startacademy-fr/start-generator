@@ -31,6 +31,7 @@ interface FormationRow {
   montant_total: number | null;
   formation_catalogue_id: string | null;
   formateur_id: string | null;
+  specialite_nsf: string | null;
 }
 
 interface ProfileRow {
@@ -93,7 +94,7 @@ export default function BilanPedagogiqueFinancier() {
       const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData, profilesData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id, formateur_id')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id, formateur_id, specialite_nsf')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
@@ -198,7 +199,7 @@ export default function BilanPedagogiqueFinancier() {
     const specialiteBreakdown: Record<string, { stagiaires: number; heures: number }> = {};
     formations.forEach(f => {
       const catalogue = f.formation_catalogue_id ? catalogueMap.get(f.formation_catalogue_id) : null;
-      const code = catalogue?.specialite_nsf || 'non_renseigne';
+      const code = catalogue?.specialite_nsf || f.specialite_nsf || 'non_renseigne';
       if (!specialiteBreakdown[code]) specialiteBreakdown[code] = { stagiaires: 0, heures: 0 };
       const nbInsc = relevantInscriptions.filter(i => i.formation_id === f.id).length;
       specialiteBreakdown[code].stagiaires += nbInsc;
@@ -584,14 +585,6 @@ export default function BilanPedagogiqueFinancier() {
                           <td className="py-2 px-3 text-right text-foreground">{formatNumber(data.heures)}</td>
                         </tr>
                       ))}
-                    {stats.specialiteBreakdown['non_renseigne'] && (
-                      <tr className="border-b hover:bg-muted/50">
-                        <td className="py-2 px-3 text-muted-foreground italic">Non renseigné</td>
-                        <td className="py-2 px-3 text-right text-muted-foreground">—</td>
-                        <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{formatNumber(stats.specialiteBreakdown['non_renseigne'].stagiaires)}</td>
-                        <td className="py-2 px-3 text-right text-muted-foreground">{formatNumber(stats.specialiteBreakdown['non_renseigne'].heures)}</td>
-                      </tr>
-                    )}
                     <tr className="bg-muted/50 font-semibold">
                       <td className="py-2 px-3 text-foreground">TOTAL</td>
                       <td className="py-2 px-3 text-right text-muted-foreground">({Object.keys(stats.specialiteBreakdown).filter(c => c !== 'non_renseigne').length})</td>
