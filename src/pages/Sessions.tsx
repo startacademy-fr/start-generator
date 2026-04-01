@@ -165,7 +165,6 @@ export default function Sessions() {
             formateur_id: formData.formateur_id,
             formation_catalogue_id: formData.formation_catalogue_id,
             montant_total: formData.montant_total,
-            specialite_nsf: formData.specialite_nsf,
             objectifs,
             programme,
             programme_pdf_url,
