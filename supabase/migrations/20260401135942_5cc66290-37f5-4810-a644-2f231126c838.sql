@@ -1,0 +1,1 @@
+ALTER TABLE public.inscriptions ADD COLUMN organisme_prise_en_charge text DEFAULT NULL;

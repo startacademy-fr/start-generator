@@ -302,6 +302,7 @@ export type Database = {
           created_at: string
           formation_id: string
           id: string
+          organisme_prise_en_charge: string | null
           stagiaire_id: string
           statut: string
           updated_at: string
@@ -310,6 +311,7 @@ export type Database = {
           created_at?: string
           formation_id: string
           id?: string
+          organisme_prise_en_charge?: string | null
           stagiaire_id: string
           statut?: string
           updated_at?: string
@@ -318,6 +320,7 @@ export type Database = {
           created_at?: string
           formation_id?: string
           id?: string
+          organisme_prise_en_charge?: string | null
           stagiaire_id?: string
           statut?: string
           updated_at?: string
