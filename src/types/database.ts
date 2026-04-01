@@ -60,6 +60,7 @@ export interface Formation {
   programme_pdf_url: string | null;
   created_at: string;
   montant_total: number | null;
+  specialite_nsf: string | null;
   updated_at: string;
   // Joined fields
   formateur?: Profile;

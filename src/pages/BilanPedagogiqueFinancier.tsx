@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { generateBPFPdf } from '@/lib/pdf-generator';
+import { NSF_SPECIALITES, getNsfLabel } from '@/lib/nsf-specialites';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ interface FormationRow {
   date_fin: string | null;
   objectifs: string | null;
   montant_total: number | null;
+  specialite_nsf: string | null;
 }
 
 interface InscriptionRow {
@@ -78,7 +80,7 @@ export default function BilanPedagogiqueFinancier() {
       const [orgResult, formationsData, inscriptionsData, stagiairesData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, specialite_nsf')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
@@ -171,6 +173,16 @@ export default function BilanPedagogiqueFinancier() {
       }
     });
 
+    // Spécialités NSF breakdown
+    const specialiteBreakdown: Record<string, { stagiaires: number; heures: number }> = {};
+    formations.forEach(f => {
+      const code = f.specialite_nsf || 'non_renseigne';
+      if (!specialiteBreakdown[code]) specialiteBreakdown[code] = { stagiaires: 0, heures: 0 };
+      const nbInsc = relevantInscriptions.filter(i => i.formation_id === f.id).length;
+      specialiteBreakdown[code].stagiaires += nbInsc;
+      specialiteBreakdown[code].heures += f.nombre_heures * nbInsc;
+    });
+
     return {
       nbFormations: formations.length,
       nbStagiaires: nbStagiairesBPF,
@@ -188,6 +200,7 @@ export default function BilanPedagogiqueFinancier() {
       caFormation,
       opcoBreakdown,
       sessionsWithMontant,
+      specialiteBreakdown,
     };
   }, [formations, inscriptions, stagiaires]);
 
@@ -483,6 +496,56 @@ export default function BilanPedagogiqueFinancier() {
               </p>
               <p className="text-sm text-muted-foreground">Taux d'achèvement</p>
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Spécialités de formation (F-4) */}
+          <div>
+            <h3 className="font-semibold mb-3 text-foreground">F-4 — Spécialités de formation</h3>
+            {Object.keys(stats.specialiteBreakdown).length > 0 ? (
+              <div className="overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Spécialités de formation</th>
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground w-20">CODE</th>
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground w-24">Stagiaires</th>
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground w-24">Heures</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(stats.specialiteBreakdown)
+                      .filter(([code]) => code !== 'non_renseigne')
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([code, data]) => (
+                        <tr key={code} className="border-b hover:bg-muted/50">
+                          <td className="py-2 px-3 text-foreground">{getNsfLabel(code)}</td>
+                          <td className="py-2 px-3 text-right text-foreground">{code}</td>
+                          <td className="py-2 px-3 text-right font-semibold text-foreground">{formatNumber(data.stagiaires)}</td>
+                          <td className="py-2 px-3 text-right text-foreground">{formatNumber(data.heures)}</td>
+                        </tr>
+                      ))}
+                    {stats.specialiteBreakdown['non_renseigne'] && (
+                      <tr className="border-b hover:bg-muted/50">
+                        <td className="py-2 px-3 text-muted-foreground italic">Non renseigné</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">—</td>
+                        <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{formatNumber(stats.specialiteBreakdown['non_renseigne'].stagiaires)}</td>
+                        <td className="py-2 px-3 text-right text-muted-foreground">{formatNumber(stats.specialiteBreakdown['non_renseigne'].heures)}</td>
+                      </tr>
+                    )}
+                    <tr className="bg-muted/50 font-semibold">
+                      <td className="py-2 px-3 text-foreground">TOTAL</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">({Object.keys(stats.specialiteBreakdown).filter(c => c !== 'non_renseigne').length})</td>
+                      <td className="py-2 px-3 text-right text-foreground">{formatNumber(stats.nbStagiaires)}</td>
+                      <td className="py-2 px-3 text-right text-foreground">{formatNumber(stats.heuresStagiaires)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune donnée disponible. Renseignez les spécialités NSF dans les sessions.</p>
+            )}
           </div>
 
           <Separator />

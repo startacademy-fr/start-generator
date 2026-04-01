@@ -207,6 +207,7 @@ export type Database = {
           objectifs: string | null
           programme: string | null
           programme_pdf_url: string | null
+          specialite_nsf: string | null
           titre: string
           updated_at: string
         }
@@ -224,6 +225,7 @@ export type Database = {
           objectifs?: string | null
           programme?: string | null
           programme_pdf_url?: string | null
+          specialite_nsf?: string | null
           titre: string
           updated_at?: string
         }
@@ -241,6 +243,7 @@ export type Database = {
           objectifs?: string | null
           programme?: string | null
           programme_pdf_url?: string | null
+          specialite_nsf?: string | null
           titre?: string
           updated_at?: string
         }

@@ -21,6 +21,7 @@ import { AddStagiaireToFormationDialog } from '@/components/AddStagiaireToFormat
 import { StagiaireMultiSelect } from '@/components/StagiaireMultiSelect';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportInscriptionsDialog } from '@/components/ImportInscriptionsDialog';
+import { NSF_SPECIALITES } from '@/lib/nsf-specialites';
 
 export default function Sessions() {
   const { canEdit } = useAuth();
@@ -50,6 +51,7 @@ export default function Sessions() {
   const [formateurId, setFormateurId] = useState('');
   const [selectedStagiaireIds, setSelectedStagiaireIds] = useState<string[]>([]);
   const [montantTotal, setMontantTotal] = useState('');
+  const [specialiteNsf, setSpecialiteNsf] = useState('');
 
   // Fetch formations catalogue
   const { data: catalogue } = useQuery({
@@ -141,6 +143,7 @@ export default function Sessions() {
       date_fin: string | null;
       formateur_id: string | null;
       montant_total: number | null;
+      specialite_nsf: string | null;
       stagiaireIds: string[];
     }) => {
       // Get titre from catalogue
@@ -164,6 +167,7 @@ export default function Sessions() {
             formateur_id: formData.formateur_id,
             formation_catalogue_id: formData.formation_catalogue_id,
             montant_total: formData.montant_total,
+            specialite_nsf: formData.specialite_nsf,
             objectifs,
             programme,
             programme_pdf_url,
@@ -197,6 +201,7 @@ export default function Sessions() {
             formateur_id: formData.formateur_id,
             formation_catalogue_id: formData.formation_catalogue_id,
             montant_total: formData.montant_total,
+            specialite_nsf: formData.specialite_nsf,
             objectifs,
             programme,
             programme_pdf_url,
@@ -261,6 +266,7 @@ export default function Sessions() {
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
       setMontantTotal(formation.montant_total?.toString() || '');
+      setSpecialiteNsf(formation.specialite_nsf || '');
       const { data } = await supabase.from('inscriptions').select('stagiaire_id').eq('formation_id', formation.id);
       setSelectedStagiaireIds(data?.map(i => i.stagiaire_id) || []);
     } else {
@@ -272,6 +278,7 @@ export default function Sessions() {
       setDateFin('');
       setFormateurId('');
       setMontantTotal('');
+      setSpecialiteNsf('');
       setSelectedStagiaireIds([]);
     }
     setIsDialogOpen(true);
@@ -293,6 +300,7 @@ export default function Sessions() {
       date_fin: dateFin || null,
       formateur_id: formateurId || null,
       montant_total: montantTotal ? parseFloat(montantTotal) : null,
+      specialite_nsf: specialiteNsf || null,
       stagiaireIds: selectedStagiaireIds,
     });
   };
@@ -476,6 +484,20 @@ export default function Sessions() {
                       <Label htmlFor="montant_total">Montant total HT (€)</Label>
                       <Input id="montant_total" type="number" min="0" step="0.01" value={montantTotal} onChange={(e) => setMontantTotal(e.target.value)} placeholder="Ex: 2500" />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="specialite_nsf">Spécialité de formation (NSF)</Label>
+                    <select
+                      id="specialite_nsf"
+                      value={specialiteNsf}
+                      onChange={(e) => setSpecialiteNsf(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Sélectionner une spécialité</option>
+                      {NSF_SPECIALITES.map((s) => (
+                        <option key={s.code} value={s.code}>{s.code} — {s.label}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="formateur">Formateur</Label>
