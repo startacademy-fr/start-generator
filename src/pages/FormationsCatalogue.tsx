@@ -182,6 +182,7 @@ export default function FormationsCatalogue() {
           objectifs: source.objectifs,
           programme: source.programme,
           programme_pdf_url: source.programme_pdf_url,
+          specialite_nsf: source.specialite_nsf,
           reference: generateReference(),
         });
       if (error) throw error;
