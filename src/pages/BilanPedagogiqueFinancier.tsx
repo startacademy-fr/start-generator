@@ -553,11 +553,6 @@ export default function BilanPedagogiqueFinancier() {
     </div>
   );
 }
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 function MetricCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
