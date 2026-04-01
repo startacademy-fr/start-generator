@@ -163,6 +163,7 @@ export default function Sessions() {
             date_fin: formData.date_fin,
             formateur_id: formData.formateur_id,
             formation_catalogue_id: formData.formation_catalogue_id,
+            montant_total: formData.montant_total,
             objectifs,
             programme,
             programme_pdf_url,
