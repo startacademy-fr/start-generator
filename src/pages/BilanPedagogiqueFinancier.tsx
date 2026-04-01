@@ -90,10 +90,10 @@ export default function BilanPedagogiqueFinancier() {
     try {
       setLoading(true);
       
-      const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData] = await Promise.all([
+      const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData, profilesData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id, formateur_id')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
@@ -106,6 +106,9 @@ export default function BilanPedagogiqueFinancier() {
         fetchAllRows<CatalogueRow>(() =>
           supabase.from('formations_catalogue').select('id, specialite_nsf')
         ),
+        fetchAllRows<ProfileRow>(() =>
+          supabase.from('profiles').select('id, type_formateur')
+        ),
       ]);
 
       if (orgResult.data) setOrganisme(orgResult.data as OrganismeSettings);
@@ -113,6 +116,7 @@ export default function BilanPedagogiqueFinancier() {
       setCatalogueMap(new Map(catalogueData.map(c => [c.id, c])));
       setInscriptions(inscriptionsData);
       setStagiaires(stagiairesData);
+      setProfilesMap(new Map(profilesData.map(p => [p.id, p])));
     } catch (error) {
       console.error('Error loading BPF data:', error);
       toast.error('Erreur lors du chargement des données');
