@@ -59,6 +59,9 @@ export default function Formateurs() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [sortField, setSortField] = useState<'nom' | 'formations' | 'heures'>('nom');
   const [sortAsc, setSortAsc] = useState(true);
+  const currentYear = new Date().getFullYear();
+  const [filterDateFrom, setFilterDateFrom] = useState(`${currentYear}-01-01`);
+  const [filterDateTo, setFilterDateTo] = useState(`${currentYear}-12-31`);
 
   // Form state
   const [prenom, setPrenom] = useState('');
@@ -82,50 +85,34 @@ export default function Formateurs() {
     },
   });
 
-  // Fetch formations count and hours per formateur
-  const { data: formationsCounts } = useQuery({
-    queryKey: ['formateurs-formations-counts'],
+  // Fetch formations count and hours per formateur for selected period
+  const { data: formateurStats } = useQuery({
+    queryKey: ['formateurs-stats', filterDateFrom, filterDateTo],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('formations')
-        .select('formateur_id, nombre_heures')
+        .select('formateur_id, nombre_heures, titre, date_debut')
         .not('formateur_id', 'is', null)
         .limit(10000);
+      if (filterDateFrom) query = query.gte('date_debut', filterDateFrom);
+      if (filterDateTo) query = query.lte('date_debut', filterDateTo);
+      const { data, error } = await query;
       if (error) throw error;
       
       const counts: Record<string, number> = {};
-      data.forEach((f) => {
-        if (f.formateur_id) {
-          counts[f.formateur_id] = (counts[f.formateur_id] || 0) + 1;
-        }
-      });
-      return counts;
-    },
-  });
-
-  // Fetch total hours per formateur for current year
-  const currentYear = new Date().getFullYear();
-  const { data: heuresCounts } = useQuery({
-    queryKey: ['formateurs-heures-counts', currentYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('formations')
-        .select('formateur_id, nombre_heures')
-        .not('formateur_id', 'is', null)
-        .gte('date_debut', `${currentYear}-01-01`)
-        .lte('date_debut', `${currentYear}-12-31`)
-        .limit(10000);
-      if (error) throw error;
-      
       const hours: Record<string, number> = {};
       data.forEach((f) => {
         if (f.formateur_id) {
+          counts[f.formateur_id] = (counts[f.formateur_id] || 0) + 1;
           hours[f.formateur_id] = (hours[f.formateur_id] || 0) + f.nombre_heures;
         }
       });
-      return hours;
+      return { counts, hours };
     },
   });
+
+  const formationsCounts = formateurStats?.counts;
+  const heuresCounts = formateurStats?.hours;
 
   // Fetch admin roles for formateurs
   const { data: adminUserIds } = useQuery({
@@ -427,15 +414,33 @@ export default function Formateurs() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher un formateur..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher un formateur..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-muted-foreground whitespace-nowrap">Du</Label>
+          <Input
+            type="date"
+            value={filterDateFrom}
+            onChange={(e) => setFilterDateFrom(e.target.value)}
+            className="w-40"
+          />
+          <Label className="text-sm text-muted-foreground whitespace-nowrap">au</Label>
+          <Input
+            type="date"
+            value={filterDateTo}
+            onChange={(e) => setFilterDateTo(e.target.value)}
+            className="w-40"
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -461,7 +466,7 @@ export default function Formateurs() {
                   <div className="flex items-center">Formations <SortIcon field="formations" /></div>
                 </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('heures')}>
-                  <div className="flex items-center">Heures {currentYear} <SortIcon field="heures" /></div>
+                  <div className="flex items-center">Heures <SortIcon field="heures" /></div>
                 </TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
