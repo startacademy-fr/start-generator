@@ -31,6 +31,7 @@ interface FormationRow {
   montant_total: number | null;
   formation_catalogue_id: string | null;
   formateur_id: string | null;
+  specialite_nsf: string | null;
 }
 
 interface ProfileRow {
