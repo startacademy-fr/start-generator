@@ -33,6 +33,7 @@ const allNavigation = [
   { name: 'Catalogue', href: '/formations', icon: BookOpen, roles: ['formateur'] },
   { name: 'Liens d\'accès', href: '/access-tokens', icon: Link2, roles: ['super_admin', 'admin', 'assistante'] },
   { name: 'Certificats', href: '/certificats', icon: Award, roles: ['super_admin'] },
+  { name: 'BPF', href: '/bpf', icon: BarChart3, roles: ['super_admin', 'admin'] },
 ];
 
 export function AppSidebar() {
