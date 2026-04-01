@@ -29,6 +29,11 @@ interface FormationRow {
   date_fin: string | null;
   objectifs: string | null;
   montant_total: number | null;
+  formation_catalogue_id: string | null;
+}
+
+interface CatalogueRow {
+  id: string;
   specialite_nsf: string | null;
 }
 
