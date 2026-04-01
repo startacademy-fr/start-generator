@@ -1936,12 +1936,7 @@ export async function generateBPFPdf(data: BPFData): Promise<void> {
   kvRow('Charges formateurs', formatCurrency(parseFloat(data.financials.charges_formateurs) || 0));
   kvRow('Charges de fonctionnement', formatCurrency(parseFloat(data.financials.charges_fonctionnement) || 0));
   kvRow('Autres charges', formatCurrency(parseFloat(data.financials.charges_autres) || 0));
-  doc.line(margin + 3, y - 1, pageWidth - margin - 3, y - 1);
   kvRow('Total Charges', formatCurrency(data.totalCharges), true);
-  y += 2;
-  doc.setDrawColor(...PRIMARY_COLOR);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
   y += 6;
   const resultat = data.totalProduits - data.totalCharges;
   doc.setFontSize(11);
