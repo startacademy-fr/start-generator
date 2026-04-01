@@ -29,6 +29,7 @@ interface FormationRow {
   date_fin: string | null;
   objectifs: string | null;
   montant_total: number | null;
+  specialite_nsf: string | null;
 }
 
 interface InscriptionRow {
