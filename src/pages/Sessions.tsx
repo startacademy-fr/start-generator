@@ -322,13 +322,20 @@ export default function Sessions() {
   const sessionNumberMap = new Map<string, number>();
   allSortedByDate.forEach((f, i) => sessionNumberMap.set(f.id, i + 1));
 
+  const isIncomplete = (f: Formation) => {
+    return !f.formateur_id || !f.date_fin || !f.montant_total || !(inscriptionsCounts?.[f.id]);
+  };
+
+  const incompleteCount = formations?.filter(isIncomplete).length || 0;
+
   const filteredFormations = formations?.filter((f) => {
     const matchesSearch = f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.lieu.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFormateur = !filterFormateurId || f.formateur_id === filterFormateurId;
     const matchesDateFrom = !filterDateFrom || f.date_debut >= filterDateFrom;
     const matchesDateTo = !filterDateTo || f.date_debut <= filterDateTo;
-    return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo;
+    const matchesIncomplete = !showIncomplete || isIncomplete(f);
+    return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo && matchesIncomplete;
   })?.sort((a, b) => {
     if (sortField === 'date') {
       const cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
