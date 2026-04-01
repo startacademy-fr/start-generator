@@ -49,6 +49,7 @@ export default function Sessions() {
   const [dateFin, setDateFin] = useState('');
   const [formateurId, setFormateurId] = useState('');
   const [selectedStagiaireIds, setSelectedStagiaireIds] = useState<string[]>([]);
+  const [montantTotal, setMontantTotal] = useState('');
 
   // Fetch formations catalogue
   const { data: catalogue } = useQuery({
@@ -139,6 +140,7 @@ export default function Sessions() {
       date_debut: string;
       date_fin: string | null;
       formateur_id: string | null;
+      montant_total: number | null;
       stagiaireIds: string[];
     }) => {
       // Get titre from catalogue
@@ -161,6 +163,7 @@ export default function Sessions() {
             date_fin: formData.date_fin,
             formateur_id: formData.formateur_id,
             formation_catalogue_id: formData.formation_catalogue_id,
+            montant_total: formData.montant_total,
             objectifs,
             programme,
             programme_pdf_url,
@@ -193,6 +196,7 @@ export default function Sessions() {
             date_fin: formData.date_fin,
             formateur_id: formData.formateur_id,
             formation_catalogue_id: formData.formation_catalogue_id,
+            montant_total: formData.montant_total,
             objectifs,
             programme,
             programme_pdf_url,
@@ -256,6 +260,7 @@ export default function Sessions() {
       setDateDebut(formation.date_debut);
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
+      setMontantTotal(formation.montant_total?.toString() || '');
       const { data } = await supabase.from('inscriptions').select('stagiaire_id').eq('formation_id', formation.id);
       setSelectedStagiaireIds(data?.map(i => i.stagiaire_id) || []);
     } else {
@@ -266,6 +271,7 @@ export default function Sessions() {
       setDateDebut('');
       setDateFin('');
       setFormateurId('');
+      setMontantTotal('');
       setSelectedStagiaireIds([]);
     }
     setIsDialogOpen(true);
@@ -286,6 +292,7 @@ export default function Sessions() {
       date_debut: dateDebut,
       date_fin: dateFin || null,
       formateur_id: formateurId || null,
+      montant_total: montantTotal ? parseFloat(montantTotal) : null,
       stagiaireIds: selectedStagiaireIds,
     });
   };
@@ -438,9 +445,15 @@ export default function Sessions() {
                       <Input id="date_fin" type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre_heures">Nombre d'heures *</Label>
-                    <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre_heures">Nombre d'heures *</Label>
+                      <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="montant_total">Montant total HT (€)</Label>
+                      <Input id="montant_total" type="number" min="0" step="0.01" value={montantTotal} onChange={(e) => setMontantTotal(e.target.value)} placeholder="Ex: 2500" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="formateur">Formateur</Label>
