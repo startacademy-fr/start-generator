@@ -503,9 +503,9 @@ export default function Formateurs() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {format(new Date(formateur.created_at), 'dd/MM/yyyy', { locale: fr })}
+                    <div className="flex items-center gap-1 text-sm font-medium text-foreground">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      {heuresCounts?.[formateur.id] || 0}h
                     </div>
                   </TableCell>
                   {canManage && (
