@@ -173,6 +173,16 @@ export default function BilanPedagogiqueFinancier() {
       }
     });
 
+    // Spécialités NSF breakdown
+    const specialiteBreakdown: Record<string, { stagiaires: number; heures: number }> = {};
+    formations.forEach(f => {
+      const code = f.specialite_nsf || 'non_renseigne';
+      if (!specialiteBreakdown[code]) specialiteBreakdown[code] = { stagiaires: 0, heures: 0 };
+      const nbInsc = relevantInscriptions.filter(i => i.formation_id === f.id).length;
+      specialiteBreakdown[code].stagiaires += nbInsc;
+      specialiteBreakdown[code].heures += f.nombre_heures * nbInsc;
+    });
+
     return {
       nbFormations: formations.length,
       nbStagiaires: nbStagiairesBPF,
@@ -190,6 +200,7 @@ export default function BilanPedagogiqueFinancier() {
       caFormation,
       opcoBreakdown,
       sessionsWithMontant,
+      specialiteBreakdown,
     };
   }, [formations, inscriptions, stagiaires]);
 
