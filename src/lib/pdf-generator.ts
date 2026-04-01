@@ -1870,11 +1870,7 @@ export async function generateBPFPdf(data: BPFData): Promise<void> {
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(`Bilan Pédagogique et Financier ${data.year}`, margin, y);
-  y += 5;
-  doc.setDrawColor(...PRIMARY_COLOR);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 3;
+  y += 8;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...MUTED_COLOR);
@@ -1930,8 +1926,6 @@ export async function generateBPFPdf(data: BPFData): Promise<void> {
   kvRow('CA formation (calculé)', formatCurrency(data.stats.caFormation));
   kvRow('Subventions et aides', formatCurrency(parseFloat(data.financials.subventions) || 0));
   kvRow('Autres produits', formatCurrency(parseFloat(data.financials.autres_produits) || 0));
-  doc.setDrawColor(200, 200, 200);
-  doc.line(margin + 3, y - 1, pageWidth - margin - 3, y - 1);
   kvRow('Total Produits', formatCurrency(data.totalProduits), true);
   y += 4;
 
@@ -1942,12 +1936,7 @@ export async function generateBPFPdf(data: BPFData): Promise<void> {
   kvRow('Charges formateurs', formatCurrency(parseFloat(data.financials.charges_formateurs) || 0));
   kvRow('Charges de fonctionnement', formatCurrency(parseFloat(data.financials.charges_fonctionnement) || 0));
   kvRow('Autres charges', formatCurrency(parseFloat(data.financials.charges_autres) || 0));
-  doc.line(margin + 3, y - 1, pageWidth - margin - 3, y - 1);
   kvRow('Total Charges', formatCurrency(data.totalCharges), true);
-  y += 2;
-  doc.setDrawColor(...PRIMARY_COLOR);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
   y += 6;
   const resultat = data.totalProduits - data.totalCharges;
   doc.setFontSize(11);
