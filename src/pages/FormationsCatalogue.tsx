@@ -20,6 +20,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportFormationsDialog } from '@/components/ImportFormationsDialog';
 
+import { SPECIALITES_FORMATION } from '@/lib/nsf-specialites';
+
 interface FormationCatalogue {
   id: string;
   reference: string;
@@ -28,6 +30,7 @@ interface FormationCatalogue {
   objectifs: string | null;
   programme: string | null;
   programme_pdf_url: string | null;
+  specialite_nsf: string | null;
   created_at: string;
   updated_at: string;
 }
