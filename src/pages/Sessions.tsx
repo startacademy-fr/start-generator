@@ -294,7 +294,6 @@ export default function Sessions() {
       date_fin: dateFin || null,
       formateur_id: formateurId || null,
       montant_total: montantTotal ? parseFloat(montantTotal) : null,
-      specialite_nsf: specialiteNsf || null,
       stagiaireIds: selectedStagiaireIds,
     });
   };
