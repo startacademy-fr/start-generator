@@ -83,10 +83,10 @@ export default function BilanPedagogiqueFinancier() {
     try {
       setLoading(true);
       
-      const [orgResult, formationsData, inscriptionsData, stagiairesData] = await Promise.all([
+      const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, specialite_nsf')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
@@ -96,10 +96,14 @@ export default function BilanPedagogiqueFinancier() {
         fetchAllRows<StagiaireRow>(() =>
           supabase.from('stagiaires').select('id, civilite, est_salarie, chef_entreprise, entreprise')
         ),
+        fetchAllRows<CatalogueRow>(() =>
+          supabase.from('formations_catalogue').select('id, specialite_nsf')
+        ),
       ]);
 
       if (orgResult.data) setOrganisme(orgResult.data as OrganismeSettings);
       setFormations(formationsData);
+      setCatalogueMap(new Map(catalogueData.map(c => [c.id, c])));
       setInscriptions(inscriptionsData);
       setStagiaires(stagiairesData);
     } catch (error) {
