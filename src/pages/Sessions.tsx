@@ -140,6 +140,7 @@ export default function Sessions() {
       date_debut: string;
       date_fin: string | null;
       formateur_id: string | null;
+      montant_total: number | null;
       stagiaireIds: string[];
     }) => {
       // Get titre from catalogue
