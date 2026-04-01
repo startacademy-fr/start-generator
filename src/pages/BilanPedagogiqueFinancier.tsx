@@ -275,7 +275,9 @@ export default function BilanPedagogiqueFinancier() {
             <Calculator className="h-5 w-5 text-primary" />
             Partie B — Bilan financier
           </CardTitle>
-          <CardDescription>Saisissez les montants financiers de l'exercice {year}</CardDescription>
+          <CardDescription>
+            CA formation calculé automatiquement depuis les montants des sessions ({stats.sessionsWithMontant}/{stats.nbFormations} sessions renseignées)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -284,13 +286,15 @@ export default function BilanPedagogiqueFinancier() {
               <h3 className="font-semibold text-foreground border-b pb-2">Produits</h3>
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="ca_formation">Chiffre d'affaires formation (€)</Label>
-                  <Input
-                    id="ca_formation"
-                    placeholder="0.00"
-                    value={financials.ca_formation}
-                    onChange={e => handleFinancialChange('ca_formation', e.target.value)}
-                  />
+                  <Label className="text-muted-foreground text-xs">Chiffre d'affaires formation (calculé)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="secondary" className="text-base px-3 py-1.5">
+                      {formatCurrency(stats.caFormation)}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      ({stats.sessionsWithMontant} sessions)
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="subventions">Subventions et aides (€)</Label>
