@@ -19,6 +19,7 @@ import AccessTokens from "./pages/AccessTokens";
 import Settings from "./pages/Settings";
 import StagiairePortal from "./pages/StagiairePortal";
 import Certificats from "./pages/Certificats";
+import BilanPedagogiqueFinancier from "./pages/BilanPedagogiqueFinancier";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
