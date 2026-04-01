@@ -59,6 +59,9 @@ export default function Formateurs() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [sortField, setSortField] = useState<'nom' | 'formations' | 'heures'>('nom');
   const [sortAsc, setSortAsc] = useState(true);
+  const currentYear = new Date().getFullYear();
+  const [filterDateFrom, setFilterDateFrom] = useState(`${currentYear}-01-01`);
+  const [filterDateTo, setFilterDateTo] = useState(`${currentYear}-12-31`);
 
   // Form state
   const [prenom, setPrenom] = useState('');
