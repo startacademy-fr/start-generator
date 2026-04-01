@@ -21,7 +21,7 @@ import { AddStagiaireToFormationDialog } from '@/components/AddStagiaireToFormat
 import { StagiaireMultiSelect } from '@/components/StagiaireMultiSelect';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportInscriptionsDialog } from '@/components/ImportInscriptionsDialog';
-import { SPECIALITES_FORMATION } from '@/lib/nsf-specialites';
+import { ImportInscriptionsDialog } from '@/components/ImportInscriptionsDialog';
 
 export default function Sessions() {
   const { canEdit } = useAuth();
