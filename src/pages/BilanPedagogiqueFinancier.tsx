@@ -481,6 +481,27 @@ export default function BilanPedagogiqueFinancier() {
 
           <Separator />
 
+          {/* Heures formateurs interne / externe */}
+          <div>
+            <h3 className="font-semibold mb-3 text-foreground">Volume horaire par type de formateur</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-muted rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{formatNumber(stats.heuresInternes)}h</p>
+                <p className="text-sm text-muted-foreground">Formateurs internes</p>
+              </div>
+              <div className="bg-muted rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{formatNumber(stats.heuresExternes)}h</p>
+                <p className="text-sm text-muted-foreground">Formateurs externes</p>
+              </div>
+              <div className="bg-muted rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-primary">{formatNumber(stats.heuresInternes + stats.heuresExternes)}h</p>
+                <p className="text-sm text-muted-foreground">Total heures formateurs</p>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Breakdown tables */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Par sexe */}
