@@ -66,6 +66,7 @@ export default function BilanPedagogiqueFinancier() {
   const [catalogueMap, setCatalogueMap] = useState<Map<string, CatalogueRow>>(new Map());
   const [inscriptions, setInscriptions] = useState<InscriptionRow[]>([]);
   const [stagiaires, setStagiaires] = useState<StagiaireRow[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Map<string, ProfileRow>>(new Map());
 
   // Financial fields (manual input)
   const [financials, setFinancials] = useState({
