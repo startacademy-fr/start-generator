@@ -232,10 +232,21 @@ export default function BilanPedagogiqueFinancier() {
             Cerfa n°10443 — Période du 01/01/{year} au 31/12/{year}
           </p>
         </div>
-        <Button onClick={handleExportPdf} className="gap-2">
-          <Download className="h-4 w-4" />
-          Exporter PDF
-        </Button>
+        <div className="flex items-center gap-3">
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            {availableYears.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <Button onClick={handleExportPdf} className="gap-2">
+            <Download className="h-4 w-4" />
+            Exporter PDF
+          </Button>
+        </div>
       </div>
 
       {/* Organisme Info */}
