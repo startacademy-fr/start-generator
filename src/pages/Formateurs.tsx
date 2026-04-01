@@ -57,7 +57,7 @@ export default function Formateurs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Profile | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [sortField, setSortField] = useState<'nom' | 'formations' | 'date'>('nom');
+  const [sortField, setSortField] = useState<'nom' | 'formations' | 'heures'>('nom');
   const [sortAsc, setSortAsc] = useState(true);
 
   // Form state
