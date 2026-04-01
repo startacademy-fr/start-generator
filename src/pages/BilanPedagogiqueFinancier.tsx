@@ -80,7 +80,7 @@ export default function BilanPedagogiqueFinancier() {
             .lte('date_debut', `${year}-12-31`)
         ),
         fetchAllRows<InscriptionRow>(() =>
-          supabase.from('inscriptions').select('id, formation_id, stagiaire_id, statut')
+          supabase.from('inscriptions').select('id, formation_id, stagiaire_id, statut, organisme_prise_en_charge')
         ),
         fetchAllRows<StagiaireRow>(() =>
           supabase.from('stagiaires').select('id, civilite, est_salarie, chef_entreprise, entreprise')
