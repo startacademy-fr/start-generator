@@ -188,7 +188,7 @@ export default function BilanPedagogiqueFinancier() {
     setFinancials(prev => ({ ...prev, [field]: value }));
   };
 
-  const totalProduits = (parseFloat(financials.ca_formation) || 0) + 
+  const totalProduits = stats.caFormation + 
     (parseFloat(financials.subventions) || 0) + 
     (parseFloat(financials.autres_produits) || 0);
   
