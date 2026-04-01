@@ -584,14 +584,6 @@ export default function BilanPedagogiqueFinancier() {
                           <td className="py-2 px-3 text-right text-foreground">{formatNumber(data.heures)}</td>
                         </tr>
                       ))}
-                    {stats.specialiteBreakdown['non_renseigne'] && (
-                      <tr className="border-b hover:bg-muted/50">
-                        <td className="py-2 px-3 text-muted-foreground italic">Non renseigné</td>
-                        <td className="py-2 px-3 text-right text-muted-foreground">—</td>
-                        <td className="py-2 px-3 text-right font-semibold text-muted-foreground">{formatNumber(stats.specialiteBreakdown['non_renseigne'].stagiaires)}</td>
-                        <td className="py-2 px-3 text-right text-muted-foreground">{formatNumber(stats.specialiteBreakdown['non_renseigne'].heures)}</td>
-                      </tr>
-                    )}
                     <tr className="bg-muted/50 font-semibold">
                       <td className="py-2 px-3 text-foreground">TOTAL</td>
                       <td className="py-2 px-3 text-right text-muted-foreground">({Object.keys(stats.specialiteBreakdown).filter(c => c !== 'non_renseigne').length})</td>
