@@ -330,7 +330,7 @@ export default function Sessions() {
   allSortedByDate.forEach((f, i) => sessionNumberMap.set(f.id, i + 1));
 
   const isIncomplete = (f: Formation) => {
-    return !f.formateur_id || !f.date_fin || !f.montant_total || !(inscriptionsCounts?.[f.id]);
+    return !f.formateur_id || !f.date_fin || (f.montant_total === null || f.montant_total === undefined) || !(inscriptionsCounts?.[f.id]);
   };
 
   const incompleteCount = formations?.filter(isIncomplete).length || 0;
