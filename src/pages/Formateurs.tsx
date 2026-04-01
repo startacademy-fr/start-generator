@@ -460,8 +460,8 @@ export default function Formateurs() {
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('formations')}>
                   <div className="flex items-center">Formations <SortIcon field="formations" /></div>
                 </TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('date')}>
-                  <div className="flex items-center">Ajouté le <SortIcon field="date" /></div>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('heures')}>
+                  <div className="flex items-center">Heures {currentYear} <SortIcon field="heures" /></div>
                 </TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
