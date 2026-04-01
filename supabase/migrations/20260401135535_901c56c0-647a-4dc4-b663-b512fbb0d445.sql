@@ -1,0 +1,1 @@
+ALTER TABLE public.formations ADD COLUMN montant_total numeric DEFAULT NULL;

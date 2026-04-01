@@ -202,6 +202,7 @@ export type Database = {
           formation_catalogue_id: string | null
           id: string
           lieu: string
+          montant_total: number | null
           nombre_heures: number
           objectifs: string | null
           programme: string | null
@@ -218,6 +219,7 @@ export type Database = {
           formation_catalogue_id?: string | null
           id?: string
           lieu: string
+          montant_total?: number | null
           nombre_heures: number
           objectifs?: string | null
           programme?: string | null
@@ -234,6 +236,7 @@ export type Database = {
           formation_catalogue_id?: string | null
           id?: string
           lieu?: string
+          montant_total?: number | null
           nombre_heures?: number
           objectifs?: string | null
           programme?: string | null
