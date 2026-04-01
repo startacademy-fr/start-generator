@@ -1926,8 +1926,6 @@ export async function generateBPFPdf(data: BPFData): Promise<void> {
   kvRow('CA formation (calculé)', formatCurrency(data.stats.caFormation));
   kvRow('Subventions et aides', formatCurrency(parseFloat(data.financials.subventions) || 0));
   kvRow('Autres produits', formatCurrency(parseFloat(data.financials.autres_produits) || 0));
-  doc.setDrawColor(200, 200, 200);
-  doc.line(margin + 3, y - 1, pageWidth - margin - 3, y - 1);
   kvRow('Total Produits', formatCurrency(data.totalProduits), true);
   y += 4;
 
