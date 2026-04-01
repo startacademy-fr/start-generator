@@ -260,6 +260,7 @@ export default function Sessions() {
       setDateDebut(formation.date_debut);
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
+      setMontantTotal(formation.montant_total?.toString() || '');
       const { data } = await supabase.from('inscriptions').select('stagiaire_id').eq('formation_id', formation.id);
       setSelectedStagiaireIds(data?.map(i => i.stagiaire_id) || []);
     } else {
