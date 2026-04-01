@@ -35,7 +35,7 @@ export default function Sessions() {
   const [filterFormateurId, setFilterFormateurId] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-  const [sortField, setSortField] = useState<'date' | 'titre'>('date');
+  const [sortField, setSortField] = useState<'date' | 'titre' | 'numero' | 'lieu' | 'heures' | 'formateur' | 'stagiaires'>('date');
   const [sortAsc, setSortAsc] = useState(false);
   const [addStagiaireFormation, setAddStagiaireFormation] = useState<Formation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Formation | null>(null);
@@ -308,7 +308,9 @@ export default function Sessions() {
     return catalogue.find(c => c.id === catalogueId)?.titre || null;
   };
 
-  const toggleSort = (field: 'date' | 'titre') => {
+  type SortField = 'date' | 'titre' | 'numero' | 'lieu' | 'heures' | 'formateur' | 'stagiaires';
+
+  const toggleSort = (field: SortField) => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
     } else {
@@ -317,7 +319,7 @@ export default function Sessions() {
     }
   };
 
-  const SortIcon = ({ field }: { field: 'date' | 'titre' }) => {
+  const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
@@ -345,11 +347,30 @@ export default function Sessions() {
     const matchesIncomplete = !showIncomplete || isIncomplete(f);
     return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo && matchesIncomplete;
   })?.sort((a, b) => {
-    if (sortField === 'date') {
-      const cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
-      return sortAsc ? cmp : -cmp;
+    let cmp = 0;
+    switch (sortField) {
+      case 'date':
+        cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
+        break;
+      case 'titre':
+        cmp = a.titre.localeCompare(b.titre, 'fr');
+        break;
+      case 'numero':
+        cmp = (sessionNumberMap.get(a.id) || 0) - (sessionNumberMap.get(b.id) || 0);
+        break;
+      case 'lieu':
+        cmp = a.lieu.localeCompare(b.lieu, 'fr');
+        break;
+      case 'heures':
+        cmp = a.nombre_heures - b.nombre_heures;
+        break;
+      case 'formateur':
+        cmp = getFormateurName(a.formateur_id).localeCompare(getFormateurName(b.formateur_id), 'fr');
+        break;
+      case 'stagiaires':
+        cmp = (inscriptionsCounts?.[a.id] || 0) - (inscriptionsCounts?.[b.id] || 0);
+        break;
     }
-    const cmp = a.titre.localeCompare(b.titre, 'fr');
     return sortAsc ? cmp : -cmp;
   });
 
@@ -538,17 +559,27 @@ export default function Sessions() {
            <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[60px]">N°</TableHead>
+                <TableHead className="w-[60px] cursor-pointer select-none" onClick={() => toggleSort('numero')}>
+                  <div className="flex items-center">N° <SortIcon field="numero" /></div>
+                </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('titre')}>
                   <div className="flex items-center">Formation <SortIcon field="titre" /></div>
                 </TableHead>
-                <TableHead>Lieu</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('lieu')}>
+                  <div className="flex items-center">Lieu <SortIcon field="lieu" /></div>
+                </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('date')}>
                   <div className="flex items-center">Dates <SortIcon field="date" /></div>
                 </TableHead>
-                <TableHead>Heures</TableHead>
-                <TableHead>Formateur</TableHead>
-                <TableHead>Stagiaires</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('heures')}>
+                  <div className="flex items-center">Heures <SortIcon field="heures" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('formateur')}>
+                  <div className="flex items-center">Formateur <SortIcon field="formateur" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('stagiaires')}>
+                  <div className="flex items-center">Stagiaires <SortIcon field="stagiaires" /></div>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
