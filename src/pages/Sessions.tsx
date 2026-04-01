@@ -583,7 +583,9 @@ export default function Sessions() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{inscriptionsCounts?.[formation.id] || 0} inscrit(s)</Badge>
+                    <Badge variant={!(inscriptionsCounts?.[formation.id]) ? 'destructive' : 'outline'}>
+                      {inscriptionsCounts?.[formation.id] || 0} inscrit(s)
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {canManage && (
