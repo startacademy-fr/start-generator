@@ -186,7 +186,8 @@ export default function BilanPedagogiqueFinancier() {
     // Spécialités NSF breakdown
     const specialiteBreakdown: Record<string, { stagiaires: number; heures: number }> = {};
     formations.forEach(f => {
-      const code = f.specialite_nsf || 'non_renseigne';
+      const catalogue = f.formation_catalogue_id ? catalogueMap.get(f.formation_catalogue_id) : null;
+      const code = catalogue?.specialite_nsf || 'non_renseigne';
       if (!specialiteBreakdown[code]) specialiteBreakdown[code] = { stagiaires: 0, heures: 0 };
       const nbInsc = relevantInscriptions.filter(i => i.formation_id === f.id).length;
       specialiteBreakdown[code].stagiaires += nbInsc;
