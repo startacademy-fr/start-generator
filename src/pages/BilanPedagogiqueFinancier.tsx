@@ -104,18 +104,24 @@ export default function BilanPedagogiqueFinancier() {
     const relevantInscriptions = inscriptions.filter(i => formationIds.has(i.formation_id));
     const stagiairesMap = new Map(stagiaires.map(s => [s.id, s]));
 
-    // Unique trainees for this year
+    // BPF: count per inscription (a trainee in 3 formations = 3)
+    const inscriptionStagiaires = relevantInscriptions
+      .map(i => stagiairesMap.get(i.stagiaire_id))
+      .filter(Boolean);
+    const nbStagiairesBPF = inscriptionStagiaires.length;
+
+    // Unique trainees (for enterprises)
     const uniqueStagiaireIds = new Set(relevantInscriptions.map(i => i.stagiaire_id));
     const uniqueStagiaires = [...uniqueStagiaireIds].map(id => stagiairesMap.get(id)).filter(Boolean);
 
-    // Gender breakdown
-    const hommes = uniqueStagiaires.filter(s => s?.civilite === 'M.').length;
-    const femmes = uniqueStagiaires.filter(s => s?.civilite === 'Mme').length;
+    // Gender breakdown (per inscription)
+    const hommes = inscriptionStagiaires.filter(s => s?.civilite === 'M.').length;
+    const femmes = inscriptionStagiaires.filter(s => s?.civilite === 'Mme').length;
 
-    // Status breakdown
-    const salaries = uniqueStagiaires.filter(s => s?.est_salarie).length;
-    const chefs = uniqueStagiaires.filter(s => s?.chef_entreprise).length;
-    const autres = uniqueStagiaires.length - salaries - chefs;
+    // Status breakdown (per inscription)
+    const salaries = inscriptionStagiaires.filter(s => s?.est_salarie).length;
+    const chefs = inscriptionStagiaires.filter(s => s?.chef_entreprise).length;
+    const autres = nbStagiairesBPF - salaries - chefs;
 
     // Total training hours (sum of formation hours × number of inscriptions)
     const heuresFormation = relevantInscriptions.reduce((sum, insc) => {
@@ -164,7 +170,7 @@ export default function BilanPedagogiqueFinancier() {
 
     return {
       nbFormations: formations.length,
-      nbStagiaires: uniqueStagiaires.length,
+      nbStagiaires: nbStagiairesBPF,
       nbInscriptions: relevantInscriptions.length,
       heuresFormation,
       heuresStagiaires: heuresFormation,
