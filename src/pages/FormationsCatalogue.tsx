@@ -214,6 +214,7 @@ export default function FormationsCatalogue() {
       setObjectifs(formation.objectifs || '');
       setProgramme(formation.programme || '');
       setExistingPdfUrl(formation.programme_pdf_url || null);
+      setSpecialiteNsf(formation.specialite_nsf || '');
     } else {
       setEditing(null);
       setTitre('');
@@ -221,6 +222,7 @@ export default function FormationsCatalogue() {
       setObjectifs('');
       setProgramme('');
       setExistingPdfUrl(null);
+      setSpecialiteNsf('');
     }
     setProgrammePdfFile(null);
     setIsDialogOpen(true);
