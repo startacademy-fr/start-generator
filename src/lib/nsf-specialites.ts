@@ -76,8 +76,16 @@ export const NSF_SPECIALITES = [
   { code: '346', label: 'Spécialités militaires' },
 ] as const;
 
+export const SPECIALITES_FORMATION = [
+  { code: '100', label: 'Formations générales' },
+  { code: '312', label: 'Commerce, vente' },
+  { code: '321', label: 'Journalisme, communication (y compris communication graphique et publicité)' },
+  { code: '326', label: 'Informatique, traitement de l\'information, réseaux de transmission des données' },
+] as const;
+
 export type NsfCode = typeof NSF_SPECIALITES[number]['code'];
 
 export const getNsfLabel = (code: string): string => {
-  return NSF_SPECIALITES.find(s => s.code === code)?.label || code;
+  const all = [...NSF_SPECIALITES, ...SPECIALITES_FORMATION];
+  return all.find(s => s.code === code)?.label || code;
 };
