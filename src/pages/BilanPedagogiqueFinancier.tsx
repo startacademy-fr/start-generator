@@ -170,7 +170,7 @@ export default function BilanPedagogiqueFinancier() {
 
     return {
       nbFormations: formations.length,
-      nbStagiaires: uniqueStagiaires.length,
+      nbStagiaires: nbStagiairesBPF,
       nbInscriptions: relevantInscriptions.length,
       heuresFormation,
       heuresStagiaires: heuresFormation,
