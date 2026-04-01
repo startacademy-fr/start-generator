@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { generateBPFPdf } from '@/lib/pdf-generator';
+import { NSF_SPECIALITES, getNsfLabel } from '@/lib/nsf-specialites';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
