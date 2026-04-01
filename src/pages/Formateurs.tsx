@@ -301,8 +301,8 @@ export default function Formateurs() {
       cmp = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr');
     } else if (sortField === 'formations') {
       cmp = (formationsCounts?.[a.id] || 0) - (formationsCounts?.[b.id] || 0);
-    } else if (sortField === 'date') {
-      cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (sortField === 'heures') {
+      cmp = (heuresCounts?.[a.id] || 0) - (heuresCounts?.[b.id] || 0);
     }
     return sortAsc ? cmp : -cmp;
   });
