@@ -29,6 +29,11 @@ interface FormationRow {
   date_fin: string | null;
   objectifs: string | null;
   montant_total: number | null;
+  formation_catalogue_id: string | null;
+}
+
+interface CatalogueRow {
+  id: string;
   specialite_nsf: string | null;
 }
 
@@ -52,6 +57,7 @@ export default function BilanPedagogiqueFinancier() {
   const [loading, setLoading] = useState(true);
   const [organisme, setOrganisme] = useState<OrganismeSettings | null>(null);
   const [formations, setFormations] = useState<FormationRow[]>([]);
+  const [catalogueMap, setCatalogueMap] = useState<Map<string, CatalogueRow>>(new Map());
   const [inscriptions, setInscriptions] = useState<InscriptionRow[]>([]);
   const [stagiaires, setStagiaires] = useState<StagiaireRow[]>([]);
 
@@ -77,10 +83,10 @@ export default function BilanPedagogiqueFinancier() {
     try {
       setLoading(true);
       
-      const [orgResult, formationsData, inscriptionsData, stagiairesData] = await Promise.all([
+      const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, specialite_nsf')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
@@ -90,10 +96,14 @@ export default function BilanPedagogiqueFinancier() {
         fetchAllRows<StagiaireRow>(() =>
           supabase.from('stagiaires').select('id, civilite, est_salarie, chef_entreprise, entreprise')
         ),
+        fetchAllRows<CatalogueRow>(() =>
+          supabase.from('formations_catalogue').select('id, specialite_nsf')
+        ),
       ]);
 
       if (orgResult.data) setOrganisme(orgResult.data as OrganismeSettings);
       setFormations(formationsData);
+      setCatalogueMap(new Map(catalogueData.map(c => [c.id, c])));
       setInscriptions(inscriptionsData);
       setStagiaires(stagiairesData);
     } catch (error) {
@@ -176,7 +186,8 @@ export default function BilanPedagogiqueFinancier() {
     // Spécialités NSF breakdown
     const specialiteBreakdown: Record<string, { stagiaires: number; heures: number }> = {};
     formations.forEach(f => {
-      const code = f.specialite_nsf || 'non_renseigne';
+      const catalogue = f.formation_catalogue_id ? catalogueMap.get(f.formation_catalogue_id) : null;
+      const code = catalogue?.specialite_nsf || 'non_renseigne';
       if (!specialiteBreakdown[code]) specialiteBreakdown[code] = { stagiaires: 0, heures: 0 };
       const nbInsc = relevantInscriptions.filter(i => i.formation_id === f.id).length;
       specialiteBreakdown[code].stagiaires += nbInsc;
@@ -202,7 +213,7 @@ export default function BilanPedagogiqueFinancier() {
       sessionsWithMontant,
       specialiteBreakdown,
     };
-  }, [formations, inscriptions, stagiaires]);
+  }, [formations, inscriptions, stagiaires, catalogueMap]);
 
   const handleFinancialChange = (field: string, value: string) => {
     // Only allow numbers and dots

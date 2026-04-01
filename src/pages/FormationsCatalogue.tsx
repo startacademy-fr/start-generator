@@ -20,6 +20,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { ImportFormationsDialog } from '@/components/ImportFormationsDialog';
 
+import { SPECIALITES_FORMATION } from '@/lib/nsf-specialites';
+
 interface FormationCatalogue {
   id: string;
   reference: string;
@@ -28,6 +30,7 @@ interface FormationCatalogue {
   objectifs: string | null;
   programme: string | null;
   programme_pdf_url: string | null;
+  specialite_nsf: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +56,7 @@ export default function FormationsCatalogue() {
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
+  const [specialiteNsf, setSpecialiteNsf] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isBulkExtracting, setIsBulkExtracting] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
@@ -114,14 +118,14 @@ export default function FormationsCatalogue() {
       if (editing) {
         const { error } = await supabase
           .from('formations_catalogue')
-          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null })
+          .update({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null, specialite_nsf: specialiteNsf || null })
           .eq('id', editing.id);
         if (error) throw error;
         id = editing.id;
       } else {
         const { data, error } = await supabase
           .from('formations_catalogue')
-          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null, reference: generateReference() })
+          .insert({ titre, nombre_heures: nombreHeures ? parseInt(nombreHeures) : null, objectifs: objectifs || null, programme: programme || null, specialite_nsf: specialiteNsf || null, reference: generateReference() })
           .select('id')
           .single();
         if (error) throw error;
@@ -178,6 +182,7 @@ export default function FormationsCatalogue() {
           objectifs: source.objectifs,
           programme: source.programme,
           programme_pdf_url: source.programme_pdf_url,
+          specialite_nsf: source.specialite_nsf,
           reference: generateReference(),
         });
       if (error) throw error;
@@ -210,6 +215,7 @@ export default function FormationsCatalogue() {
       setObjectifs(formation.objectifs || '');
       setProgramme(formation.programme || '');
       setExistingPdfUrl(formation.programme_pdf_url || null);
+      setSpecialiteNsf(formation.specialite_nsf || '');
     } else {
       setEditing(null);
       setTitre('');
@@ -217,6 +223,7 @@ export default function FormationsCatalogue() {
       setObjectifs('');
       setProgramme('');
       setExistingPdfUrl(null);
+      setSpecialiteNsf('');
     }
     setProgrammePdfFile(null);
     setIsDialogOpen(true);
@@ -237,7 +244,7 @@ export default function FormationsCatalogue() {
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
 
-  const isIncomplete = (f: FormationCatalogue) => !f.objectifs || !f.programme_pdf_url;
+  const isIncomplete = (f: FormationCatalogue) => !f.objectifs || !f.programme_pdf_url || !f.specialite_nsf;
 
   const filtered = formations?.filter((f) =>
     f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -386,6 +393,20 @@ export default function FormationsCatalogue() {
                     <Label htmlFor="objectifs">Objectifs de la formation</Label>
                     <Textarea id="objectifs" value={objectifs} onChange={(e) => setObjectifs(e.target.value)} rows={3} placeholder="Ex: À l'issue de la formation, le stagiaire sera capable de..." />
                     <p className="text-xs text-muted-foreground">Les objectifs sont utilisés par l'IA pour générer les documents Qualiopi (QCM, compétences, grilles…).</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="specialite_nsf">F-4 — Spécialité de formation (NSF)</Label>
+                    <select
+                      id="specialite_nsf"
+                      value={specialiteNsf}
+                      onChange={(e) => setSpecialiteNsf(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Sélectionner une spécialité</option>
+                      {SPECIALITES_FORMATION.map((s) => (
+                        <option key={s.code} value={s.code}>{s.label}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="programme">Programme détaillé (optionnel)</Label>
