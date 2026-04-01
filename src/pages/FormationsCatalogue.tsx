@@ -395,6 +395,20 @@ export default function FormationsCatalogue() {
                     <p className="text-xs text-muted-foreground">Les objectifs sont utilisés par l'IA pour générer les documents Qualiopi (QCM, compétences, grilles…).</p>
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="specialite_nsf">F-4 — Spécialité de formation (NSF)</Label>
+                    <select
+                      id="specialite_nsf"
+                      value={specialiteNsf}
+                      onChange={(e) => setSpecialiteNsf(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Sélectionner une spécialité</option>
+                      {SPECIALITES_FORMATION.map((s) => (
+                        <option key={s.code} value={s.code}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="programme">Programme détaillé (optionnel)</Label>
                     <Textarea id="programme" value={programme} onChange={(e) => setProgramme(e.target.value)} rows={4} placeholder="Collez ici le programme détaillé de la formation (modules, chapitres…)" />
                     <p className="text-xs text-muted-foreground">Le programme détaillé enrichit la génération du déroulé pédagogique et de l'analyse du besoin.</p>
