@@ -30,6 +30,12 @@ interface FormationRow {
   objectifs: string | null;
   montant_total: number | null;
   formation_catalogue_id: string | null;
+  formateur_id: string | null;
+}
+
+interface ProfileRow {
+  id: string;
+  type_formateur: string | null;
 }
 
 interface CatalogueRow {
