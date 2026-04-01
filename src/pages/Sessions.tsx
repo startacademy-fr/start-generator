@@ -445,9 +445,15 @@ export default function Sessions() {
                       <Input id="date_fin" type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre_heures">Nombre d'heures *</Label>
-                    <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre_heures">Nombre d'heures *</Label>
+                      <Input id="nombre_heures" type="number" min="1" value={nombreHeures} onChange={(e) => setNombreHeures(e.target.value)} placeholder="Ex: 14" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="montant_total">Montant total HT (€)</Label>
+                      <Input id="montant_total" type="number" min="0" step="0.01" value={montantTotal} onChange={(e) => setMontantTotal(e.target.value)} placeholder="Ex: 2500" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="formateur">Formateur</Label>
