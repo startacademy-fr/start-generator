@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Search, Users, Mail, Calendar, Phone, Upload, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Mail, Phone, Upload, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Profile } from '@/types/database';
@@ -57,7 +57,7 @@ export default function Formateurs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<Profile | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [sortField, setSortField] = useState<'nom' | 'formations' | 'date'>('nom');
+  const [sortField, setSortField] = useState<'nom' | 'formations' | 'heures'>('nom');
   const [sortAsc, setSortAsc] = useState(true);
 
   // Form state
@@ -82,13 +82,13 @@ export default function Formateurs() {
     },
   });
 
-  // Fetch formations count per formateur
+  // Fetch formations count and hours per formateur
   const { data: formationsCounts } = useQuery({
     queryKey: ['formateurs-formations-counts'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('formations')
-        .select('formateur_id')
+        .select('formateur_id, nombre_heures')
         .not('formateur_id', 'is', null)
         .limit(10000);
       if (error) throw error;
@@ -100,6 +100,30 @@ export default function Formateurs() {
         }
       });
       return counts;
+    },
+  });
+
+  // Fetch total hours per formateur for current year
+  const currentYear = new Date().getFullYear();
+  const { data: heuresCounts } = useQuery({
+    queryKey: ['formateurs-heures-counts', currentYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('formations')
+        .select('formateur_id, nombre_heures')
+        .not('formateur_id', 'is', null)
+        .gte('date_debut', `${currentYear}-01-01`)
+        .lte('date_debut', `${currentYear}-12-31`)
+        .limit(10000);
+      if (error) throw error;
+      
+      const hours: Record<string, number> = {};
+      data.forEach((f) => {
+        if (f.formateur_id) {
+          hours[f.formateur_id] = (hours[f.formateur_id] || 0) + f.nombre_heures;
+        }
+      });
+      return hours;
     },
   });
 
@@ -257,12 +281,12 @@ export default function Formateurs() {
     }
   };
 
-  const toggleSort = (field: 'nom' | 'formations' | 'date') => {
+  const toggleSort = (field: 'nom' | 'formations' | 'heures') => {
     if (sortField === field) setSortAsc(!sortAsc);
     else { setSortField(field); setSortAsc(true); }
   };
 
-  const SortIcon = ({ field }: { field: 'nom' | 'formations' | 'date' }) => {
+  const SortIcon = ({ field }: { field: 'nom' | 'formations' | 'heures' }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
@@ -277,8 +301,8 @@ export default function Formateurs() {
       cmp = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr');
     } else if (sortField === 'formations') {
       cmp = (formationsCounts?.[a.id] || 0) - (formationsCounts?.[b.id] || 0);
-    } else if (sortField === 'date') {
-      cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (sortField === 'heures') {
+      cmp = (heuresCounts?.[a.id] || 0) - (heuresCounts?.[b.id] || 0);
     }
     return sortAsc ? cmp : -cmp;
   });
@@ -436,8 +460,8 @@ export default function Formateurs() {
                 <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('formations')}>
                   <div className="flex items-center">Formations <SortIcon field="formations" /></div>
                 </TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('date')}>
-                  <div className="flex items-center">Ajouté le <SortIcon field="date" /></div>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort('heures')}>
+                  <div className="flex items-center">Heures {currentYear} <SortIcon field="heures" /></div>
                 </TableHead>
                 {canManage && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
@@ -479,9 +503,9 @@ export default function Formateurs() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {format(new Date(formateur.created_at), 'dd/MM/yyyy', { locale: fr })}
+                    <div className="flex items-center gap-1 text-sm font-medium text-foreground">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      {heuresCounts?.[formateur.id] || 0}h
                     </div>
                   </TableCell>
                   {canManage && (
