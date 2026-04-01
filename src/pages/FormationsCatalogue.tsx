@@ -56,6 +56,7 @@ export default function FormationsCatalogue() {
   const [programme, setProgramme] = useState('');
   const [programmePdfFile, setProgrammePdfFile] = useState<File | null>(null);
   const [existingPdfUrl, setExistingPdfUrl] = useState<string | null>(null);
+  const [specialiteNsf, setSpecialiteNsf] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isBulkExtracting, setIsBulkExtracting] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
