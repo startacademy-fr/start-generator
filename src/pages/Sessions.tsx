@@ -577,8 +577,8 @@ export default function Sessions() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div className={`flex items-center gap-1 ${!formation.formateur_id ? 'text-destructive font-medium' : ''}`}>
+                      <User className={`h-3.5 w-3.5 ${!formation.formateur_id ? 'text-destructive' : 'text-muted-foreground'}`} />
                       {getFormateurName(formation.formateur_id)}
                     </div>
                   </TableCell>
