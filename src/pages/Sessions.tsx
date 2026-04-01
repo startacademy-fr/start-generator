@@ -31,6 +31,7 @@ export default function Sessions() {
   const [editingFormation, setEditingFormation] = useState<Formation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [showIncomplete, setShowIncomplete] = useState(false);
   const [filterFormateurId, setFilterFormateurId] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
