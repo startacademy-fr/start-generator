@@ -26,6 +26,7 @@ interface FormationRow {
   date_debut: string;
   date_fin: string | null;
   objectifs: string | null;
+  montant_total: number | null;
 }
 
 interface InscriptionRow {
