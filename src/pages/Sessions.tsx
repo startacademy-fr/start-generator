@@ -292,6 +292,7 @@ export default function Sessions() {
       date_debut: dateDebut,
       date_fin: dateFin || null,
       formateur_id: formateurId || null,
+      montant_total: montantTotal ? parseFloat(montantTotal) : null,
       stagiaireIds: selectedStagiaireIds,
     });
   };
