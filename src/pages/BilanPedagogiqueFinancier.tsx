@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { generateBPFPdf } from '@/lib/pdf-generator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -207,8 +208,21 @@ export default function BilanPedagogiqueFinancier() {
   const formatNumber = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
   const formatCurrency = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
 
-  const handleExportPdf = () => {
-    toast.info('Export PDF en cours de développement');
+  const handleExportPdf = async () => {
+    try {
+      await generateBPFPdf({
+        year,
+        organisme: organisme,
+        stats,
+        financials,
+        totalProduits,
+        totalCharges,
+      });
+      toast.success('PDF exporté avec succès');
+    } catch (error) {
+      console.error('Error exporting BPF PDF:', error);
+      toast.error("Erreur lors de l'export PDF");
+    }
   };
 
   if (loading) {

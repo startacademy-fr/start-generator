@@ -1798,3 +1798,239 @@ export async function getPDFBlob(data: DocumentData): Promise<Blob> {
   const doc = await generatePDF(data);
   return doc.output('blob');
 }
+
+// ==================== BPF PDF Export ====================
+
+export interface BPFData {
+  year: number;
+  organisme: {
+    nom_organisme: string;
+    siret: string | null;
+    nda: string | null;
+    adresse: string | null;
+    telephone: string | null;
+    email: string | null;
+  } | null;
+  stats: {
+    nbFormations: number;
+    nbStagiaires: number;
+    nbInscriptions: number;
+    heuresFormation: number;
+    heuresStagiaires: number;
+    completedInscriptions: number;
+    hommes: number;
+    femmes: number;
+    salaries: number;
+    chefs: number;
+    autres: number;
+    nbEntreprises: number;
+    objectifCategories: Record<string, number>;
+    caFormation: number;
+    opcoBreakdown: Record<string, { count: number; montant: number }>;
+    sessionsWithMontant: number;
+  };
+  financials: {
+    subventions: string;
+    autres_produits: string;
+    charges_formateurs: string;
+    charges_fonctionnement: string;
+    charges_autres: string;
+  };
+  totalProduits: number;
+  totalCharges: number;
+}
+
+export async function generateBPFPdf(data: BPFData): Promise<void> {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const contentWidth = pageWidth - 2 * margin;
+
+  const formatCurrency = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+  const formatNumber = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
+  const pct = (v: number, t: number) => t > 0 ? Math.round((v / t) * 100) + '%' : '0%';
+
+  // Load logo
+  const logoBase64 = await loadLogo();
+
+  // Header
+  const headerHeight = 35;
+  doc.setFillColor(...HEADER_BG_COLOR);
+  doc.rect(0, 0, pageWidth, headerHeight, 'F');
+  if (logoBase64) {
+    const logoH = 25;
+    const logoW = logoH * (240 / 115);
+    doc.addImage(logoBase64, 'PNG', (pageWidth - logoW) / 2, (headerHeight - logoH) / 2, logoW, logoH);
+  }
+
+  let y = 45;
+
+  // Title
+  doc.setTextColor(...PRIMARY_COLOR);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Bilan Pédagogique et Financier ${data.year}`, margin, y);
+  y += 5;
+  doc.setDrawColor(...PRIMARY_COLOR);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 3;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...MUTED_COLOR);
+  doc.text(`Cerfa n°10443 — Période du 01/01/${data.year} au 31/12/${data.year}`, margin, y);
+  y += 10;
+
+  // Helper: section title
+  const sectionTitle = (title: string) => {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFillColor(240, 249, 255);
+    doc.roundedRect(margin, y - 5, contentWidth, 10, 2, 2, 'F');
+    doc.setTextColor(...PRIMARY_COLOR);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, margin + 3, y + 2);
+    y += 12;
+  };
+
+  // Helper: key-value row
+  const kvRow = (label: string, value: string, bold = false) => {
+    if (y > 275) { doc.addPage(); y = 20; }
+    doc.setTextColor(...TEXT_COLOR);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, margin + 3, y);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(value, pageWidth - margin - 3, y, { align: 'right' });
+    y += 6;
+  };
+
+  // Helper: stat row with percentage
+  const statRow = (label: string, value: number, total: number) => {
+    kvRow(label, `${formatNumber(value)}  (${pct(value, total)})`);
+  };
+
+  // ——— Partie A
+  sectionTitle('Partie A — Identification de l\'organisme');
+  const org = data.organisme;
+  kvRow('Raison sociale', org?.nom_organisme || '—');
+  kvRow('SIRET', org?.siret || '—');
+  kvRow('N° de Déclaration d\'Activité (NDA)', org?.nda || '—');
+  kvRow('Adresse', org?.adresse || '—');
+  kvRow('Téléphone', org?.telephone || '—');
+  kvRow('Email', org?.email || '—');
+  y += 4;
+
+  // ——— Partie B
+  sectionTitle('Partie B — Bilan financier');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Produits', margin + 3, y); y += 6;
+  kvRow('CA formation (calculé)', formatCurrency(data.stats.caFormation));
+  kvRow('Subventions et aides', formatCurrency(parseFloat(data.financials.subventions) || 0));
+  kvRow('Autres produits', formatCurrency(parseFloat(data.financials.autres_produits) || 0));
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin + 3, y - 1, pageWidth - margin - 3, y - 1);
+  kvRow('Total Produits', formatCurrency(data.totalProduits), true);
+  y += 4;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Charges', margin + 3, y); y += 6;
+  kvRow('Charges formateurs', formatCurrency(parseFloat(data.financials.charges_formateurs) || 0));
+  kvRow('Charges de fonctionnement', formatCurrency(parseFloat(data.financials.charges_fonctionnement) || 0));
+  kvRow('Autres charges', formatCurrency(parseFloat(data.financials.charges_autres) || 0));
+  doc.line(margin + 3, y - 1, pageWidth - margin - 3, y - 1);
+  kvRow('Total Charges', formatCurrency(data.totalCharges), true);
+  y += 2;
+  doc.setDrawColor(...PRIMARY_COLOR);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 6;
+  const resultat = data.totalProduits - data.totalCharges;
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(resultat >= 0 ? 34 : 220, resultat >= 0 ? 139 : 38, resultat >= 0 ? 34 : 38);
+  doc.text('Résultat net', margin + 3, y);
+  doc.text(formatCurrency(resultat), pageWidth - margin - 3, y, { align: 'right' });
+  y += 10;
+
+  // ——— Partie C
+  sectionTitle('Partie C — Bilan pédagogique');
+
+  // Key metrics
+  const metrics = [
+    ['Actions de formation', formatNumber(data.stats.nbFormations)],
+    ['Stagiaires (par inscription)', formatNumber(data.stats.nbStagiaires)],
+    ['Heures-stagiaires', formatNumber(data.stats.heuresStagiaires)],
+    ['Entreprises clientes', formatNumber(data.stats.nbEntreprises)],
+  ];
+  metrics.forEach(([l, v]) => kvRow(l, v, true));
+  y += 4;
+
+  // Gender
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text('Répartition par sexe', margin + 3, y); y += 6;
+  statRow('Hommes', data.stats.hommes, data.stats.nbStagiaires);
+  statRow('Femmes', data.stats.femmes, data.stats.nbStagiaires);
+  y += 4;
+
+  // Status
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Répartition par statut', margin + 3, y); y += 6;
+  statRow('Salariés', data.stats.salaries, data.stats.nbStagiaires);
+  statRow('Chefs d\'entreprise', data.stats.chefs, data.stats.nbStagiaires);
+  statRow('Autres', data.stats.autres, data.stats.nbStagiaires);
+  y += 4;
+
+  // Objectives
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Stagiaires par objectif de formation', margin + 3, y); y += 6;
+  Object.entries(data.stats.objectifCategories).forEach(([cat, count]) => {
+    statRow(cat, count, data.stats.nbInscriptions);
+  });
+  y += 4;
+
+  // Completion
+  kvRow('Total inscriptions', formatNumber(data.stats.nbInscriptions), true);
+  kvRow('Formations terminées', formatNumber(data.stats.completedInscriptions));
+  const tauxAchevement = data.stats.nbInscriptions > 0 ? Math.round((data.stats.completedInscriptions / data.stats.nbInscriptions) * 100) : 0;
+  kvRow('Taux d\'achèvement', `${tauxAchevement}%`);
+  y += 4;
+
+  // OPCO
+  if (Object.keys(data.stats.opcoBreakdown).length > 0) {
+    if (y > 240) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...TEXT_COLOR);
+    doc.text('Répartition par organisme de prise en charge', margin + 3, y); y += 6;
+    Object.entries(data.stats.opcoBreakdown)
+      .sort(([, a], [, b]) => b.count - a.count)
+      .forEach(([opco, d]) => {
+        statRow(opco, d.count, data.stats.nbInscriptions);
+      });
+  }
+
+  // Footer on all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    const ph = doc.internal.pageSize.getHeight();
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED_COLOR);
+    doc.setFont('helvetica', 'normal');
+    const footerText = `${org?.nom_organisme || ''} — SIRET: ${org?.siret || ''} — NDA: ${org?.nda || ''} — ${org?.adresse || ''}`;
+    doc.text(footerText, pageWidth / 2, ph - 8, { align: 'center' });
+    doc.text(`Page ${i}/${totalPages}`, pageWidth - margin, ph - 8, { align: 'right' });
+  }
+
+  // Download
+  doc.save(`BPF_${data.year}.pdf`);
+}
