@@ -539,8 +539,10 @@ export default function Sessions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFormations?.map((formation) => (
-                <TableRow key={formation.id}>
+              {filteredFormations?.map((formation) => {
+                const incomplete = isIncomplete(formation);
+                return (
+                <TableRow key={formation.id} className={incomplete ? 'bg-destructive/5' : ''}>
                   <TableCell className="font-mono text-muted-foreground text-sm">
                     {sessionNumberMap.get(formation.id) || '—'}
                   </TableCell>
