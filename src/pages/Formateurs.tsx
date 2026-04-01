@@ -111,29 +111,8 @@ export default function Formateurs() {
     },
   });
 
-  // Fetch total hours per formateur for current year
-  const currentYear = new Date().getFullYear();
-  const { data: heuresCounts } = useQuery({
-    queryKey: ['formateurs-heures-counts', currentYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('formations')
-        .select('formateur_id, nombre_heures')
-        .not('formateur_id', 'is', null)
-        .gte('date_debut', `${currentYear}-01-01`)
-        .lte('date_debut', `${currentYear}-12-31`)
-        .limit(10000);
-      if (error) throw error;
-      
-      const hours: Record<string, number> = {};
-      data.forEach((f) => {
-        if (f.formateur_id) {
-          hours[f.formateur_id] = (hours[f.formateur_id] || 0) + f.nombre_heures;
-        }
-      });
-      return hours;
-    },
-  });
+  const formationsCounts = formateurStats?.counts;
+  const heuresCounts = formateurStats?.hours;
 
   // Fetch admin roles for formateurs
   const { data: adminUserIds } = useQuery({
