@@ -19,6 +19,7 @@ import AccessTokens from "./pages/AccessTokens";
 import Settings from "./pages/Settings";
 import StagiairePortal from "./pages/StagiairePortal";
 import Certificats from "./pages/Certificats";
+import BilanPedagogiqueFinancier from "./pages/BilanPedagogiqueFinancier";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/audit" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante']}><AuditDashboard /></RoleGuard>} />
               <Route path="/access-tokens" element={<RoleGuard allowedRoles={['super_admin', 'admin', 'assistante']}><AccessTokens /></RoleGuard>} />
               <Route path="/certificats" element={<RoleGuard allowedRoles={['super_admin']}><Certificats /></RoleGuard>} />
+              <Route path="/bpf" element={<RoleGuard allowedRoles={['super_admin', 'admin']}><BilanPedagogiqueFinancier /></RoleGuard>} />
               <Route path="/roles" element={<Navigate to="/settings" replace />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
