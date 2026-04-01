@@ -213,7 +213,7 @@ export default function BilanPedagogiqueFinancier() {
       sessionsWithMontant,
       specialiteBreakdown,
     };
-  }, [formations, inscriptions, stagiaires]);
+  }, [formations, inscriptions, stagiaires, catalogueMap]);
 
   const handleFinancialChange = (field: string, value: string) => {
     // Only allow numbers and dots
