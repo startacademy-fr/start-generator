@@ -49,6 +49,7 @@ export default function Sessions() {
   const [dateFin, setDateFin] = useState('');
   const [formateurId, setFormateurId] = useState('');
   const [selectedStagiaireIds, setSelectedStagiaireIds] = useState<string[]>([]);
+  const [montantTotal, setMontantTotal] = useState('');
 
   // Fetch formations catalogue
   const { data: catalogue } = useQuery({
