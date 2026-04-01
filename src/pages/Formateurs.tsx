@@ -82,13 +82,13 @@ export default function Formateurs() {
     },
   });
 
-  // Fetch formations count per formateur
+  // Fetch formations count and hours per formateur
   const { data: formationsCounts } = useQuery({
     queryKey: ['formateurs-formations-counts'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('formations')
-        .select('formateur_id')
+        .select('formateur_id, nombre_heures')
         .not('formateur_id', 'is', null)
         .limit(10000);
       if (error) throw error;
@@ -100,6 +100,30 @@ export default function Formateurs() {
         }
       });
       return counts;
+    },
+  });
+
+  // Fetch total hours per formateur for current year
+  const currentYear = new Date().getFullYear();
+  const { data: heuresCounts } = useQuery({
+    queryKey: ['formateurs-heures-counts', currentYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('formations')
+        .select('formateur_id, nombre_heures')
+        .not('formateur_id', 'is', null)
+        .gte('date_debut', `${currentYear}-01-01`)
+        .lte('date_debut', `${currentYear}-12-31`)
+        .limit(10000);
+      if (error) throw error;
+      
+      const hours: Record<string, number> = {};
+      data.forEach((f) => {
+        if (f.formateur_id) {
+          hours[f.formateur_id] = (hours[f.formateur_id] || 0) + f.nombre_heures;
+        }
+      });
+      return hours;
     },
   });
 
