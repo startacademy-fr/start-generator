@@ -265,6 +265,7 @@ export default function Sessions() {
       setDateFin(formation.date_fin || '');
       setFormateurId(formation.formateur_id || '');
       setMontantTotal(formation.montant_total?.toString() || '');
+      setSpecialiteNsf(formation.specialite_nsf || '');
       const { data } = await supabase.from('inscriptions').select('stagiaire_id').eq('formation_id', formation.id);
       setSelectedStagiaireIds(data?.map(i => i.stagiaire_id) || []);
     } else {
