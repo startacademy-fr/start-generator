@@ -30,6 +30,12 @@ interface FormationRow {
   objectifs: string | null;
   montant_total: number | null;
   formation_catalogue_id: string | null;
+  formateur_id: string | null;
+}
+
+interface ProfileRow {
+  id: string;
+  type_formateur: string | null;
 }
 
 interface CatalogueRow {
@@ -60,6 +66,7 @@ export default function BilanPedagogiqueFinancier() {
   const [catalogueMap, setCatalogueMap] = useState<Map<string, CatalogueRow>>(new Map());
   const [inscriptions, setInscriptions] = useState<InscriptionRow[]>([]);
   const [stagiaires, setStagiaires] = useState<StagiaireRow[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Map<string, ProfileRow>>(new Map());
 
   // Financial fields (manual input)
   const [financials, setFinancials] = useState({
@@ -83,10 +90,10 @@ export default function BilanPedagogiqueFinancier() {
     try {
       setLoading(true);
       
-      const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData] = await Promise.all([
+      const [orgResult, formationsData, inscriptionsData, stagiairesData, catalogueData, profilesData] = await Promise.all([
         supabase.from('organisme_settings').select('*').limit(1).single(),
         fetchAllRows<FormationRow>(() =>
-          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id')
+          supabase.from('formations').select('id, titre, nombre_heures, date_debut, date_fin, objectifs, montant_total, formation_catalogue_id, formateur_id')
             .gte('date_debut', `${year}-01-01`)
             .lte('date_debut', `${year}-12-31`)
         ),
@@ -99,6 +106,9 @@ export default function BilanPedagogiqueFinancier() {
         fetchAllRows<CatalogueRow>(() =>
           supabase.from('formations_catalogue').select('id, specialite_nsf')
         ),
+        fetchAllRows<ProfileRow>(() =>
+          supabase.from('profiles').select('id, type_formateur')
+        ),
       ]);
 
       if (orgResult.data) setOrganisme(orgResult.data as OrganismeSettings);
@@ -106,6 +116,7 @@ export default function BilanPedagogiqueFinancier() {
       setCatalogueMap(new Map(catalogueData.map(c => [c.id, c])));
       setInscriptions(inscriptionsData);
       setStagiaires(stagiairesData);
+      setProfilesMap(new Map(profilesData.map(p => [p.id, p])));
     } catch (error) {
       console.error('Error loading BPF data:', error);
       toast.error('Erreur lors du chargement des données');
@@ -194,6 +205,19 @@ export default function BilanPedagogiqueFinancier() {
       specialiteBreakdown[code].heures += f.nombre_heures * nbInsc;
     });
 
+    // Hours by formateur type (interne / externe)
+    let heuresInternes = 0;
+    let heuresExternes = 0;
+    formations.forEach(f => {
+      const profile = f.formateur_id ? profilesMap.get(f.formateur_id) : null;
+      const type = profile?.type_formateur?.toLowerCase() || 'interne';
+      if (type === 'externe') {
+        heuresExternes += f.nombre_heures;
+      } else {
+        heuresInternes += f.nombre_heures;
+      }
+    });
+
     return {
       nbFormations: formations.length,
       nbStagiaires: nbStagiairesBPF,
@@ -212,8 +236,10 @@ export default function BilanPedagogiqueFinancier() {
       opcoBreakdown,
       sessionsWithMontant,
       specialiteBreakdown,
+      heuresInternes,
+      heuresExternes,
     };
-  }, [formations, inscriptions, stagiaires, catalogueMap]);
+  }, [formations, inscriptions, stagiaires, catalogueMap, profilesMap]);
 
   const handleFinancialChange = (field: string, value: string) => {
     // Only allow numbers and dots
@@ -451,6 +477,27 @@ export default function BilanPedagogiqueFinancier() {
             <MetricCard icon={Users} label="Stagiaires" value={formatNumber(stats.nbStagiaires)} />
             <MetricCard icon={Clock} label="Heures-stagiaires" value={formatNumber(stats.heuresStagiaires)} />
             <MetricCard icon={Building2} label="Entreprises clientes" value={formatNumber(stats.nbEntreprises)} />
+          </div>
+
+          <Separator />
+
+          {/* Heures formateurs interne / externe */}
+          <div>
+            <h3 className="font-semibold mb-3 text-foreground">Volume horaire par type de formateur</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-muted rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{formatNumber(stats.heuresInternes)}h</p>
+                <p className="text-sm text-muted-foreground">Formateurs internes</p>
+              </div>
+              <div className="bg-muted rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{formatNumber(stats.heuresExternes)}h</p>
+                <p className="text-sm text-muted-foreground">Formateurs externes</p>
+              </div>
+              <div className="bg-muted rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-primary">{formatNumber(stats.heuresInternes + stats.heuresExternes)}h</p>
+                <p className="text-sm text-muted-foreground">Total heures formateurs</p>
+              </div>
+            </div>
           </div>
 
           <Separator />
