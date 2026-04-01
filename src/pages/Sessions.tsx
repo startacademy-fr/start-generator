@@ -273,7 +273,6 @@ export default function Sessions() {
       setDateFin('');
       setFormateurId('');
       setMontantTotal('');
-      setSpecialiteNsf('');
       setSelectedStagiaireIds([]);
     }
     setIsDialogOpen(true);
