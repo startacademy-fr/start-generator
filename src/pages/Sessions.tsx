@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Upload, Download } from 'lucide-react';
+import { Plus, Pencil, Archive, ArchiveRestore, Search, Calendar, MapPin, Clock, User, UserPlus, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Upload, Download, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Formation, FormationCatalogue, Profile, Stagiaire } from '@/types/database';
@@ -31,6 +31,7 @@ export default function Sessions() {
   const [editingFormation, setEditingFormation] = useState<Formation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [showIncomplete, setShowIncomplete] = useState(false);
   const [filterFormateurId, setFilterFormateurId] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
@@ -321,13 +322,20 @@ export default function Sessions() {
   const sessionNumberMap = new Map<string, number>();
   allSortedByDate.forEach((f, i) => sessionNumberMap.set(f.id, i + 1));
 
+  const isIncomplete = (f: Formation) => {
+    return !f.formateur_id || !f.date_fin || !f.montant_total || !(inscriptionsCounts?.[f.id]);
+  };
+
+  const incompleteCount = formations?.filter(isIncomplete).length || 0;
+
   const filteredFormations = formations?.filter((f) => {
     const matchesSearch = f.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
       f.lieu.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFormateur = !filterFormateurId || f.formateur_id === filterFormateurId;
     const matchesDateFrom = !filterDateFrom || f.date_debut >= filterDateFrom;
     const matchesDateTo = !filterDateTo || f.date_debut <= filterDateTo;
-    return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo;
+    const matchesIncomplete = !showIncomplete || isIncomplete(f);
+    return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo && matchesIncomplete;
   })?.sort((a, b) => {
     if (sortField === 'date') {
       const cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
@@ -492,6 +500,10 @@ export default function Sessions() {
           <span className="text-muted-foreground text-sm">→</span>
           <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-[150px]" placeholder="Au" />
         </div>
+        <Button variant={showIncomplete ? 'destructive' : 'outline'} onClick={() => setShowIncomplete(!showIncomplete)} size="sm">
+          <AlertTriangle className="mr-2 h-4 w-4" />
+          {showIncomplete ? `${incompleteCount} incomplète(s)` : `Incomplètes (${incompleteCount})`}
+        </Button>
         <Button variant={showArchived ? 'secondary' : 'outline'} onClick={() => setShowArchived(!showArchived)} size="sm">
           <Archive className="mr-2 h-4 w-4" />
           {showArchived ? 'Masquer archivées' : 'Voir archivées'}
@@ -527,13 +539,16 @@ export default function Sessions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFormations?.map((formation) => (
-                <TableRow key={formation.id}>
+              {filteredFormations?.map((formation) => {
+                const incomplete = isIncomplete(formation);
+                return (
+                <TableRow key={formation.id} className={incomplete ? 'bg-destructive/5' : ''}>
                   <TableCell className="font-mono text-muted-foreground text-sm">
                     {sessionNumberMap.get(formation.id) || '—'}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
+                      {incomplete && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                       <span className="font-medium">{formation.titre}</span>
                       {formation.archived && <Badge variant="secondary" className="text-xs">Archivée</Badge>}
                     </div>
@@ -562,13 +577,15 @@ export default function Sessions() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    <div className={`flex items-center gap-1 ${!formation.formateur_id ? 'text-destructive font-medium' : ''}`}>
+                      <User className={`h-3.5 w-3.5 ${!formation.formateur_id ? 'text-destructive' : 'text-muted-foreground'}`} />
                       {getFormateurName(formation.formateur_id)}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{inscriptionsCounts?.[formation.id] || 0} inscrit(s)</Badge>
+                    <Badge variant={!(inscriptionsCounts?.[formation.id]) ? 'destructive' : 'outline'}>
+                      {inscriptionsCounts?.[formation.id] || 0} inscrit(s)
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {canManage && (
@@ -589,7 +606,8 @@ export default function Sessions() {
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         )}

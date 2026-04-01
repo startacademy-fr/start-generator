@@ -59,6 +59,7 @@ export interface Formation {
   programme: string | null;
   programme_pdf_url: string | null;
   created_at: string;
+  montant_total: number | null;
   updated_at: string;
   // Joined fields
   formateur?: Profile;
