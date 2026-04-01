@@ -281,12 +281,12 @@ export default function Formateurs() {
     }
   };
 
-  const toggleSort = (field: 'nom' | 'formations' | 'date') => {
+  const toggleSort = (field: 'nom' | 'formations' | 'heures') => {
     if (sortField === field) setSortAsc(!sortAsc);
     else { setSortField(field); setSortAsc(true); }
   };
 
-  const SortIcon = ({ field }: { field: 'nom' | 'formations' | 'date' }) => {
+  const SortIcon = ({ field }: { field: 'nom' | 'formations' | 'heures' }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-50" />;
     return sortAsc ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
   };
