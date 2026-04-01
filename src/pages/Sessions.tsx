@@ -347,11 +347,30 @@ export default function Sessions() {
     const matchesIncomplete = !showIncomplete || isIncomplete(f);
     return matchesSearch && matchesFormateur && matchesDateFrom && matchesDateTo && matchesIncomplete;
   })?.sort((a, b) => {
-    if (sortField === 'date') {
-      const cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
-      return sortAsc ? cmp : -cmp;
+    let cmp = 0;
+    switch (sortField) {
+      case 'date':
+        cmp = new Date(a.date_debut).getTime() - new Date(b.date_debut).getTime();
+        break;
+      case 'titre':
+        cmp = a.titre.localeCompare(b.titre, 'fr');
+        break;
+      case 'numero':
+        cmp = (sessionNumberMap.get(a.id) || 0) - (sessionNumberMap.get(b.id) || 0);
+        break;
+      case 'lieu':
+        cmp = a.lieu.localeCompare(b.lieu, 'fr');
+        break;
+      case 'heures':
+        cmp = a.nombre_heures - b.nombre_heures;
+        break;
+      case 'formateur':
+        cmp = getFormateurName(a.formateur_id).localeCompare(getFormateurName(b.formateur_id), 'fr');
+        break;
+      case 'stagiaires':
+        cmp = (inscriptionsCounts?.[a.id] || 0) - (inscriptionsCounts?.[b.id] || 0);
+        break;
     }
-    const cmp = a.titre.localeCompare(b.titre, 'fr');
     return sortAsc ? cmp : -cmp;
   });
 
