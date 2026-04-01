@@ -494,8 +494,8 @@ export default function Sessions() {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <option value="">Sélectionner une spécialité</option>
-                      {NSF_SPECIALITES.map((s) => (
-                        <option key={s.code} value={s.code}>{s.code} — {s.label}</option>
+                      {SPECIALITES_FORMATION.map((s) => (
+                        <option key={s.code} value={s.code}>{s.label}</option>
                       ))}
                     </select>
                   </div>
