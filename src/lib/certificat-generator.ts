@@ -41,9 +41,10 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   const margin = 20;
 
   // Load assets in parallel
-  const [logoBase64, signatureBase64] = await Promise.all([
+  const [logoBase64, signatureBase64, qualiopiBase64] = await Promise.all([
     loadImageAsBase64('/images/logo-white.png'),
     loadImageAsBase64('/images/tampon-signature-fusion.png'),
+    loadImageAsBase64('/images/qualiopi.png'),
   ]);
 
   // === HEADER ===
@@ -153,6 +154,15 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   const signatureY = yPos + 3;
   if (signatureBase64) {
     doc.addImage(signatureBase64, 'PNG', margin + 5, signatureY, 40, 40);
+  }
+
+  // === QUALIOPI LOGO (bottom-right) ===
+  if (qualiopiBase64) {
+    const qWidth = 45;
+    const qHeight = qWidth * (338 / 633); // preserve aspect ratio
+    const qX = pageWidth - margin - qWidth;
+    const qY = pageHeight - 28 - qHeight;
+    doc.addImage(qualiopiBase64, 'PNG', qX, qY, qWidth, qHeight);
   }
 
   // === FOOTER ===
