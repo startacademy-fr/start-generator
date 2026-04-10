@@ -41,9 +41,10 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   const margin = 20;
 
   // Load assets in parallel
-  const [logoBase64, signatureBase64] = await Promise.all([
+  const [logoBase64, signatureBase64, qualiopiBase64] = await Promise.all([
     loadImageAsBase64('/images/logo-white.png'),
     loadImageAsBase64('/images/tampon-signature-fusion.png'),
+    loadImageAsBase64('/images/qualiopi.png'),
   ]);
 
   // === HEADER ===
