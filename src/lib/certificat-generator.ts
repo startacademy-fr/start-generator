@@ -159,7 +159,7 @@ export async function generateCertificatPDF(data: CertificatData): Promise<jsPDF
   // === QUALIOPI LOGO (bottom-right) ===
   if (qualiopiBase64) {
     const qWidth = 45;
-    const qHeight = qWidth * (338 / 633); // preserve aspect ratio
+    const qHeight = qWidth * (500 / 800); // preserve aspect ratio
     const qX = pageWidth - margin - qWidth;
     const qY = pageHeight - 28 - qHeight;
     doc.addImage(qualiopiBase64, 'PNG', qX, qY, qWidth, qHeight);
