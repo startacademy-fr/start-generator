@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabase-helpers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -183,9 +184,9 @@ export default function Dashboard() {
           .sort((a, b) => b.count - a.count);
 
         // QCM scores & satisfaction from documents
-        const { data: docs } = await supabase
-          .from('documents_stagiaires')
-          .select('type, score, statut, inscription_id, contenu');
+        const docs = await fetchAllRows<{ type: string; score: number | null; statut: string; inscription_id: string; contenu: any }>(
+          () => supabase.from('documents_stagiaires').select('type, score, statut, inscription_id, contenu')
+        );
 
         const complets = docs?.filter(d => d.statut === 'complete' || d.statut === 'genere_auto').length || 0;
         const incomplets = docs?.filter(d => d.statut === 'en_attente' || d.statut === 'en_cours').length || 0;
