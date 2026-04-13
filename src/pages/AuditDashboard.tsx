@@ -376,6 +376,19 @@ export default function AuditDashboard() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
+        <div className="w-[140px]">
+          <Select value={selectedAuditYear} onValueChange={(v) => { setSelectedAuditYear(v); setSelectedFormationId('all'); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les années</SelectItem>
+              {availableAuditYears.map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="max-w-md flex-1">
           <Select value={selectedFormationId} onValueChange={setSelectedFormationId}>
             <SelectTrigger>
@@ -383,7 +396,7 @@ export default function AuditDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les formations</SelectItem>
-              {formations?.map(f => (
+              {yearFilteredFormations?.map(f => (
                 <SelectItem key={f.id} value={f.id}>
                   {f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})
                 </SelectItem>
