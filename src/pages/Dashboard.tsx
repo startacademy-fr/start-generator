@@ -700,9 +700,21 @@ export default function Dashboard() {
 
       {/* N-1 Stats */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Indicateurs clés ({n1Year})
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            Indicateurs clés ({n1Year})
+          </h2>
+          <Select value={String(selectedDashboardYear)} onValueChange={(v) => setSelectedDashboardYear(Number(v))}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              {(availableYears.length > 0 ? availableYears : [currentYear - 1, currentYear - 2]).map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {n1Cards.map((stat) => (
             <Card key={stat.title}>
