@@ -329,11 +329,14 @@ export default function Dashboard() {
           .order('date_debut', { ascending: false });
         setAllFormationsList(formationsListData || []);
 
-        // Stagiaires formés par an et par formation (toutes sessions confondues)
-        // Also include satisfaction_chaud data per formation
+        // Stagiaires formés par an et par formation catalogue (toutes sessions confondues)
+        // Group by formation_catalogue_id to merge sessions of the same catalogue formation
         const { data: allFormationsForStats } = await supabase
           .from('formations')
-          .select('id, titre, date_debut');
+          .select('id, titre, date_debut, formation_catalogue_id');
+        const { data: catalogueFormations } = await supabase
+          .from('formations_catalogue')
+          .select('id, titre');
         const { data: allInscriptionsForStats } = await supabase
           .from('inscriptions')
           .select('id, formation_id, stagiaire_id');
@@ -342,9 +345,18 @@ export default function Dashboard() {
         const allSatChaudDocs = docs?.filter(d => d.type === 'satisfaction_chaud') || [];
         
         if (allFormationsForStats && allInscriptionsForStats) {
+          // Build catalogue title map
+          const catalogueTitleMap = new Map<string, string>();
+          catalogueFormations?.forEach(c => catalogueTitleMap.set(c.id, c.titre));
+
+          // For each formation, determine the display title:
+          // If it has a formation_catalogue_id, use the catalogue title to group sessions together
           const formationInfo = new Map<string, { titre: string; year: number }>();
           allFormationsForStats.forEach(f => {
-            formationInfo.set(f.id, { titre: f.titre, year: new Date(f.date_debut).getFullYear() });
+            const displayTitle = f.formation_catalogue_id && catalogueTitleMap.has(f.formation_catalogue_id)
+              ? catalogueTitleMap.get(f.formation_catalogue_id)!
+              : f.titre;
+            formationInfo.set(f.id, { titre: displayTitle, year: new Date(f.date_debut).getFullYear() });
           });
 
           // Map inscription_id -> { titre, year }
@@ -395,7 +407,6 @@ export default function Dashboard() {
           setStagiairesYears(years);
           setAvailableYears(years);
 
-          // Store raw data for year filtering (done in useMemo)
           const allData = Array.from(titreYearMap.entries()).flatMap(([titre, yearMap]) => {
             return Array.from(yearMap.entries()).map(([year, stagiaireSet]) => {
               const satData = satByTitreYear.get(titre)?.get(year);
@@ -409,7 +420,6 @@ export default function Dashboard() {
             });
           });
 
-          // Store in a ref-like state for filtering
           setStagiairesParAnFormationRaw(allData);
         }
 
