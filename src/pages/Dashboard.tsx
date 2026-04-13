@@ -975,6 +975,34 @@ export default function Dashboard() {
                     ))
                   )}
                 </tbody>
+                {stagiairesParAnFormation.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 font-semibold bg-muted/30">
+                      <td className="py-2 pr-4">Total</td>
+                      <td className="text-center py-2 px-3">
+                        <Badge variant="secondary" className="min-w-[2rem]">
+                          {stagiairesParAnFormation.reduce((sum, r) => sum + r.stagiaires, 0)}
+                        </Badge>
+                      </td>
+                      <td className="text-center py-2 px-3">
+                        {(() => {
+                          const withSat = stagiairesParAnFormation.filter(r => r.satisfaction != null);
+                          if (withSat.length === 0) return <span className="text-muted-foreground">—</span>;
+                          const avg = Math.round((withSat.reduce((s, r) => s + r.satisfaction!, 0) / withSat.length) * 10) / 10;
+                          return <span className={`font-semibold ${avg >= 4.5 ? 'text-success' : avg >= 3.5 ? 'text-warning' : 'text-destructive'}`}>{avg}/5</span>;
+                        })()}
+                      </td>
+                      <td className="text-center py-2 px-3">
+                        {(() => {
+                          const withRec = stagiairesParAnFormation.filter(r => r.recommandation != null);
+                          if (withRec.length === 0) return <span className="text-muted-foreground">—</span>;
+                          const avg = Math.round(withRec.reduce((s, r) => s + r.recommandation!, 0) / withRec.length);
+                          return <Badge className="min-w-[2rem]">{avg}%</Badge>;
+                        })()}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </CardContent>
