@@ -41,6 +41,7 @@ export default function AuditDashboard() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedAuditYear, setSelectedAuditYear] = useState<string>('all');
   const queryClient = useQueryClient();
 
   const { data: formations } = useQuery({
@@ -113,10 +114,22 @@ export default function AuditDashboard() {
     });
   };
 
+  // Available years from formations
+  const availableAuditYears = (() => {
+    const yearsSet = new Set<number>();
+    formations?.forEach(f => yearsSet.add(new Date(f.date_debut).getFullYear()));
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  })();
+
+  // Filter formations by selected year
+  const yearFilteredFormations = selectedAuditYear === 'all'
+    ? formations
+    : formations?.filter(f => new Date(f.date_debut).getFullYear() === Number(selectedAuditYear));
+
   const filteredFormations = (() => {
     let list = selectedFormationId === 'all' 
-      ? formations 
-      : formations?.filter(f => f.id === selectedFormationId);
+      ? yearFilteredFormations 
+      : yearFilteredFormations?.filter(f => f.id === selectedFormationId);
     if (onlyIncomplete) {
       list = list?.filter(f => {
         const auditRows = getFormationAudit(f.id);
@@ -126,9 +139,11 @@ export default function AuditDashboard() {
     return list;
   })();
 
-  // Global stats
-  const allAudits = formations?.flatMap(f => getFormationAudit(f.id)) || [];
-  const totalStagiaires = allAudits.length;
+  // Global stats (based on year-filtered formations)
+  const allAudits = yearFilteredFormations?.flatMap(f => getFormationAudit(f.id)) || [];
+  const totalInscriptions = allAudits.length;
+  const uniqueStagiaireIds = new Set(allAudits.map(a => a.stagiaire?.id).filter(Boolean));
+  const totalStagiairesUniques = uniqueStagiaireIds.size;
   const completeDossiers = allAudits.filter(a => a.isComplete).length;
   const totalDocs = allAudits.reduce((sum, a) => sum + a.completedCount, 0);
   const totalExpected = allAudits.reduce((sum, a) => sum + a.totalRequired, 0);
@@ -314,15 +329,16 @@ export default function AuditDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <Users className="h-4 w-4" /> Stagiaires inscrits
+              <Users className="h-4 w-4" /> Stagiaires uniques
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{totalStagiaires}</p>
+            <p className="text-2xl font-bold">{totalStagiairesUniques}</p>
+            <p className="text-xs text-muted-foreground">{totalInscriptions} inscription(s)</p>
           </CardContent>
         </Card>
         <Card>
@@ -332,7 +348,7 @@ export default function AuditDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{completeDossiers}/{totalStagiaires}</p>
+            <p className="text-2xl font-bold">{completeDossiers}/{totalInscriptions}</p>
           </CardContent>
         </Card>
         <Card>
@@ -360,6 +376,19 @@ export default function AuditDashboard() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
+        <div className="w-[140px]">
+          <Select value={selectedAuditYear} onValueChange={(v) => { setSelectedAuditYear(v); setSelectedFormationId('all'); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les années</SelectItem>
+              {availableAuditYears.map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="max-w-md flex-1">
           <Select value={selectedFormationId} onValueChange={setSelectedFormationId}>
             <SelectTrigger>
@@ -367,7 +396,7 @@ export default function AuditDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les formations</SelectItem>
-              {formations?.map(f => (
+              {yearFilteredFormations?.map(f => (
                 <SelectItem key={f.id} value={f.id}>
                   {f.titre} ({format(new Date(f.date_debut), 'dd/MM/yyyy', { locale: fr })})
                 </SelectItem>
