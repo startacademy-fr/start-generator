@@ -393,6 +393,7 @@ export default function Dashboard() {
 
           const years = Array.from(yearsSet).sort((a, b) => b - a);
           setStagiairesYears(years);
+          setAvailableYears(years);
 
           // Store raw data for year filtering (done in useMemo)
           const allData = Array.from(titreYearMap.entries()).flatMap(([titre, yearMap]) => {
@@ -519,10 +520,10 @@ export default function Dashboard() {
     }
 
     fetchDashboardData();
-  }, []);
+  }, [selectedDashboardYear]);
 
   const currentYear = new Date().getFullYear();
-  const n1Year = currentYear - 1;
+  const n1Year = selectedDashboardYear;
 
   const filteredSatisfaction = useMemo(() => {
     if (satisfactionDocs.length === 0) return null;
