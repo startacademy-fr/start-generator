@@ -329,15 +329,16 @@ export default function AuditDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <Users className="h-4 w-4" /> Stagiaires inscrits
+              <Users className="h-4 w-4" /> Stagiaires uniques
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{totalStagiaires}</p>
+            <p className="text-2xl font-bold">{totalStagiairesUniques}</p>
+            <p className="text-xs text-muted-foreground">{totalInscriptions} inscription(s)</p>
           </CardContent>
         </Card>
         <Card>
@@ -347,7 +348,7 @@ export default function AuditDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{completeDossiers}/{totalStagiaires}</p>
+            <p className="text-2xl font-bold">{completeDossiers}/{totalInscriptions}</p>
           </CardContent>
         </Card>
         <Card>
