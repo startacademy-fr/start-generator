@@ -99,13 +99,16 @@ export default function Dashboard() {
   const [stagiairesParAnFormationRaw, setStagiairesParAnFormationRaw] = useState<{ formation: string; year: number; stagiaires: number; satisfaction: number | null; recommandation: number | null }[]>([]);
   const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
   const [selectedTableYear, setSelectedTableYear] = useState<number>(new Date().getFullYear());
+  const [selectedDashboardYear, setSelectedDashboardYear] = useState<number>(new Date().getFullYear() - 1);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         const currentYear = new Date().getFullYear();
-        const n1Start = `${currentYear - 1}-01-01`;
-        const n1End = `${currentYear - 1}-12-31`;
+        const targetYear = selectedDashboardYear;
+        const n1Start = `${targetYear}-01-01`;
+        const n1End = `${targetYear}-12-31`;
 
         // Fetch formations count (active)
         const { count: formationsCount } = await supabase
@@ -390,6 +393,7 @@ export default function Dashboard() {
 
           const years = Array.from(yearsSet).sort((a, b) => b - a);
           setStagiairesYears(years);
+          setAvailableYears(years);
 
           // Store raw data for year filtering (done in useMemo)
           const allData = Array.from(titreYearMap.entries()).flatMap(([titre, yearMap]) => {
@@ -516,10 +520,10 @@ export default function Dashboard() {
     }
 
     fetchDashboardData();
-  }, []);
+  }, [selectedDashboardYear]);
 
   const currentYear = new Date().getFullYear();
-  const n1Year = currentYear - 1;
+  const n1Year = selectedDashboardYear;
 
   const filteredSatisfaction = useMemo(() => {
     if (satisfactionDocs.length === 0) return null;
@@ -696,9 +700,21 @@ export default function Dashboard() {
 
       {/* N-1 Stats */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Indicateurs clés ({n1Year})
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            Indicateurs clés ({n1Year})
+          </h2>
+          <Select value={String(selectedDashboardYear)} onValueChange={(v) => setSelectedDashboardYear(Number(v))}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              {(availableYears.length > 0 ? availableYears : [currentYear - 1, currentYear - 2]).map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {n1Cards.map((stat) => (
             <Card key={stat.title}>
