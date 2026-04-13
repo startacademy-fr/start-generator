@@ -41,7 +41,7 @@ export default function AuditDashboard() {
   const [selectedFormationId, setSelectedFormationId] = useState<string>('all');
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedAuditYear, setSelectedAuditYear] = useState<string>('all');
+  const [selectedAuditYear, setSelectedAuditYear] = useState<string>(String(new Date().getFullYear()));
   const queryClient = useQueryClient();
 
   const { data: formations } = useQuery({
