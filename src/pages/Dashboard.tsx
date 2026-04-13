@@ -99,13 +99,16 @@ export default function Dashboard() {
   const [stagiairesParAnFormationRaw, setStagiairesParAnFormationRaw] = useState<{ formation: string; year: number; stagiaires: number; satisfaction: number | null; recommandation: number | null }[]>([]);
   const [stagiairesYears, setStagiairesYears] = useState<number[]>([]);
   const [selectedTableYear, setSelectedTableYear] = useState<number>(new Date().getFullYear());
+  const [selectedDashboardYear, setSelectedDashboardYear] = useState<number>(new Date().getFullYear() - 1);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         const currentYear = new Date().getFullYear();
-        const n1Start = `${currentYear - 1}-01-01`;
-        const n1End = `${currentYear - 1}-12-31`;
+        const targetYear = selectedDashboardYear;
+        const n1Start = `${targetYear}-01-01`;
+        const n1End = `${targetYear}-12-31`;
 
         // Fetch formations count (active)
         const { count: formationsCount } = await supabase
