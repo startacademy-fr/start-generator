@@ -114,10 +114,22 @@ export default function AuditDashboard() {
     });
   };
 
+  // Available years from formations
+  const availableAuditYears = (() => {
+    const yearsSet = new Set<number>();
+    formations?.forEach(f => yearsSet.add(new Date(f.date_debut).getFullYear()));
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  })();
+
+  // Filter formations by selected year
+  const yearFilteredFormations = selectedAuditYear === 'all'
+    ? formations
+    : formations?.filter(f => new Date(f.date_debut).getFullYear() === Number(selectedAuditYear));
+
   const filteredFormations = (() => {
     let list = selectedFormationId === 'all' 
-      ? formations 
-      : formations?.filter(f => f.id === selectedFormationId);
+      ? yearFilteredFormations 
+      : yearFilteredFormations?.filter(f => f.id === selectedFormationId);
     if (onlyIncomplete) {
       list = list?.filter(f => {
         const auditRows = getFormationAudit(f.id);
@@ -127,9 +139,11 @@ export default function AuditDashboard() {
     return list;
   })();
 
-  // Global stats
-  const allAudits = formations?.flatMap(f => getFormationAudit(f.id)) || [];
-  const totalStagiaires = allAudits.length;
+  // Global stats (based on year-filtered formations)
+  const allAudits = yearFilteredFormations?.flatMap(f => getFormationAudit(f.id)) || [];
+  const totalInscriptions = allAudits.length;
+  const uniqueStagiaireIds = new Set(allAudits.map(a => a.stagiaire?.id).filter(Boolean));
+  const totalStagiairesUniques = uniqueStagiaireIds.size;
   const completeDossiers = allAudits.filter(a => a.isComplete).length;
   const totalDocs = allAudits.reduce((sum, a) => sum + a.completedCount, 0);
   const totalExpected = allAudits.reduce((sum, a) => sum + a.totalRequired, 0);
